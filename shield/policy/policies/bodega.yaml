@@ -1,0 +1,26 @@
+agent: bodega
+app: crew
+limits:
+  max_amount_usd: 0.0
+sensitive_fields:
+  - iban
+  - bank_account
+  - api_key
+  - secret
+  - payment_domain
+  - supplier_email
+ask_owner_if:
+  - sensitive_change
+  - write_from_untrusted
+tools:
+  - name: count_inventory
+    effect: read
+  - name: transcribe_audio
+    effect: read
+  - name: read_invoice
+    effect: read
+  - name: update_stock
+    effect: write
+  - name: update_supplier_bank
+    effect: write
+    sensitive_fields: [iban, bank_account, payment_domain]
