@@ -14,6 +14,5 @@ smoke:
 	uv run python scripts/smoke.py
 
 demo:
-	@echo "Demo (3:00) — ver docs/DEMO.md cuando H10 la deje lista."
-	@echo "Por ahora: make smoke corre la prueba de humo sin red si no hay créditos."
+	@echo "Demo (3:00) — guion completo en docs/DEMO.md (replay y en vivo)."
 	uv run python scripts/smoke.py --replay
