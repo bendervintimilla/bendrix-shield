@@ -16,13 +16,25 @@ def gateway_url() -> str:
     return os.environ.get("SHIELD_GATEWAY_URL") or DEFAULT_GATEWAY_URL
 
 
-def wrap(client: Any, token: str | None = None, *, base_url: str | None = None) -> Any:
+def wrap(
+    client: Any,
+    token: str | None = None,
+    *,
+    base_url: str | None = None,
+    agent: str | None = None,
+    token_store: Any = None,
+    auto_refresh: bool = False,
+) -> Any:
     """Devuelve el mismo cliente, ya apuntado a Shield con ``token``.
 
     Uso (2 líneas)::
 
         client = wrap(OpenAI(api_key="shd_…"), "shd_…")
         client = wrap(OpenAI(), token)  # cualquier cliente estilo OpenAI
+
+    Con ``token_store`` + ``agent`` (H6.3), si el token rota el cliente se
+    recupera solo: ante un 401 refresca ``api_key`` desde el registro local
+    del agente y reintenta una vez, sin redeploy.
     """
     resolved = token or os.environ.get("SHIELD_TOKEN")
     if not resolved:
@@ -40,4 +52,21 @@ def wrap(client: Any, token: str | None = None, *, base_url: str | None = None) 
     except Exception:
         client.base_url = url
     client.api_key = resolved
+    if token_store is not None and agent:
+        try:
+            token_store.set_token(agent, resolved)
+        except Exception:
+            pass
+    if auto_refresh or token_store is not None:
+        if not agent:
+            raise ValueError("agent= es requerido para auto_refresh (registro local por agente)")
+        from shield.sdk.refresh import ShieldClient
+
+        store = token_store
+        if store is None:
+            from shield.sdk.token_store import LocalTokenStore
+
+            store = LocalTokenStore()
+            store.set_token(agent, resolved)
+        return ShieldClient(client, store, agent)
     return client
