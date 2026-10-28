@@ -15,3 +15,14 @@ update_supplier_bank(iban="EC...", _sources=[doc])
 # con pending_id en default_registry, listo para el canal de H8:
 # default_registry.approve(pending_id) ejecuta recién con el OK del dueño.
 ```
+
+## Auto-recuperación tras rotación (H6)
+
+```python
+from shield.sdk.token_store import LocalTokenStore
+
+store = LocalTokenStore()  # ~/.shield/agent-tokens.json (0600)
+client = shield.wrap(OpenAI(), token, agent="bodega", token_store=store)
+# Si actions rota el token, el store recibe el nuevo y, ante un 401,
+# el cliente refresca api_key y reintenta una vez: Bodega sigue contando.
+```

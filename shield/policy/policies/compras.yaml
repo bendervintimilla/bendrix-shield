@@ -28,6 +28,15 @@ tools:
   - name: update_supplier_email
     effect: write
     sensitive_fields: [supplier_email, email]
+  - name: propose_purchase
+    effect: read
+  - name: post_purchase
+    effect: write
+  - name: update_supplier_account
+    effect: write
+    sensitive_fields: [iban, bank_account, account_number, payment_account, payment_domain]
+  - name: recost_dish
+    effect: read
   - name: pay_supplier
     effect: write
   - name: send_email
