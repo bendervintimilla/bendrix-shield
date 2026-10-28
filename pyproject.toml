@@ -14,6 +14,7 @@ dependencies = [
     "httpx>=0.27",
     "openai>=1.50",
     "pydantic>=2.9",
+    "python-multipart>=0.0.9",
     "pyyaml>=6.0",
     "uvicorn>=0.30",
 ]
@@ -27,7 +28,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["shield"]
+packages = ["shield", "bendrix_shield"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
