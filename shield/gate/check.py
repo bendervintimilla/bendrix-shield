@@ -1,16 +1,40 @@
 """`gate.check(payload)` — hook obligatorio antes de todo envío saliente (SPEC §2.4).
 
-En H1 es un stub honesto: busca canarios en la serialización del payload y
-bloquea si aparece uno. H3 lo extiende con redacción determinista (regex de
-llaves y PII) y el clasificador con Muse Spark Open, sin cambiar la firma.
+H1: bloqueo de canarios. H3 suma, sin cambiar la firma:
+- redacción determinista de llaves/PII (ver ``gate/redact.py``); el payload
+  redactado va en ``GateResult.redacted`` y el gateway reenvía ese;
+- alerta al detectar un canario (hook registrable, por defecto log);
+- clasificación vía ``gate.classify`` (stub en H3; Spark Open en H9).
+El clasificador nunca bloquea por sí solo en este stub.
 """
 
 from __future__ import annotations
 
 import json
+import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from shield.gate.canaries import find_canaries
+from shield.gate.classify import Classification, classify
+from shield.gate.redact import Redaction, redact_payload
+
+logger = logging.getLogger("shield.gate")
+
+AlertHook = Callable[[list[str]], None]
+_alert_hook: AlertHook | None = None
+
+
+def set_alert_hook(hook: AlertHook | None) -> None:
+    global _alert_hook
+    _alert_hook = hook
+
+
+def _alert(canaries: list[str]) -> None:
+    # Solo nombres de canarios sintéticos; ningún secreto real llega aquí.
+    logger.warning("gate canary blocked canaries=%s", canaries)
+    if _alert_hook is not None:
+        _alert_hook(canaries)
 
 
 class GateBlocked(RuntimeError):
@@ -22,6 +46,9 @@ class GateResult:
     allowed: bool
     canaries_found: list[str] = field(default_factory=list)
     reason: str = ""
+    redactions: list[Redaction] = field(default_factory=list)
+    redacted: object = None
+    classification: Classification | None = None
 
 
 def _to_text(payload: object) -> str:
@@ -36,10 +63,19 @@ def _to_text(payload: object) -> str:
 
 
 def check(payload: object, *, canaries: list[str] | tuple[str, ...] | None = None) -> GateResult:
-    found = find_canaries(_to_text(payload), canaries=tuple(canaries) if canaries else None)
+    text = _to_text(payload)
+    found = find_canaries(text, canaries=tuple(canaries) if canaries else None)
     if found:
+        _alert(found)
         return GateResult(allowed=False, canaries_found=found, reason="canary_in_payload")
-    return GateResult(allowed=True, reason="ok")
+    redacted, redactions = redact_payload(payload)
+    return GateResult(
+        allowed=True,
+        reason="ok",
+        redactions=redactions,
+        redacted=redacted,
+        classification=classify(text),
+    )
 
 
 def check_or_raise(payload: object, *, canaries: list[str] | tuple[str, ...] | None = None) -> None:
