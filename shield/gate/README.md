@@ -1,3 +1,7 @@
 # shield/gate/
 
-Filtro de salida: redacción determinista, canarios y clasificador con Muse Spark Open. En H1 `check()` ya bloquea canarios; H3 suma la redacción y el clasificador sin cambiar la firma.
+Filtro de salida: `check()` bloquea canarios (con alerta), redacta de forma
+determinista llaves (`sk-`, `AIza`, `LLM_`, `ghp_`, JWT, AWS, IBAN…) y PII
+(correos, teléfonos) y clasifica con `classify(text)`. El clasificador es un
+stub honesto en H3 (`unclassified`, nunca bloquea); H9 lo conecta a Muse
+Spark Open sin cambiar la firma.
