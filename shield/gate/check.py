@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 
 from shield.gate.canaries import find_canaries
 from shield.gate.classify import Classification, classify
+from shield.gate.open_classifier import BLOCK_LABELS, BLOCK_THRESHOLD
 from shield.gate.redact import Redaction, redact_payload
 
 logger = logging.getLogger("shield.gate")
@@ -69,12 +70,26 @@ def check(payload: object, *, canaries: list[str] | tuple[str, ...] | None = Non
         _alert(found)
         return GateResult(allowed=False, canaries_found=found, reason="canary_in_payload")
     redacted, redactions = redact_payload(payload)
+    classification = classify(text)
+    # Spark Open (H9) sí bloquea con confianza alta; el stub y needs_credits no.
+    if (
+        classification is not None
+        and classification.label in BLOCK_LABELS
+        and classification.score >= BLOCK_THRESHOLD
+    ):
+        return GateResult(
+            allowed=False,
+            reason=f"spark_open_{classification.label}",
+            redactions=redactions,
+            redacted=redacted,
+            classification=classification,
+        )
     return GateResult(
         allowed=True,
         reason="ok",
         redactions=redactions,
         redacted=redacted,
-        classification=classify(text),
+        classification=classification,
     )
 
 

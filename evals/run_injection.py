@@ -1,9 +1,10 @@
-"""Eval de inyección de H4: corre policy.check sobre evals/injection/.
+"""Eval de inyección sintética: policy.check sobre evals/injection/ (H2/H4).
 
 Uso: ``uv run python evals/run_injection.py``
-Escribe métricas (bloqueo, falsos positivos, costo) en evals/report.md.
-Sin red ni créditos: el clasificador Spark solo se invocaría en casos
-ambiguos y aquí se cuenta su costo como 0 si no hubo llamadas reales.
+Escribe solo su sección marcada en evals/report.md (no pisa a H5/H7/H9).
+Sin red ni créditos. Ojo: este set se generó con los mismos patrones que
+las reglas, así que su 100 % no es la cifra para el jurado; la cifra
+independiente es la del set held-out de H9 (``run_heldout.py``).
 """
 
 from __future__ import annotations
@@ -14,13 +15,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from evals._sections import write_section  # noqa: E402
 from shield.policy.check import PolicyEngine  # noqa: E402
 from shield.policy.extract import ExtractedDoc, Segment  # noqa: E402
 from shield.policy.injection import UntrustedDoc  # noqa: E402
 from shield.schemas import Decision  # noqa: E402
 
 INJECTION_DIR = Path(__file__).parent / "injection"
-REPORT = Path(__file__).parent / "report.md"
+START, END = "<!-- H4:injection:start -->", "<!-- H4:injection:end -->"
 
 
 def load_cases() -> list[dict]:
@@ -45,15 +47,11 @@ def doc_of(case: dict) -> UntrustedDoc:
     )
 
 
-def main() -> int:
-    cases = load_cases()
-    if not cases:
-        print("sin casos: corre antes evals/gen_injection_temp.py")
-        return 1
+def evaluate() -> dict:
     engine = PolicyEngine()
     poisoned = blocked = clean = false_pos = ask_clean = 0
     rows = []
-    for case in cases:
+    for case in load_cases():
         label = case.get("label")
         decision = engine.check(
             "compras",
@@ -72,27 +70,48 @@ def main() -> int:
         rows.append(
             f"| {case.get('id')} | {label} | {decision.decision.value} | {decision.reason[:60]} |"
         )
-    block_rate = blocked / poisoned if poisoned else 0.0
-    fp_rate = false_pos / clean if clean else 0.0
-    cost = engine.classifier_cost_usd
-    REPORT.write_text(
-        "# Eval de inyección — H4\n\n"
-        "Set temporal H4 (10 envenenados + 10 limpios) hasta que H2 deje el set completo.\n\n"
-        f"- Documentos envenenados: {poisoned}\n"
-        f"- Bloqueados: {blocked} (tasa de bloqueo: {block_rate:.0%})\n"
-        f"- Documentos limpios: {clean}\n"
-        f"- Falsos positivos (limpio bloqueado): {false_pos} (tasa: {fp_rate:.0%})\n"
-        f"- Limpios escalados a ask_owner: {ask_clean}\n"
-        f"- Llamadas al clasificador Spark: {engine.classifier_calls}\n"
-        f"- Costo en créditos (clasificador): USD {cost:.4f}\n\n"
-        "| caso | etiqueta | decisión | razón |\n|---|---|---|---|\n" + "\n".join(rows) + "\n",
-        encoding="utf-8",
+    return {
+        "poisoned": poisoned,
+        "blocked": blocked,
+        "clean": clean,
+        "false_pos": false_pos,
+        "ask_clean": ask_clean,
+        "classifier_calls": engine.classifier_calls,
+        "cost_usd": engine.classifier_cost_usd,
+        "rows": rows,
+    }
+
+
+def format_section(m: dict) -> str:
+    block_rate = m["blocked"] / m["poisoned"] if m["poisoned"] else 0.0
+    fp_rate = m["false_pos"] / m["clean"] if m["clean"] else 0.0
+    return (
+        "## Eval de inyección sintética — H4 (set de H2)\n\n"
+        "Set de 30 envenenados + 30 limpios generado con los mismos patrones "
+        "que las reglas: sirve como regresión, **no** como cifra para el "
+        "jurado. La medición independiente está en la sección held-out de H9.\n\n"
+        f"- Documentos envenenados: {m['poisoned']}\n"
+        f"- Bloqueados: {m['blocked']} (tasa de bloqueo: {block_rate:.0%})\n"
+        f"- Documentos limpios: {m['clean']}\n"
+        f"- Falsos positivos (limpio bloqueado): {m['false_pos']} (tasa: {fp_rate:.0%})\n"
+        f"- Limpios escalados a ask_owner: {m['ask_clean']}\n"
+        f"- Llamadas al clasificador Spark: {m['classifier_calls']}\n"
+        f"- Costo en créditos (clasificador): USD {m['cost_usd']:.4f}\n\n"
+        "| caso | etiqueta | decisión | razón |\n|---|---|---|---|\n" + "\n".join(m["rows"])
     )
+
+
+def main() -> int:
+    metrics = evaluate()
+    write_section(START, END, format_section(metrics))
+    block_rate = metrics["blocked"] / metrics["poisoned"] if metrics["poisoned"] else 0.0
+    fp_rate = metrics["false_pos"] / metrics["clean"] if metrics["clean"] else 0.0
     print(
-        f"injection: bloqueo {blocked}/{poisoned} ({block_rate:.0%}), "
-        f"FP {false_pos}/{clean} ({fp_rate:.0%}), costo USD {cost:.4f} -> {REPORT}"
+        f"injection: bloqueo {metrics['blocked']}/{metrics['poisoned']} ({block_rate:.0%}), "
+        f"FP {metrics['false_pos']}/{metrics['clean']} ({fp_rate:.0%}), "
+        f"costo USD {metrics['cost_usd']:.4f}"
     )
-    return 0 if blocked == poisoned and false_pos == 0 else 1
+    return 0
 
 
 if __name__ == "__main__":

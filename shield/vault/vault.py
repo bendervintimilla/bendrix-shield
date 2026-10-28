@@ -78,11 +78,34 @@ class MemoryVault(BaseVault):
         return f"MemoryVault(names={self.names()!r})"
 
 
+class EnvVault(BaseVault):
+    """Secretos inyectados como variables de entorno por el orquestador.
+
+    En Cloud Run las variables vienen de Secret Manager con
+    ``--set-secrets`` (ver ``deploy/cloudrun.sh``); el secreto sigue viviendo
+    en Secret Manager, el proceso solo lo lee del entorno. El nombre del
+    vault se mapea a MAYÚSCULAS con guiones bajos (``baseten-api-key`` →
+    ``BASETEN_API_KEY``); ``META_MODEL_API_KEY`` ya cumple esa forma.
+    """
+
+    def get(self, name: str) -> str | None:
+        env_name = name.upper().replace("-", "_").replace(" ", "_")
+        return os.environ.get(env_name) or os.environ.get(name) or None
+
+    def put(self, name: str, value: str) -> None:
+        if not value:
+            raise ValueError("vault value must not be empty")
+        env_name = name.upper().replace("-", "_").replace(" ", "_")
+        os.environ[env_name] = value
+
+
 def get_vault(backend: str | None = None, **kwargs: object) -> BaseVault:
-    """Fábrica por entorno: SHIELD_VAULT_BACKEND=memory|keychain|secret-manager."""
+    """Fábrica por entorno: SHIELD_VAULT_BACKEND=memory|keychain|secret-manager|env."""
     chosen = (backend or os.environ.get("SHIELD_VAULT_BACKEND") or "keychain").lower()
     if chosen == "memory":
         return MemoryVault()
+    if chosen == "env":
+        return EnvVault()
     if chosen == "keychain":
         from shield.vault.keychain import KeychainVault
 
