@@ -53,3 +53,51 @@ Set temporal H4 (10 envenenados + 10 limpios) hasta que H2 deje el set completo.
 - Falsos positivos en la serie normal (2ª mitad vs 1ª): 0 llamadas.
 
 <!-- H5:anomaly:end -->
+
+## Eval de facturas — H7
+
+Replay sin red sobre las 20 facturas sintéticas de H2. El `raw_text` de H2 solo trae total, número y moneda: `vendor`, `date`, `subtotal` y `tax` no están en el texto y **no se inventan** (no evaluables desde texto; sí se valida su aritmética estructurada).
+
+- Facturas: 20
+- Total exacto desde texto: 20/20
+- Número exacto desde texto: 20/20
+- Moneda exacta desde texto: 20/20
+- Validación aritmética (tol. 0,02) estructurada: 20/20
+- Escena limpia registrada: sí (estado: ok)
+- Escena envenenada bloqueada con evidencia: sí (estado: blocked)
+- Cuenta del proveedor intacta tras el envenenamiento: sí
+- Costo en créditos: USD 0 (sin llamadas a modelos; Spark visión queda `needs_credits` hasta que haya tarjeta).
+
+| factura | total | número | aritmética |
+|---|---|---|---|
+| SYN-2026-0000 | ok | ok | ok |
+| SYN-2026-0001 | ok | ok | ok |
+| SYN-2026-0002 | ok | ok | ok |
+| SYN-2026-0003 | ok | ok | ok |
+| SYN-2026-0004 | ok | ok | ok |
+| SYN-2026-0005 | ok | ok | ok |
+| SYN-2026-0006 | ok | ok | ok |
+| SYN-2026-0007 | ok | ok | ok |
+| SYN-2026-0008 | ok | ok | ok |
+| SYN-2026-0009 | ok | ok | ok |
+| SYN-2026-0010 | ok | ok | ok |
+| SYN-2026-0011 | ok | ok | ok |
+| SYN-2026-0012 | ok | ok | ok |
+| SYN-2026-0013 | ok | ok | ok |
+| SYN-2026-0014 | ok | ok | ok |
+| SYN-2026-0015 | ok | ok | ok |
+| SYN-2026-0016 | ok | ok | ok |
+| SYN-2026-0017 | ok | ok | ok |
+| SYN-2026-0018 | ok | ok | ok |
+| SYN-2026-0019 | ok | ok | ok |
+
+## Eval de bodega (SAM + voz) — H7
+
+Replay sin red. **No hay tomas reales de bodega todavía** (la lista por grabar está en `evals/private/tomas.md`): las salidas SAM son texto sintético con la gramática oficial de `docs/SAM.md` y la voz es texto replay, no audio real.
+
+- Conteo en imagen (esperado 3): 3 (ok)
+- Conteo en video por track IDs (esperado 3 únicos [0, 1, 5]): 3 [0, 1, 5] (ok)
+- Dictado a ítems (esperado papas=10, huevos=12): {'papas': 10.0, 'huevos': 12.0} (ok)
+- Diferencia contra el teórico detectada: sí (filas: [{'item': 'huevo', 'theoretical': 12.0, 'counted': 3.0, 'diff': -9.0, 'status': 'faltante'}, {'item': 'papa', 'theoretical': 10.0, 'counted': 3.0, 'diff': -7.0, 'status': 'faltante'}])
+- Costo SAM teórico de la eval: USD 0.0125 (imagen USD 0,0025 + video al mínimo de 50 frames USD 0,01, por concepto; en replay no se factura)
+- Costo en créditos real: USD 0 (sin llamadas a modelos).
