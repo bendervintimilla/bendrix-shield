@@ -1,0 +1,34 @@
+agent: compras
+app: crew
+limits:
+  max_amount_usd: 500.0
+  currency_field: amount_usd
+sensitive_fields:
+  - iban
+  - bank_account
+  - account_number
+  - api_key
+  - secret
+  - payment_domain
+  - supplier_email
+ask_owner_if:
+  - sensitive_change
+  - amount_over_limit
+  - write_from_untrusted
+tools:
+  - name: read_invoice
+    effect: read
+  - name: extract_invoice
+    effect: read
+  - name: list_suppliers
+    effect: read
+  - name: update_supplier_bank
+    effect: write
+    sensitive_fields: [iban, bank_account, account_number, payment_domain]
+  - name: update_supplier_email
+    effect: write
+    sensitive_fields: [supplier_email, email]
+  - name: pay_supplier
+    effect: write
+  - name: send_email
+    effect: write
