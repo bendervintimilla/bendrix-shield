@@ -1,7 +1,9 @@
 """Genera evals/injection/{poison,clean}-NN.json — semilla 42, reproducible.
 Uso: uv run python evals/gen_injection.py  (30 envenenados + 30 limpios)"""
-import json, random
+import json
+import random
 from pathlib import Path
+
 random.seed(42); R=Path(__file__).parent
 TECHS=["white_text","metadata","ocr_text","ignore_instructions","change_iban","print_api_key","fake_iban_es","hidden_prompt"]
 for i in range(30):

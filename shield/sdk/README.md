@@ -1,7 +1,6 @@
 # shield/sdk/
 
-Paquete `bendrix_shield`: `shield.wrap(client)` (H3), `@shield.tool(...)`
-y `shield.untrusted(doc)` (H4).
+Paquete `bendrix_shield`: `shield.wrap(client, token)` (H3) apunta cualquier cliente OpenAI al gateway con el token Shield del agente en una línea; `@shield.tool(...)` y `shield.untrusted(doc)` (H4) pasan cada herramienta por la política. Ejemplo mínimo en `examples/any-app/` (curl, Python y TS).
 
 ```python
 import shield

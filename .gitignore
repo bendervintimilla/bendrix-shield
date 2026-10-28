@@ -27,3 +27,4 @@ evals/private/
 !docs/*.png
 replay-cache/
 .smoke-audio/
+shield-registry.db
