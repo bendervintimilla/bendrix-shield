@@ -1,0 +1,27 @@
+{
+  "id": "litellm-1.107.0-trojanized",
+  "source_url": "https://www.webpronews.com/litellm-1-107-0-attack-chain-unrevoked-master-key/",
+  "published_at": "2026-10-21T00:00:00Z",
+  "products": [
+    {
+      "name": "LiteLLM",
+      "ecosystem": "pypi",
+      "affected_versions": [
+        "1.107.0"
+      ],
+      "fixed_versions": [
+        "1.106.2"
+      ]
+    }
+  ],
+  "iocs": [
+    "litellm==1.107.0"
+  ],
+  "actions": [
+    "pin_1.106.2",
+    "rotate_all_credentials",
+    "audit_pth_files"
+  ],
+  "severity": "critical",
+  "title": "LiteLLM 1.107.0 troyanizado (master key sin revocar)"
+}
