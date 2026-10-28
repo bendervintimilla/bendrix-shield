@@ -1,0 +1,23 @@
+{
+  "id": "emudhra-ca-keys-2026-10",
+  "source_url": "https://omniline.app/blog/patch-week-october-2026-triage-by-fix-shape",
+  "published_at": "2026-10-20T00:00:00Z",
+  "products": [
+    {
+      "name": "eMudhra CA",
+      "ecosystem": "tls-trust-store",
+      "affected_versions": [
+        "8 intermediate CAs with recoverable keys"
+      ],
+      "fixed_versions": []
+    }
+  ],
+  "iocs": [],
+  "actions": [
+    "distrust_emudhra_intermediates",
+    "replace_certificates"
+  ],
+  "severity": "high",
+  "title": "eMudhra: claves privadas de 8 CA intermedias recuperables (ver nota en README: sin CVE propio)",
+  "note": "Sin CVE propio asignado en la fuente consultada; no se inventa CVE. Ver evals/README.md."
+}

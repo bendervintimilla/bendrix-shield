@@ -1,0 +1,15 @@
+{
+  "canaries": [
+    "CANARY-SHIELD-0001",
+    "[REDACTED]",
+    "CANARY-SHIELD-0003",
+    "CANARY-SHIELD-0004",
+    "CANARY-SHIELD-0005",
+    "CANARY-SHIELD-0006",
+    "CANARY-SHIELD-0007",
+    "CANARY-SHIELD-0008",
+    "CANARY-SHIELD-0009",
+    "CANARY-SHIELD-0010"
+  ],
+  "note": "Secretos sintéticos trampa de H2. Nunca son credenciales reales. El gate debe bloquear cualquier payload que los contenga."
+}

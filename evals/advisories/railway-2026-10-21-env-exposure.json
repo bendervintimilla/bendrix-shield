@@ -1,0 +1,24 @@
+{
+  "id": "railway-2026-10-21-env-exposure",
+  "source_url": "https://blog.railway.com/p/security-disclosure-wednesday-october-21st",
+  "published_at": "2026-10-21T00:00:00Z",
+  "products": [
+    {
+      "name": "Railway",
+      "ecosystem": "platform",
+      "affected_versions": [
+        "env-vars-stored-before-2026-10-21"
+      ],
+      "fixed_versions": []
+    }
+  ],
+  "iocs": [],
+  "actions": [
+    "rotate_upstream_key",
+    "rotate_token",
+    "redeploy",
+    "verify"
+  ],
+  "severity": "high",
+  "title": "Railway 21-oct-2026: actividad anómala en variables de entorno"
+}
