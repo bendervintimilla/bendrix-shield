@@ -2,8 +2,9 @@
 
 Tool calling con Spark 1.3 cuando hay cliente; sin créditos cae al pipeline
 determinista (mismas herramientas, sin modelo). Las acciones con efecto son
-una interfaz (``GuardianActions``) que implementa H6: aquí solo hay un
-adaptador local sobre el Registry para demo/tests. Ninguna acción con
+una interfaz (``GuardianActions``): ``RegistryActions`` es el adaptador
+local de demo y ``RunbookGuardianActions`` (H8) delega en los runbooks
+reales de H6 (``shield/actions/``) por el mismo camino. Ninguna acción con
 efecto se ejecuta sin un ``approval_id`` emitido por ``ask_owner`` en esta
 misma corrida: rotar o revocar sin OK del dueño no es una ruta válida.
 """
@@ -71,6 +72,82 @@ class RegistryActions:
     def revoke(self, token_id: str, approval_id: str) -> dict[str, Any]:
         token = self._registry.revoke(token_id)
         return {"status": "revoked" if token else "not_found", "token_id": token_id}
+
+
+class RunbookGuardianActions:
+    """``GuardianActions`` sobre los runbooks reales de H6 (conexión H8).
+
+    Cada método hace plan → apply(approval_id) → verify del runbook. El
+    ``approval_id`` es el ``pending_id`` del ``PendingRegistry`` compartido
+    con los canales: sin aprobación aprobada, H6 levanta
+    ``ApprovalRequired`` y aquí se devuelve ``blocked`` sin efecto.
+    Nunca devuelve secretos: solo ids, huellas y estados.
+    """
+
+    def __init__(self, actions: Any, *, grace_s: float = 0.0) -> None:
+        self._actions = actions
+        self.grace_s = grace_s
+
+    def rotate_token(self, agent: str, approval_id: str) -> dict[str, Any]:
+        from shield.actions.runbooks import ApprovalRequired
+
+        runbook = self._actions.rotate_token(grace_s=self.grace_s)
+        plan = runbook.plan(agent=agent)
+        try:
+            result = runbook.apply(plan, approval_id=approval_id)
+        except ApprovalRequired as exc:
+            return {"status": "blocked", "reason": str(exc), "agent": agent}
+        except ValueError as exc:
+            return {"status": "not_found", "reason": str(exc), "agent": agent}
+        verified = runbook.verify(agent=agent)
+        return {
+            "status": result.status,
+            "agent": agent,
+            "new_token_id": result.new_token_id,
+            "plan_id": result.plan_id,
+            "verify_ok": verified.ok,
+        }
+
+    def rotate_upstream_key(self, provider: str, approval_id: str) -> dict[str, Any]:
+        from shield.actions.runbooks import ApprovalRequired, ManualStepRequired
+
+        try:
+            runbook = self._actions.rotate_upstream_key()
+            plan = runbook.plan(provider=provider)
+            result = runbook.apply(plan, approval_id=approval_id)
+        except ManualStepRequired as exc:
+            return {"status": "manual_step_required", "provider": provider, "detail": str(exc)}
+        except ApprovalRequired as exc:
+            return {"status": "blocked", "reason": str(exc), "provider": provider}
+        except PermissionError as exc:
+            return {"status": "manual_step_required", "provider": provider, "detail": str(exc)}
+        return {
+            "status": result.status,
+            "provider": provider,
+            "plan_id": result.plan_id,
+            "details": dict(result.details),
+        }
+
+    def verify(self, target: str) -> dict[str, Any]:
+        runbook = self._actions.verify()
+        result = runbook.verify(agents=[target])
+        return {"status": "ok" if result.ok else "failed", "target": target, "ok": result.ok}
+
+    def revoke(self, token_id: str, approval_id: str) -> dict[str, Any]:
+        from shield.actions.runbooks import ApprovalRequired
+
+        registry = self._actions.registry
+        token = registry.get_token(token_id)
+        agent = token.agent if token else token_id
+        if token is None and not registry.list_tokens(token_id):
+            return {"status": "not_found", "token_id": token_id}
+        runbook = self._actions.revoke()
+        plan = runbook.plan(agent=agent)
+        try:
+            result = runbook.apply(plan, approval_id=approval_id)
+        except ApprovalRequired as exc:
+            return {"status": "blocked", "reason": str(exc), "token_id": token_id}
+        return {"status": result.status, "agent": agent, "token_id": token_id}
 
 
 class Approver(Protocol):
@@ -290,16 +367,80 @@ class GuardianAgent:
         )
         return self._plan.to_dict()
 
+    def _steps_for(self, approval_id: str) -> set[tuple[str, str]]:
+        scoped = getattr(self.approver, "approved_steps_for", None)
+        if callable(scoped):
+            steps = scoped(approval_id)
+            if steps:
+                return set(steps)
+        assert self._plan is not None
+        return {(s.action, s.target) for s in self._plan.steps if s.requires_approval}
+
     def tool_ask_owner(self) -> dict[str, Any]:
         if self._plan is None:
             self.tool_propose_plan()
         assert self._plan is not None
         self._approval_id = self.approver.ask_owner(self._plan)
         if self._approval_id:
-            self._approved_steps = {
-                (s.action, s.target) for s in self._plan.steps if s.requires_approval
-            }
-        return {"approval_id": self._approval_id, "approved": self._approval_id is not None}
+            self._approved_steps = self._steps_for(self._approval_id)
+        pending = getattr(self.approver, "pending_approval_id", None)
+        return {
+            "approval_id": self._approval_id,
+            "approved": self._approval_id is not None,
+            "pending_approval_id": pending if not self._approval_id else None,
+        }
+
+    def tool_resume_approval(self, approval_id: str) -> dict[str, Any]:
+        """Retoma tras la decisión asíncrona del canal (WhatsApp/panel/voz)."""
+        if self._plan is None:
+            self.tool_propose_plan()
+        checker = getattr(self.approver, "is_approved", None)
+        if callable(checker) and not checker(approval_id):
+            rejected = getattr(self.approver, "is_rejected", None)
+            status = "rejected" if callable(rejected) and rejected(approval_id) else "pending"
+            return {"approval_id": None, "approved": False, "status": status}
+        self._approval_id = approval_id
+        self._approved_steps = self._steps_for(approval_id)
+        return {"approval_id": approval_id, "approved": True}
+
+    def execute_approved(self, approval_id: str) -> GuardianReport:
+        """Ejecuta solo los pasos aprobados del plan ya propuesto."""
+        resumed = self.tool_resume_approval(approval_id)
+        report = GuardianReport(
+            exposures=list(self._exposures),
+            anomalies=list(self._anomalies),
+            plan=self._plan,
+            approval_id=approval_id if resumed.get("approved") else None,
+        )
+        if not resumed.get("approved"):
+            report.summary = f"sin ejecutar: aprobación {resumed.get('status', 'pending')}"
+            return report
+        for step in self._plan.steps if self._plan else []:
+            if step.action in EFFECT_TOOLS:
+                if (step.action, step.target) not in self._approved_steps:
+                    report.executed.append(
+                        {"action": step.action, "target": step.target, "status": "skipped"}
+                    )
+                    continue
+                result = self.dispatch(
+                    step.action,
+                    {
+                        "agent": step.target,
+                        "provider": step.target,
+                        "token_id": step.target,
+                        "approval_id": approval_id,
+                    },
+                )
+                report.executed.append({"action": step.action, "target": step.target, **result})
+            elif step.action == "verify":
+                report.executed.append(
+                    {"action": "verify", "target": step.target, **self.tool_verify(step.target)}
+                )
+        report.summary = (
+            f"exposures={len(report.exposures)} anomalies={len(report.anomalies)} "
+            f"executed={len(report.executed)} approval={approval_id}"
+        )
+        return report
 
     # -- herramientas con efecto (exigen approval_id de ask_owner) ----------
 
@@ -356,6 +497,7 @@ class GuardianAgent:
             "detect_anomaly": lambda: self.tool_detect_anomaly(),
             "propose_plan": lambda: self.tool_propose_plan(),
             "ask_owner": lambda: self.tool_ask_owner(),
+            "resume_approval": lambda: self.tool_resume_approval(str(args.get("approval_id", ""))),
             "rotate_token": lambda: self.tool_rotate_token(
                 str(args.get("agent", "")), str(args.get("approval_id", ""))
             ),
@@ -390,6 +532,18 @@ class GuardianAgent:
             if report.approval_id:
                 for step in self._plan.steps if self._plan else []:
                     if step.action in EFFECT_TOOLS:
+                        if (
+                            self._approved_steps
+                            and (step.action, step.target) not in self._approved_steps
+                        ):
+                            report.executed.append(
+                                {
+                                    "action": step.action,
+                                    "target": step.target,
+                                    "status": "skipped",
+                                }
+                            )
+                            continue
                         result = self.dispatch(
                             step.action,
                             {
