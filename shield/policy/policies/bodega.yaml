@@ -13,6 +13,12 @@ ask_owner_if:
   - sensitive_change
   - write_from_untrusted
 tools:
+  - name: count_stock
+    effect: read
+  - name: transcribe
+    effect: read
+  - name: diff_stock
+    effect: read
   - name: count_inventory
     effect: read
   - name: transcribe_audio
