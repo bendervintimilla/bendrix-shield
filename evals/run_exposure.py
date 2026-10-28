@@ -93,8 +93,12 @@ def main() -> int:
         f"(TP {cand_m['tp']}, FP {cand_m['fp']}, FN {cand_m['fn']}).\n"
         f"- Triaje Wonder: {triaged} candidatos, needs_credits en {needs_credits} estates, "
         f"costo USD {cost:.4f}.\n"
-        "- Nota: CVE-2026-109618/109619 traen el mismo rango PHP; el determinista confirma "
-        "ambos y el set etiqueta solo uno, lo que baja la precisión sin ser un fallo de rango.\n"
+        "- Nota H10: CVE-2026-109618/109619 (mismo producto PHP y mismo rango) se "
+        "agrupan como avisos hermanos en `match_all` y cuentan una sola vez. "
+        "Brotli (CVE-2026-111497) revisado: su rango («brotli decoder affected "
+        "builds») no trae cota ni versión fija de Brotli, así que queda como "
+        "candidato para el triaje Wonder y no se inventa un confirmado; por eso "
+        "el recall confirmado no lo cuenta y el de candidatos sí.\n"
     )
     write_section(text)
     print(

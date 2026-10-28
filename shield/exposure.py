@@ -166,10 +166,53 @@ def match(threat: ThreatCard, assets: list[Asset]) -> list[Exposure]:
     return found
 
 
+def _sibling_key(threat: ThreatCard, asset_id: str) -> tuple:
+    """Clave de avisos hermanos: mismo activo, producto y rango afectado."""
+    products = tuple(
+        sorted(
+            (
+                _norm(p.name),
+                (p.ecosystem or "").lower(),
+                tuple(p.affected_versions),
+                tuple(p.fixed_versions),
+            )
+            for p in threat.products
+        )
+    )
+    return (asset_id, products)
+
+
 def match_all(threats: list[ThreatCard], assets: list[Asset]) -> list[Exposure]:
-    found: list[Exposure] = []
+    """Cruce completo con avisos hermanos agrupados: no cuentan doble.
+
+    Dos avisos con el mismo producto y el mismo rango (los CVE gemelos
+    de PHP) sobre el mismo activo son una sola exposición; se conserva
+    el primer ``threat_id`` y se anotan los hermanos en la razón.
+    """
+    grouped: dict[tuple, Exposure] = {}
+    siblings: dict[tuple, list[str]] = {}
+    order: list[tuple] = []
     for threat in threats:
-        found.extend(match(threat, assets))
+        for exposure in match(threat, assets):
+            key = _sibling_key(threat, exposure.asset_id)
+            if key not in grouped:
+                grouped[key] = exposure
+                siblings[key] = [exposure.threat_id]
+                order.append(key)
+            elif threat.id not in siblings[key]:
+                siblings[key].append(threat.id)
+    found: list[Exposure] = []
+    for key in order:
+        exposure = grouped[key]
+        ids = siblings[key]
+        if len(ids) > 1:
+            exposure = Exposure(
+                threat_id=exposure.threat_id,
+                asset_id=exposure.asset_id,
+                reason=f"{exposure.reason} (avisos hermanos agrupados: {', '.join(ids)})",
+                confidence=exposure.confidence,
+            )
+        found.append(exposure)
     return found
 
 

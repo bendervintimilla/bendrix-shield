@@ -7,7 +7,52 @@ local del agente y reintenta **una vez**. Sin cambio de código en la app.
 
 from __future__ import annotations
 
+import os
+from collections.abc import Callable
 from typing import Any
+
+IdentityFetcher = Callable[[], str | None]
+
+
+def expected_service_account() -> str | None:
+    """Cuenta de servicio exigida al refresh, si el despliegue la fija."""
+    return os.environ.get("SHIELD_EXPECTED_SERVICE_ACCOUNT") or None
+
+
+def fetch_service_account_email() -> str | None:
+    """Email de la identidad del servicio (metadata de Cloud Run/GCE)."""
+    try:
+        import httpx
+
+        resp = httpx.get(
+            "http://metadata.google.internal/computeMetadata/v1/instance/"
+            "service-accounts/default/email",
+            headers={"Metadata-Flavor": "Google"},
+            timeout=1.0,
+        )
+        if resp.status_code == 200:
+            return resp.text.strip() or None
+    except Exception:
+        return None
+    return None
+
+
+def refresh_allowed(
+    *,
+    expected: str | None = None,
+    fetcher: IdentityFetcher | None = None,
+) -> bool:
+    """Sin identidad exigida, el refresh local sigue como en H6.
+
+    Con ``SHIELD_EXPECTED_SERVICE_ACCOUNT`` fijada, el refresh solo
+    procede si la identidad del servicio coincide; si no se puede
+    comprobar, falla cerrado (no refresca).
+    """
+    wanted = expected if expected is not None else expected_service_account()
+    if not wanted:
+        return True
+    actual = (fetcher or fetch_service_account_email)()
+    return actual == wanted
 
 
 def is_auth_error(exc: BaseException) -> bool:
@@ -21,8 +66,17 @@ def is_auth_error(exc: BaseException) -> bool:
     return "401" in text and ("rotated" in text or "revoked" in text or "invalid" in text)
 
 
-def refresh_client_token(client: Any, store: Any, agent: str) -> bool:
+def refresh_client_token(
+    client: Any,
+    store: Any,
+    agent: str,
+    *,
+    expected_service_account: str | None = None,
+    identity_fetcher: IdentityFetcher | None = None,
+) -> bool:
     """Actualiza ``client.api_key`` desde el store si cambió. True si refrescó."""
+    if not refresh_allowed(expected=expected_service_account, fetcher=identity_fetcher):
+        return False
     fresh = store.get_token(agent) if store is not None else None
     if fresh and getattr(client, "api_key", None) != fresh:
         client.api_key = fresh
@@ -65,10 +119,20 @@ class _AttrProxy:
 class ShieldClient:
     """Envuelve el cliente real; expone la misma superficie vía proxy."""
 
-    def __init__(self, client: Any, store: Any, agent: str) -> None:
+    def __init__(
+        self,
+        client: Any,
+        store: Any,
+        agent: str,
+        *,
+        expected_service_account: str | None = None,
+        identity_fetcher: IdentityFetcher | None = None,
+    ) -> None:
         object.__setattr__(self, "_client", client)
         object.__setattr__(self, "_store", store)
         object.__setattr__(self, "_agent", agent)
+        object.__setattr__(self, "_expected_sa", expected_service_account)
+        object.__setattr__(self, "_identity_fetcher", identity_fetcher)
 
     @property
     def raw(self) -> Any:
@@ -79,6 +143,8 @@ class ShieldClient:
             object.__getattribute__(self, "_client"),
             object.__getattribute__(self, "_store"),
             object.__getattribute__(self, "_agent"),
+            expected_service_account=object.__getattribute__(self, "_expected_sa"),
+            identity_fetcher=object.__getattribute__(self, "_identity_fetcher"),
         )
 
     def refresh_now(self) -> bool:
