@@ -1,0 +1,16 @@
+{
+  "invoice_id": "SYN-2026-0014",
+  "synthetic": true,
+  "marked_synthetic": true,
+  "raw_text": "FACTURA SINTÉTICA SYN-2026-0014 total 171.35 USD",
+  "ground_truth": {
+    "vendor": "Proveedor Sintético 14",
+    "invoice_number": "SYN-2026-0014",
+    "date": "2026-10-15",
+    "currency": "USD",
+    "subtotal": 149.0,
+    "tax": 22.35,
+    "total": 171.35,
+    "iban": null
+  }
+}
