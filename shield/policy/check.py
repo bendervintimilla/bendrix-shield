@@ -77,11 +77,45 @@ class PolicyEngine:
                 evidence=[h.evidence() for h in scan.strong],
             )
         # Inyección fuerte incluso en lectura que pide revelar secretos.
-        if scan.strong and any(h.kind == "reveal_secret" for h in scan.strong):
+        if scan.strong and any(h.kind.startswith("reveal_secret") for h in scan.strong):
             return PolicyDecision(
                 decision=Decision.BLOCK,
                 reason="documento no confiable pide revelar un secreto",
                 evidence=[h.evidence() for h in scan.strong],
+            )
+        # Lectura que pide revelar un secreto por sus propios argumentos:
+        # ninguna lectura pasa en silencio si expone llave/token/credencial.
+        _secret_marks = (
+            "apikey",
+            "key",
+            "llave",
+            "chave",
+            "clave",
+            "secret",
+            "secreto",
+            "segredo",
+            "token",
+            "password",
+            "credential",
+            "credencial",
+        )
+        secret_args = [
+            s
+            for s in sensitive
+            if any(m in "".join(c for c in s.lower() if c.isalnum()) for m in _secret_marks)
+        ]
+        if secret_args and tool_effect == "read":
+            return PolicyDecision(
+                decision=Decision.BLOCK,
+                reason="lectura que llevaría a revelar un secreto, llave o token",
+                evidence=[f"field:{s}" for s in secret_args],
+            )
+        args_scan = scan_sources([str(v) for v in args.values() if isinstance(v, str) and v])
+        if any(h.kind.startswith("reveal_secret") for h in args_scan.strong):
+            return PolicyDecision(
+                decision=Decision.BLOCK,
+                reason="los argumentos piden revelar un secreto, llave o token",
+                evidence=[h.evidence() for h in args_scan.strong],
             )
         if sensitive and tool_effect == "write":
             if has_untrusted and scan.hits:

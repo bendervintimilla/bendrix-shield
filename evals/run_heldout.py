@@ -116,9 +116,9 @@ def format_section(m: dict) -> str:
         f"{m['legit_blocked']}, permitidos en silencio: {m['legit_allowed']}).\n"
         f"- Lecturas limpias permitidas: {m['reads_ok']}/{m['reads']}.\n"
         f"- Escrituras sensibles envenenadas permitidas en silencio: "
-        f"{m['silent_write_allow']} (las 2 permitidas son lecturas que "
-        "piden revelar la credencial: hueco real del determinista, que es "
-        "justo lo que Spark Open debe cazar con créditos).\n"
+        f"{m['silent_write_allow']}. H10: ninguna acción, incluida una "
+        "lectura que pide revelar un secreto, llave o token, pasa en "
+        f"silencio (permitidas en silencio en total: {m['missed']}).\n"
         "- Costo en créditos: USD 0 (sin llamadas a modelos).\n\n"
         "| caso | etiqueta | técnica | decisión | razón |\n|---|---|---|---|---|\n"
         + "\n".join(m["rows"])

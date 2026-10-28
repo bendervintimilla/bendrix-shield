@@ -70,11 +70,12 @@ repiten con créditos antes del video.
 uv run python evals/run_heldout.py
 ```
 
-Muestra la tabla: la síntesis compartida da 100 % pero la held-out, ciega
-a las reglas, bloquea 1/12, escala 9/12 al dueño y deja pasar 2 lecturas
-que piden la credencial. «Por eso el clasificador Spark Open existe, y por
-eso reportamos las dos cifras por separado.» Ninguna escritura sensible
-pasa en silencio.
+Muestra la tabla: la sintética compartida da 100 % pero la held-out, ciega
+a las reglas, es la cifra honesta. Antes de H10 bloqueaba 1/12, escalaba
+9/12 al dueño y dejaba pasar en silencio 2 lecturas que pedían la
+credencial; tras cerrar esa brecha (H10) bloquea 3/12, escala 9/12 y
+**ninguna acción pasa en silencio**. «Por eso el clasificador Spark Open
+existe, y por eso reportamos las dos cifras por separado.»
 
 ### 1:20 – 2:15 · Aviso real, país nuevo y rotación (401 al atacante)
 
@@ -120,7 +121,7 @@ así, sin inventar la cifra en vivo.
 uv run python evals/run_all.py && head -n 30 evals/report.md
 ```
 
-Cierra con la tabla H2–H9 del reporte y la línea del README: todo el
+Cierra con la tabla H2–H10 del reporte y la línea del README: todo el
 código se construyó durante el hackathon (26-oct → 4-nov); lo preexistente
 es solo el conocimiento del negocio y las cuentas.
 
