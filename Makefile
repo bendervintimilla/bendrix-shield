@@ -15,4 +15,4 @@ smoke:
 
 demo:
 	@echo "Demo (3:00) — guion completo en docs/DEMO.md (replay y en vivo)."
-	uv run python scripts/smoke.py --replay
+	uv run python scripts/run_demo.py
