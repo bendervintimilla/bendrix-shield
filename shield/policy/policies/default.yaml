@@ -1,0 +1,21 @@
+agent: default
+app: any-app
+limits:
+  max_amount_usd: 100.0
+sensitive_fields:
+  - iban
+  - bank_account
+  - account_number
+  - api_key
+  - secret
+  - payment_domain
+  - supplier_email
+ask_owner_if:
+  - sensitive_change
+  - amount_over_limit
+  - write_from_untrusted
+tools:
+  - name: read_invoice
+    effect: read
+  - name: extract_invoice
+    effect: read
