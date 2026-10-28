@@ -33,6 +33,27 @@ Set temporal H4 (10 envenenados + 10 limpios) hasta que H2 deje el set completo.
 | tmp-poisoned-white-iban | poisoned | block | inyección en documento no confiable deriva en acción con efe |
 | tmp-poisoned-white-key | poisoned | block | inyección en documento no confiable deriva en acción con efe |
 
+<!-- H5:exposure:start -->
+## Eval de exposición — H5
+
+- Pares evaluados contra 14 avisos y 30 estates sintéticos (H2).
+- Confirmadas (confianza >= 0.8): precisión 0.643, recall 0.692 (TP 9, FP 5, FN 4).
+- Incluyendo candidatos para triaje: precisión 0.591, recall 1.000 (TP 13, FP 9, FN 0).
+- Triaje Wonder: 0 candidatos, needs_credits en 0 estates, costo USD 0.0000.
+- Nota: CVE-2026-109618/109619 traen el mismo rango PHP; el determinista confirma ambos y el set etiqueta solo uno, lo que baja la precisión sin ser un fallo de rango.
+
+<!-- H5:exposure:end -->
+
+<!-- H5:anomaly:start -->
+## Eval de anomalías — H5
+
+- Baseline: 168 llamadas normales (7 días); abuso: 40 llamadas (~16 h).
+- A nivel llamada: precisión 1.000, recall 1.000 (TP 32, FP 0, FN 0).
+- Findings: 3 (cost_spike, new_country, new_model); patrones esperados del set: pais_nuevo:BR, modelo_no_usado:muse-spark-1.3, pico_costo.
+- Falsos positivos en la serie normal (2ª mitad vs 1ª): 0 llamadas.
+
+<!-- H5:anomaly:end -->
+
 ## Eval de facturas — H7
 
 Replay sin red sobre las 20 facturas sintéticas de H2. El `raw_text` de H2 solo trae total, número y moneda: `vendor`, `date`, `subtotal` y `tax` no están en el texto y **no se inventan** (no evaluables desde texto; sí se valida su aritmética estructurada).
