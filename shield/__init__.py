@@ -2,7 +2,8 @@
 
 from shield.policy.injection import UntrustedDoc, untrusted
 from shield.sdk.tool import tool
+from shield.sdk.wrap import wrap
 
 __version__ = "0.1.0"
 
-__all__ = ["UntrustedDoc", "tool", "untrusted"]
+__all__ = ["UntrustedDoc", "tool", "untrusted", "wrap"]

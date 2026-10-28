@@ -7,7 +7,10 @@ Uso: SHIELD_TOKEN_CREW_BODEGA=<token-demo> python sandbox/attacker.py --attempts
 Tras rotar el token en el panel, el mismo comando debe pasar de 200 a 401.
 """
 from __future__ import annotations
-import argparse, os, sys
+
+import argparse
+import os
+
 import httpx
 
 ALLOWED_HOSTS = {"127.0.0.1", "localhost", "cantina-demo.bendrix.test"}

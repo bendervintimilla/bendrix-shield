@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+
 R = Path(__file__).parent.parent
 def load(p): return json.loads(Path(p).read_text(encoding="utf-8"))
 def test_advisories_reales():
