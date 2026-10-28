@@ -26,7 +26,14 @@ _STRONG: list[tuple[str, re.Pattern[str]]] = [
     (
         "reveal_secret",
         re.compile(
-            r"(imprime|muestra|revela|env[ií]a|print|reveal|show|send|leak).{0,40}(api\s*key|llave|secret|secreto|token|system\s*prompt|prompt del sistema)",  # noqa: E501
+            r"(imprime|imprimir|muestra|mostrar|revela|revelar|env[ií]a|enviar|manda|mandar|print|reveal|show|send|leak|disclose|share|include|provide|output|paste|expose|divulge|forward|incluye|incluir|incluy\w*|comparte|compartir|divulga|divulgar|expone|exponer|entrega|entregar|proporciona|proporcionar|facilita|facilitar|copia|copiar|adjunta|reenv[ií]a|give|tell|dime|dame|pass|inclua|compartilhe|compartilhar|revele|mostre|envie|divulgue|exponha|forne[çc]a|encaminhe).{0,50}(api[\s_-]?key|credentials?|credencial(?:es)?|chaves?|llaves?|claves?|keys?|secrets?|secretos?|segredos?|tokens?|passwords?|contrase[ñn]as?|senhas?|system\s*prompt|prompt del sistema|private\s*key|llave privada|chave privada|access\s*token|auth\s*token)",  # noqa: E501
+            re.I,
+        ),
+    ),
+    (
+        "reveal_secret_rev",
+        re.compile(
+            r"(api[\s_-]?key|credentials?|credencial(?:es)?|chaves?|llaves?|claves?|secrets?|secretos?|segredos?|tokens?|system\s*prompt|prompt del sistema).{0,50}(incluye|incluir|incluy\w*|comparte|revela|muestra|env[ií]a|manda|divulga|expone|entrega|proporciona|copia|reenv[ií]a|include|reveal|show|send|leak|disclose|share|provide|output|paste|expose|inclua|compartilhe|revele|mostre|envie|divulgue|exponha|forne[çc]a|respuesta|response|resposta|reply)",  # noqa: E501
             re.I,
         ),
     ),

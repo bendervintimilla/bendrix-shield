@@ -13,9 +13,12 @@ COPY pyproject.toml README.md ./
 COPY shield ./shield
 COPY bendrix_shield ./bendrix_shield
 COPY web ./web
+COPY channels ./channels
+COPY sandbox ./sandbox
 
 RUN pip install --upgrade pip && pip install .
 
 EXPOSE 8080
-# Cloud Run inyecta $PORT (8080 por defecto).
-CMD ["sh", "-c", "uvicorn shield.gateway.app:create_app --factory --host 0.0.0.0 --port ${PORT:-8080}"]
+# Cloud Run inyecta $PORT (8080 por defecto). SHIELD_SERVICE=panel sirve
+# el panel (web.app, DEMO=replay); sin esa variable arranca el gateway.
+CMD ["sh", "-c", "if [ \"$SHIELD_SERVICE\" = \"panel\" ]; then exec uvicorn web.app:app --host 0.0.0.0 --port ${PORT:-8080}; else exec uvicorn shield.gateway.app:create_app --factory --host 0.0.0.0 --port ${PORT:-8080}; fi"]
