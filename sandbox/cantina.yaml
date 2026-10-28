@@ -1,0 +1,7 @@
+# Cantina Demo — solo nombres de tokens, jamás valores reales (SPEC §2.1/2.2)
+apps:
+  - {name: crew-compras, agent: crew-compras, shield_token_name: shd_crew-compras_demo, env_var: SHIELD_TOKEN_CREW_COMPRAS}
+  - {name: crew-bodega, agent: crew-bodega, shield_token_name: shd_crew-bodega_demo, env_var: SHIELD_TOKEN_CREW_BODEGA}
+  - {name: crew-orchestrator, agent: crew-orchestrator, shield_token_name: shd_crew-orchestrator_demo, env_var: SHIELD_TOKEN_CREW_ORCHESTRATOR}
+  - {name: web-wordpress-demo, agent: web-wordpress-demo, shield_token_name: shd_web-wordpress-demo_demo, env_var: SHIELD_TOKEN_WEB_WORDPRESS_DEMO}
+note: "Un token por agente = un alcance. Los valores viven solo en el vault/entorno local, nunca en git."

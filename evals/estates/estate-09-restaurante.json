@@ -1,0 +1,106 @@
+{
+  "estate_id": "estate-09",
+  "business_type": "restaurante",
+  "synthetic": true,
+  "assets": [
+    {
+      "id": "est09-a1",
+      "kind": "pkg",
+      "name": "litellm",
+      "owner_app": "app-1",
+      "platform": "test",
+      "fingerprint": null,
+      "last4": null,
+      "metadata": {
+        "version": "1.82.7",
+        "business_type": "restaurante"
+      }
+    }
+  ],
+  "expected_exposures": [
+    {
+      "threat_id": "CVE-2026-0322",
+      "asset_id": "est09-a1",
+      "exposed": false,
+      "label": "negative"
+    },
+    {
+      "threat_id": "CVE-2026-105133",
+      "asset_id": "est09-a1",
+      "exposed": false,
+      "label": "negative"
+    },
+    {
+      "threat_id": "CVE-2026-109618",
+      "asset_id": "est09-a1",
+      "exposed": false,
+      "label": "negative"
+    },
+    {
+      "threat_id": "CVE-2026-109619",
+      "asset_id": "est09-a1",
+      "exposed": false,
+      "label": "negative"
+    },
+    {
+      "threat_id": "CVE-2026-110264",
+      "asset_id": "est09-a1",
+      "exposed": false,
+      "label": "negative"
+    },
+    {
+      "threat_id": "CVE-2026-111497",
+      "asset_id": "est09-a1",
+      "exposed": false,
+      "label": "negative"
+    },
+    {
+      "threat_id": "CVE-2026-33634",
+      "asset_id": "est09-a1",
+      "exposed": true,
+      "label": "positive"
+    },
+    {
+      "threat_id": "CVE-2026-48356",
+      "asset_id": "est09-a1",
+      "exposed": false,
+      "label": "negative"
+    },
+    {
+      "threat_id": "CVE-2026-76519",
+      "asset_id": "est09-a1",
+      "exposed": false,
+      "label": "negative"
+    },
+    {
+      "threat_id": "CVE-2026-96652",
+      "asset_id": "est09-a1",
+      "exposed": false,
+      "label": "negative"
+    },
+    {
+      "threat_id": "CVE-2026-96951",
+      "asset_id": "est09-a1",
+      "exposed": false,
+      "label": "negative"
+    },
+    {
+      "threat_id": "emudhra-ca-keys-2026-10",
+      "asset_id": "est09-a1",
+      "exposed": false,
+      "label": "negative"
+    },
+    {
+      "threat_id": "litellm-1.107.0-trojanized",
+      "asset_id": "est09-a1",
+      "exposed": false,
+      "label": "negative"
+    },
+    {
+      "threat_id": "railway-2026-10-21-env-exposure",
+      "asset_id": "est09-a1",
+      "exposed": false,
+      "label": "negative"
+    }
+  ]
+}
