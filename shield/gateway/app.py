@@ -1,4 +1,4 @@
-"""Gateway compatible con OpenAI de Bendrix Shield.
+"""Gateway compatible con OpenAI de MuseShield.
 
 Recibe ``Authorization: Bearer [REDACTED]…``, valida estado/modelo/tope/ritmo,
 pasa el payload por ``gate.check`` y reenvía a la Meta Model API con la llave
@@ -81,7 +81,7 @@ def create_app(
     vlt = vault or get_vault()
     is_sandbox = sandbox if sandbox is not None else os.environ.get("SHIELD_SANDBOX") == "1"
     limiter = RateLimiter(rate_limit_per_minute)
-    app = FastAPI(title="Bendrix Shield Gateway", version="0.1.0")
+    app = FastAPI(title="MuseShield Gateway", version="0.1.0")
     app.state.registry = reg
     app.state.vault = vlt
 

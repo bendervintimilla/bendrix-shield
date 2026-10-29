@@ -1,4 +1,9 @@
-# Demo de 3:00 — Bendrix Shield (guion del SPEC §4)
+# Demo de 3:00 — MuseShield — Business Protection (guion del SPEC §4)
+
+Nombre que se dice en voz al abrir y al cerrar: «MuseShield, Business
+Protection». Aviso en pantalla al cierre: *Built on Meta's Muse models;
+independent project, not affiliated with or endorsed by Meta.* Portadas:
+`docs/brand/slides/`.
 
 Dos modos con los mismos comandos: **replay** (sin red ni créditos, para
 ensayar y para el jurado sin depender de la tarjeta) y **en vivo** (con
