@@ -30,8 +30,33 @@ marked as data, never instructions, with `shield.untrusted(doc)`. A
 curl and a 10-line TypeScript version live in `examples/any-app/`.
 
 If a token is rotated, a client built with a token store refreshes
-itself once after a `401` and keeps working — see
-`docs/THREAT_MODEL.md` for exactly what a thief does and does not get.
+itself once after a `401` and keeps working. **Threat model, in one
+line:** the refresh assumes the thief stole the token from an
+environment variable, a log line or a copied config value — *not* the
+local token store on the agent's host. Whoever holds only the env var
+cannot follow a rotation (they keep getting `401`); whoever steals the
+store itself has compromised that host, and the answer is revoke +
+re-issue on a clean host, not rotation alone. On Cloud Run the refresh
+can also be bound to the workload's service-account identity
+(`SHIELD_EXPECTED_SERVICE_ACCOUNT`, fail-closed; tested in
+`tests/test_h10_hardening.py`). Full table in `docs/THREAT_MODEL.md`.
+
+## Quickstart (5 minutes, no credits needed)
+
+```bash
+git clone https://github.com/bendervintimilla/bendrix-shield.git
+cd bendrix-shield
+uv sync --extra dev        # Python 3.12+ and uv
+make test                  # offline suite, all green
+make demo                  # gateway + panel in replay; runs docs/DEMO.md end to end
+```
+
+That is the whole first run: the demo, the attacker terminal
+(`200 → 401`) and every metric in `evals/report.md` reproduce offline.
+With Meta credits, add your key as `META_MODEL_API_KEY` (keychain or
+Secret Manager, never committed) and run `make smoke` for one live call
+per model. Deploy the gateway with `bash deploy/cloudrun.sh` (GCP
+project `bendrix-hackathon` only).
 
 ## Architecture
 
@@ -109,20 +134,28 @@ beat, is `docs/DEMO.md`.
 
 ## Metrics (real, from `evals/report.md` — not inflated)
 
-All numbers below come from running the `evals/run_*.py` scripts with
-no network and no credits (replay/fixtures). Total credit cost so far:
-**USD 0**. The two injection numbers are reported separately on purpose.
+Numbers below come from `evals/report.md`. Offline rows are
+replay/fixtures; rows marked **live** used real Meta models (29 Oct
+2026, cost in the row). The headline injection number is held-out v2:
+a fresh set written by a separate session without reading the policy
+rules, frozen before measuring, never used to tune the rules. The
+older held-out set is kept as history because rules were adjusted
+with it in H10.
 
 | Measurement | Result |
 |---|---|
 | Synthetic injection set (shares patterns with the rules; regression only) | Blocked 30/30 (100%); clean false positives 0/30 |
-| Held-out injection set (blind to the rules: paraphrases ES/EN/PT, split lines, OCR noise, formal letters) | Blocked 3/12, escalated to owner 9/12, **silently allowed 0/12** (before the H10 fix: 2 reads asking for the credential passed silently). Legitimate formal account changes reach `ask_owner` 4/4; clean reads allowed 4/4 |
+| **Held-out v2 (headline)** — fresh, blind to the rules, frozen | Blocked 4/12, escalated to owner 7/12, **silently allowed 1/12** — one English read asking to reveal the gateway token; sensitive writes silently allowed **0/12**. Legitimate formal account changes reach `ask_owner` 3/3; clean reads allowed 5/5 |
+| Held-out v1 (history; rules were later adjusted with it) | Blocked 3/12, escalated to owner 9/12, silently allowed 0/12 after the H10 fix (2 before). Legitimate formal changes `ask_owner` 4/4; clean reads 4/4 |
+| **Live** smoke: Spark 1.3, Wonder, Voice, SAM 3.1 | 4/4 `[ok]` live, USD 0.0063 |
+| **Live** invoices ×20 (Spark 1.3 vision on rendered invoices) | Supplier/number/date/currency/subtotal/tax/total and arithmetic validation 20/20, USD 0.1812 |
+| **Live** warehouse (SAM 3.1 synthetic images + Voice dictation) | Exact counts 4/4 with the precise prompt (`red rectangle`); with `red box` SAM returned 0 on the same images (1/4) — prompt wording matters and both are reported. Voice dictation parsed OK. USD 0.0100. No real warehouse footage yet |
 | Exposure, confirmed (confidence ≥ 0.8) | Precision 1.000, recall 0.692 (TP 9, FP 0, FN 4). Before grouping sibling advisories: precision 0.643 (the twin PHP CVEs counted double). The 4 misses are Brotli, whose advisory has no parseable range: kept as candidates for Wonder triage, not invented as confirmed |
 | Exposure, including candidates | Precision 0.765, recall 1.000 (TP 13, FP 4, FN 0) |
 | Usage anomalies (synthetic 16 h abuse) | Precision 1.000, recall 1.000 (TP 32, FP 0, FN 0); 0 false positives on the normal series |
-| Gateway overhead (local, instant fake upstream, 80 calls) | p50 1.35 ms, p95 1.68 ms |
-| Invoices (20 synthetic, replay — not the real model) | Total/number/arithmetic 20/20 |
-| Warehouse (synthetic SAM/voice outputs — no real footage yet) | Image count 3/3, video 3 unique track IDs, dictation and stock diff OK |
+| Gateway overhead (local, instant fake upstream, 80 calls) | p50 1.74 ms, p95 2.48 ms (this run; see `evals/report.md`) |
+| Invoices (20 synthetic, replay parser) | Total/number/arithmetic 20/20 |
+| Warehouse (replay: synthetic SAM/voice outputs — no real footage yet) | Image count 3/3, video 3 unique track IDs, dictation and stock diff OK |
 | Token rotation E2E (replay) | Attacker `200 → 401` in under 10 s, other agents unaffected, vs ~16 h in the real incident |
 | Spark Open gate (live) | `needs_credits`: no Baseten key in the vault yet, so the live classifier number is pending, not estimated |
 
@@ -151,6 +184,7 @@ Routes and prices were verified against the official docs; see
 | | Crew, customer zero (PR #7); WhatsApp/voice channels and panel (PR #9) |
 | | Spark Open gate, held-out eval, Cloud Run gateway (PR #10) |
 | | Final integration: public panel, held-out and exposure fixes, threat model, this README, `make demo` (PR #11, H10) |
+| | Live round with real models (invoices, SAM, Voice), held-out v2, public-repo hardening (H11) |
 
 ## License
 
