@@ -1,6 +1,10 @@
-# Bendrix Shield
+# MuseShield — Business Protection
 
-**The safety layer for AI agents and apps.** Shield sits between your app
+**Your app never holds the real key. One leaked token, revoked in seconds.**
+MuseShield is the safety layer for AI agents and apps: in our blind
+held-out v2 eval, 0/12 sensitive writes slipped through silently, and a
+stolen token went from `200` to `401` in under 10 seconds (replay) —
+versus ~16 hours in the real Black October incident. Shield sits between your app
 and its model and tool calls, so the app never holds the real provider
 key. In Black October (21 Oct 2026) AI keys were the loot: a trojanized
 LiteLLM, exposed hosting variables, and our Gemini keys abused for
@@ -185,6 +189,15 @@ Routes and prices were verified against the official docs; see
 | | Spark Open gate, held-out eval, Cloud Run gateway (PR #10) |
 | | Final integration: public panel, held-out and exposure fixes, threat model, this README, `make demo` (PR #11, H10) |
 | | Live round with real models (invoices, SAM, Voice), held-out v2, public-repo hardening (H11) |
+
+## Name and affiliation
+
+Built on Meta's Muse models; independent project, not affiliated with
+or endorsed by Meta. «Muse» is a trademark of Meta; the MuseShield name
+is a hackathon project name chosen by the team (Bendrix) and implies no
+endorsement. Brand assets live in `docs/brand/`. The GitHub repository,
+Python package (`bendrix_shield`) and live Cloud Run URLs keep their
+original technical names — only the public product name changed.
 
 ## License
 
