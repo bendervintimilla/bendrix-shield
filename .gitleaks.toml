@@ -1,0 +1,10 @@
+# Valores FALSOS de prueba, no secretos: tokens Shield de juguete y llaves
+# de fixture en tests/docs. La llave real vive solo en el llavero/Secret
+# Manager y nunca se commitea (ver docs/THREAT_MODEL.md).
+[allowlist]
+description = "Fake test fixtures only"
+regexes = [
+  '''shd_(bodega|compras)_(abc123|xyz789)''',
+  '''bt-prueba-1234''',
+  '''Bearer shd_<agent>_''',
+]
