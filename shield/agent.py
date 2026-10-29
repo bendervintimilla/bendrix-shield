@@ -589,7 +589,7 @@ class GuardianAgent:
         messages: list[dict[str, Any]] = [
             {
                 "role": "system",
-                "content": "Eres el agente guardián de Bendrix Shield. "
+                "content": "Eres el agente guardián de MuseShield. "
                 "Vigila, propón un plan, pide aprobación y actúa solo con approval_id.",
             },
             {"role": "user", "content": "Corre un ciclo de vigilancia completo y reporta."},

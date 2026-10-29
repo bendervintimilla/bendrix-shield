@@ -254,7 +254,8 @@ def _page(state: DemoState) -> str:
     return f"""<!doctype html>
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bendrix Shield — panel</title>
+<title>MuseShield — Business Protection · panel</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2314201C'/%3E%3Ctext x='32' y='42' font-family='Georgia,serif' font-size='28' fill='%23E8A33D' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 <style>
 body{{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;background:#eef0ea;color:#1c2420}}
@@ -266,7 +267,7 @@ h2{{font-family:Georgia,serif;margin-top:0}} table{{border-collapse:collapse;wid
 button{{background:#1f6f4a;color:#fff;border:0;padding:8px 14px;cursor:pointer}} form{{display:inline}}
 .feed li{{margin:4px 0}} #clock{{font-family:ui-monospace,Menlo,monospace;font-size:22px}}
 </style></head><body>
-<header><h1>Bendrix Shield</h1><p>Panel del dueño · DEMO={_esc(os.environ.get("DEMO", "replay"))} · incidente {_esc(state.incident_at)}</p>
+<header><h1>MuseShield</h1><p>Business Protection · Panel del dueño · DEMO={_esc(os.environ.get("DEMO", "replay"))} · incidente {_esc(state.incident_at)}</p>
 <p>Tiempo desde el incidente: <span id="clock">00:00</span></p></header>
 <main>
 <section><h2>Apps y agentes conectados</h2><div id="agents">{_agents_html(state)}</div></section>
@@ -284,7 +285,7 @@ tick(); setInterval(tick, 1000);
 
 def create_panel_app(state: DemoState | None = None) -> FastAPI:
     demo = state or build_replay_state()
-    app = FastAPI(title="Bendrix Shield — panel", version="0.1.0")
+    app = FastAPI(title="MuseShield — panel", version="0.1.0")
     app.state.demo = demo
     channel = WhatsAppChannel(demo.broker)
     app.state.whatsapp = channel

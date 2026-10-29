@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" role="img" aria-label="Black October problem">
+  <rect width="1920" height="1080" fill="#EEF0EA"/>
+  <rect width="1920" height="180" fill="#14201C"/>
+  <text x="80" y="115" font-family="Georgia,serif" font-size="64" fill="#F2F2EA">Black October</text>
+  <text x="80" y="320" font-family="system-ui,sans-serif" font-size="42" fill="#1C2420">21 Oct 2026 — AI keys were the loot</text>
+  <text x="80" y="430" font-family="system-ui,sans-serif" font-size="36" fill="#1C2420">A trojanized package. Exposed cloud variables.</text>
+  <text x="80" y="490" font-family="system-ui,sans-serif" font-size="36" fill="#1C2420">Our keys abused for ~16 hours: USD 310.</text>
+  <text x="80" y="640" font-family="Georgia,serif" font-size="48" fill="#B42318">The real key was sitting inside the app.</text>
+  <text x="80" y="760" font-family="system-ui,sans-serif" font-size="32" fill="#1C2420">MuseShield — Business Protection: the app holds only a revocable token.</text>
+</svg>

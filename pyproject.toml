@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "bendrix-shield"
 version = "0.1.0"
-description = "The safety layer for AI agents and apps — tokens, policy, redaction and response."
+description = "MuseShield — Business Protection: the safety layer for AI agents and apps — tokens, policy, redaction and response."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }

@@ -124,7 +124,7 @@ def main() -> int:
 
             print("\n1:20 País nuevo -> aprobación -> rotación -> atacante 401:")
             page = client.get(f"{panel_url}/")
-            assert page.status_code == 200 and "Bendrix Shield" in page.text
+            assert page.status_code == 200 and "MuseShield" in page.text
             state = client.get(f"{panel_url}/panel/state").json()
             assert 200 in state["attacker_statuses"], state["attacker_statuses"]
             pending = state["pending"]
