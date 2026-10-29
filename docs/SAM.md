@@ -9,7 +9,7 @@ adivinado: cada ruta y campo sale de la página citada.
 - [Media segmentation](https://dev.meta.ai/docs/media-segmentation)
 - [Segmenting with prompts](https://dev.meta.ai/docs/sam/segmenting)
 - [Reading segmentation output](https://dev.meta.ai/docs/sam/reading-segmentation)
-- Precios: [Pricing and rate limits](https://dev.meta.ai/docs/pricing-rate-limits) (también en [docs/MODELS.md](/Users/bender/dev/bendrix-shield-h7/docs/MODELS.md))
+- Precios: [Pricing and rate limits](https://dev.meta.ai/docs/pricing-rate-limits) (también en [docs/MODELS.md](MODELS.md))
 
 ## Ruta y pedido
 
@@ -55,7 +55,7 @@ especiales: **una línea por frame** (imagen = una sola línea `<0f>`).
   `output_text` vacío. No es un error.
 
 Nuestro parser de esta gramática vive en
-[crew/bodega/sam.py](/Users/bender/dev/bendrix-shield-h7/crew/bodega/sam.py) (`parse_sam_output`,
+[crew/bodega/sam.py](../crew/bodega/sam.py) (`parse_sam_output`,
 `count_from_output`): imagen cuenta registros del frame; video cuenta
 track IDs únicos y reporta el conteo por frame.
 

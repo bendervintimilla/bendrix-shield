@@ -23,6 +23,7 @@ START, END = "<!-- H9:summary:start -->", "<!-- H9:summary:end -->"
 RUNNERS = [
     "run_injection.py",
     "run_heldout.py",
+    "run_heldout2.py",
     "run_open_classifier.py",
     "run_exposure.py",
     "run_anomaly.py",
@@ -94,12 +95,14 @@ def summary(text: str, p50: float, p95: float) -> str:
     stock = _grab(r"Conteo en imagen \(esperado 3\): [^\n]+", text)
     open_mode = _grab(r"needs_credits", text, "en vivo")
     return (
-        "# Evals de Bendrix Shield — reporte completo (H9)\n\n"
-        "Todas las cifras salen de correr los `evals/run_*.py` sin red ni "
-        "créditos (replay/fixtures). `uv run python evals/run_all.py` "
-        "regenera este archivo. Las dos tasas de inyección se reportan por "
-        "separado a propósito: la sintética comparte patrones con las "
-        "reglas y la held-out no.\n\n"
+        "# Evals de Bendrix Shield — reporte completo (H11)\n\n"
+        "Las cifras sin red salen de `uv run python evals/run_all.py` "
+        "(replay/fixtures). Las rondas EN VIVO de H11 (facturas Spark "
+        "visión, SAM 3.1, Voice) se agregan con `run_invoices_live.py` y "
+        "`run_stock_live.py` y llevan su costo real. Las tasas de "
+        "inyección se reportan por separado: la sintética comparte "
+        "patrones con las reglas, la held-out v1 ajustó reglas en H10 y "
+        "la held-out v2 es la principal (fresca, congelada, sin ajustar).\n\n"
         "| Sesión | Qué se midió | Resultado |\n"
         "|---|---|---|\n"
         f"| H2 | Sets: avisos reales, estates, uso, inyecciones, facturas, canarios "
@@ -116,16 +119,21 @@ def summary(text: str, p50: float, p95: float) -> str:
         "| H8 | Panel y canales WhatsApp/voz | Panel en vivo y aprobación por "
         "voz/WhatsApp simulado; E2E guardián->rotación en replay verde |\n"
         f"| H9 | Inyección held-out ciega a las reglas | {held}; {held_legit} |\n"
+        "| H11 | Held-out v2 (PRINCIPAL, fresco y congelado) | ver sección H11:heldout2 |\n"
+        "| H11 | Facturas EN VIVO Spark visión / SAM 3.1 y Voice | ver secciones "
+        "H11:live-invoices y H11:live-stock (con costo real) |\n"
         "| H10 | Held-out tras cerrar lecturas que piden credencial | Bloqueo o "
         "ask_owner en 12/12; permitidos en silencio: 0 (antes: 2) |\n"
         "| H10 | Exposición con avisos hermanos agrupados | Confirmadas: "
         "precisión 1.000 (antes 0.643); Brotli queda candidato a triaje |\n"
-        f"| H9 | Gate Spark Open vs determinista solo | Modo: {open_mode}; detalle en su sección |\n\n"
-        "**Costo total en créditos: USD 0.** Ninguna eval llamó a un modelo "
-        "real: Meta sigue `needs_credits` sin tarjeta y Baseten no tiene "
-        "llave en el vault. Las cifras con modelo real (facturas 20/20 y "
-        "stock completo son replay/fixtures, no modelo real) se repiten con "
-        "créditos antes del video; ver las notas de cada sección.\n\n"
+        f"| H9 | Gate Spark Open vs determinista solo | Modo: {open_mode}; "
+        "detalle en su sección |\n\n"
+        "**Costo:** las evals de este runner son sin red (USD 0). Desde H11 "
+        "hay además rondas EN VIVO con costo real en las secciones "
+        "H11:live-invoices / H11:live-stock (facturas Spark visión, SAM 3.1 "
+        "y Voice); el video SAM y las tomas reales de bodega siguen en "
+        "replay por falta de material hospedado. Baseten/Spark Open sigue "
+        "sin llave en el vault.\n\n"
         f"Latencia del gateway medida en esta corrida: p50 {p50:.2f} ms y "
         f"p95 {p95:.2f} ms (TestClient local, upstream instantáneo; contra "
         "la Meta Model API manda la latencia del upstream)."

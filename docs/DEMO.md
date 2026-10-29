@@ -9,7 +9,7 @@ la demo no se cae.
 ## Antes de empezar
 
 ```bash
-cd ~/dev/bendrix-shield-h9   # o el checkout con este PR ya fusionado
+git clone https://github.com/bendervintimilla/bendrix-shield.git && cd bendrix-shield
 uv sync --extra dev
 make test                    # debe terminar en verde
 ```
