@@ -8,6 +8,7 @@ en el resultado y en la procedencia. Solo en tests se inyecta un
 from __future__ import annotations
 
 import base64
+import hashlib
 import io
 import json
 import os
@@ -35,11 +36,13 @@ from shield.meta_client import MetaClient, compute_cost_usd
 from shield.policy.check import PolicyEngine, spark_review_enabled
 from shield.policy.extract import ExtractedDoc, Segment
 from shield.policy.injection import UntrustedDoc
+from shield.policy.spark import make_spark_classifier
 from shield.registry import Registry
 from shield.schemas import Asset, ThreatCard
 from shield.sdk.token_store import InMemoryTokenStore
 from shield.vault.vault import get_vault
 from web.brand import BRAND, SUBTITLE
+from web.live_page import spark_review_row
 
 __all__ = ["BRAND", "SUBTITLE", "LiveChain"]
 
@@ -232,6 +235,13 @@ def _extract_account(text: str) -> str:
     return ""
 
 
+def _result_model(result: Any) -> str | None:
+    data = getattr(result, "data", None)
+    if isinstance(data, dict) and data.get("model"):
+        return str(data["model"])
+    return None
+
+
 def _usage_of(result: Any) -> tuple[int, int]:
     usage = getattr(result, "usage", None) or {}
     if not usage and isinstance(getattr(result, "data", None), dict):
@@ -343,6 +353,57 @@ class _RecordingTransport(httpx.BaseTransport):
         self._wrapped.close()
 
 
+def _parse_spark_decision(result: Any) -> dict[str, Any] | None:
+    """Decisión Spark tal como vino en el contenido JSON; None si no parsea."""
+    data = getattr(result, "data", None)
+    if not isinstance(data, dict):
+        return None
+    choices = data.get("choices") or []
+    if not choices:
+        return None
+    raw = str((choices[0].get("message") or {}).get("content") or "")
+    try:
+        parsed = json.loads(raw)
+    except Exception:
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    decision = str(parsed.get("decision") or "").strip().lower()
+    if decision not in ("allow", "block", "ask_owner"):
+        return None
+    reason = str(parsed.get("reason") or "")[:200]
+    return {
+        "decision": decision,
+        "reason": reason,
+        "evidence": [str(e)[:200] for e in (parsed.get("evidence") or [])],
+        "failed": reason.startswith("ambiguous_"),
+    }
+
+
+class _CapturingSparkClient:
+    """Envuelve el MetaClient de Compras y guarda el último CallResult real.
+
+    Así la procedencia toma modelo, id de respuesta, latencia y costo de la
+    llamada verdadera, igual que los demás pasos. Nunca imprime llaves.
+    """
+
+    def __init__(self, inner: Any) -> None:
+        self._inner = inner
+        self.last_result: Any = None
+        self.last_error: Exception | None = None
+
+    def chat_completions(self, **kwargs: Any) -> Any:
+        self.last_result = None
+        self.last_error = None
+        try:
+            result = self._inner.chat_completions(**kwargs)
+        except Exception as exc:
+            self.last_error = exc
+            raise
+        self.last_result = result
+        return result
+
+
 class _CountryHTTPAdapter:
     """Adaptador httpx real para sandbox.attacker con X-Demo-Country."""
 
@@ -406,15 +467,247 @@ class LiveChain:
         self.gateway_url = ""
         self._upstream_key_present = False
         self._policy_engine: PolicyEngine | None = None
+        self._spark_client: _CapturingSparkClient | None = None
 
     def _get_policy_engine(self) -> PolicyEngine:
         # Spark por documento solo con credenciales reales y
         # SHIELD_SPARK_REVIEW=on; nunca en replay ni sin llave.
         if self._policy_engine is None:
+            enabled = spark_review_enabled() and self._upstream_key_present
+            classifier = None
+            if enabled:
+                compras = self.clients.get("compras")
+                if compras is not None:
+                    if self._spark_client is None:
+                        self._spark_client = _CapturingSparkClient(compras)
+                    classifier = make_spark_classifier(self._spark_client)
             self._policy_engine = PolicyEngine(
-                spark_review=spark_review_enabled() and self._upstream_key_present
+                spark_review=enabled,
+                classifier=classifier,  # type: ignore[arg-type]
             )
         return self._policy_engine
+
+    def _review_invoice_document(self, doc: UntrustedDoc) -> dict[str, Any] | None:
+        """Revisión explícita del documento, antes de las herramientas.
+
+        Sin ``SHIELD_SPARK_REVIEW=on`` o sin llave real no se llama nada y
+        no se registra fila: en replay nunca aparece. Si Spark falla, la
+        fila queda ``unavailable`` y la cadena sigue con lo determinista.
+        """
+        if not (spark_review_enabled() and self._upstream_key_present):
+            return None
+        engine = self._get_policy_engine()
+        if not engine.spark_review:
+            return None
+        client = self._spark_client
+        failures_before = engine.spark_review_failures
+        calls_before = engine.classifier_calls
+        if client is not None:
+            client.last_result = None
+            client.last_error = None
+        started = time.perf_counter()
+        decision = engine.check(
+            "compras", "read_invoice", {"doc_id": doc.doc_id}, [doc]
+        )
+        result = client.last_result if client is not None else None
+        error = client.last_error if client is not None else None
+        called = engine.classifier_calls > calls_before
+        if not called and decision.decision.value == "block":
+            # BLOCK determinista: el motor ni llama a Spark.
+            review = {
+                "kind": "document_review",
+                "is_forced": False,
+                "tool": "read_invoice",
+                "effect": "read",
+                "status": "blocked_by_rules",
+                "decision": "block",
+                "reason": decision.reason,
+                "evidence": list(decision.evidence),
+                "model": None,
+                "response_id": None,
+                "upstream_request_id": None,
+                "latency_ms": 0.0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "cost_usd": 0.0,
+                "http_status": None,
+                "error": None,
+            }
+            review["row_en"] = spark_review_row(review, "en")
+            review["row_es"] = spark_review_row(review, "es")
+            return review
+        if not called:
+            # Caché del motor: sin llamada nueva no hay costo nuevo.
+            cache = getattr(engine, "_spark_cache", {}) or {}
+            key = (
+                "read_invoice",
+                hashlib.sha256(doc.text.encode("utf-8")).hexdigest(),
+            )
+            cached = cache.get(key)
+            if cached is not None:
+                prev = next(
+                    (
+                        p
+                        for p in reversed(self.provenance)
+                        if p.get("step") == "spark_document_review" and p.get("model")
+                    ),
+                    None,
+                )
+                raw_reason = str(getattr(cached, "reason", "") or "")
+                if raw_reason.startswith("spark: "):
+                    raw_reason = raw_reason[len("spark: ") :]
+                review = {
+                    "kind": "document_review",
+                    "is_forced": False,
+                    "tool": "read_invoice",
+                    "effect": "read",
+                    "status": "ok",
+                    "decision": str(cached.decision.value),
+                    "reason": raw_reason[:200],
+                    "evidence": [str(e)[:200] for e in (cached.evidence or [])],
+                    "model": prev["model"] if prev else None,
+                    "response_id": prev["response_id"] if prev else None,
+                    "upstream_request_id": prev["upstream_request_id"] if prev else None,
+                    "latency_ms": 0.0,
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "cost_usd": 0.0,
+                    "http_status": None,
+                    "error": None,
+                }
+                review["row_en"] = spark_review_row(review, "en")
+                review["row_es"] = spark_review_row(review, "es")
+                return review
+        parsed = _parse_spark_decision(result) if result is not None else None
+        failed = (
+            not called
+            or result is None
+            or error is not None
+            or engine.spark_review_failures > failures_before
+            or "spark_unavailable" in decision.evidence
+            or parsed is None
+            or bool(parsed.get("failed"))
+        )
+        if failed:
+            tin, tout = _usage_of(result) if result is not None else (0, 0)
+            entry = self._record_explicit(
+                step="spark_document_review",
+                agent="compras",
+                model=_result_model(result),
+                response_id=(
+                    result.data.get("id")
+                    if result is not None and isinstance(getattr(result, "data", None), dict)
+                    else None
+                ),
+                latency_ms=(
+                    float(getattr(result, "latency_ms", 0.0) or 0.0)
+                    if result is not None
+                    else round((time.perf_counter() - started) * 1000, 3)
+                ),
+                input_tokens=tin,
+                output_tokens=tout,
+                cost_usd=float(getattr(result, "cost_usd", 0.0) or 0.0)
+                if result is not None
+                else 0.0,
+                http_status=None,
+                request_summary="spark document review: read_invoice",
+                error=str(error) if error is not None else "spark_unavailable",
+                decision="unavailable",
+            )
+            review: dict[str, Any] = {
+                "kind": "document_review",
+                "is_forced": False,
+                "tool": "read_invoice",
+                "effect": "read",
+                "status": "unavailable",
+                "decision": "unavailable",
+                "reason": "spark_unavailable",
+                "evidence": ["spark_unavailable"],
+                "model": entry["model"],
+                "response_id": entry["response_id"],
+                "upstream_request_id": entry["upstream_request_id"],
+                "latency_ms": entry["latency_ms"],
+                "input_tokens": entry["input_tokens"],
+                "output_tokens": entry["output_tokens"],
+                "cost_usd": entry["cost_usd"],
+                "http_status": entry["http_status"],
+                "error": entry["error"],
+            }
+        else:
+            assert parsed is not None
+            entry = self._record(
+                step="spark_document_review",
+                agent="compras",
+                model=_result_model(result) or "muse-spark-1.3",
+                result=result,
+                http_status=200,
+                request_summary="spark document review: read_invoice",
+                decision=str(parsed["decision"]),
+                started=started,
+            )
+            review = {
+                "kind": "document_review",
+                "is_forced": False,
+                "tool": "read_invoice",
+                "effect": "read",
+                "status": "ok",
+                "decision": str(parsed["decision"]),
+                "reason": str(parsed["reason"]),
+                "evidence": list(parsed["evidence"]),
+                "model": entry["model"] or "muse-spark-1.3",
+                "response_id": entry["response_id"],
+                "upstream_request_id": entry["upstream_request_id"],
+                "latency_ms": entry["latency_ms"],
+                "input_tokens": entry["input_tokens"],
+                "output_tokens": entry["output_tokens"],
+                "cost_usd": entry["cost_usd"],
+                "http_status": entry["http_status"],
+                "error": None,
+            }
+        review["row_en"] = spark_review_row(review, "en")
+        review["row_es"] = spark_review_row(review, "es")
+        return review
+
+    def _policy_check(
+        self, *, step: str, tool: str, args: dict[str, Any], doc: UntrustedDoc, summary_prefix: str
+    ) -> Any:
+        """Chequeo del motor registrando a Spark solo si de verdad corrió.
+
+        Caché o BLOCK determinista: sin llamada nueva, la fila sigue con
+        ``model=None`` y costo 0 (nada duplicado ni inventado).
+        """
+        engine = self._get_policy_engine()
+        client = self._spark_client
+        if client is not None:
+            client.last_result = None
+            client.last_error = None
+        calls_before = engine.classifier_calls
+        started = time.perf_counter()
+        decision = engine.check("compras", tool, args, [doc])
+        called = engine.classifier_calls > calls_before
+        result = client.last_result if client is not None else None
+        summary = f"{summary_prefix}: {decision.decision.value}"
+        if called and result is not None:
+            self._record(
+                step=step,
+                agent="compras",
+                model=_result_model(result) or "muse-spark-1.3",
+                result=result,
+                http_status=200,
+                request_summary=summary,
+                decision=decision.decision.value,
+                started=started,
+            )
+        else:
+            self._record(
+                step=step,
+                agent="compras",
+                model=None,
+                http_status=None,
+                request_summary=summary,
+                decision=decision.decision.value,
+            )
+        return decision
 
     # -- arranque ---------------------------------------------------------
     @classmethod
@@ -758,6 +1051,8 @@ class LiveChain:
             ),
             origin="invoice-image",
         )
+        # Revisión Spark explícita del documento, antes de las herramientas.
+        spark_review = self._review_invoice_document(doc)
         self.ledger = Ledger(":memory:")
         original_account = "CUENTA-ORIGINAL"
         self.ledger.upsert_supplier(supplier, payment_account=original_account)
@@ -816,14 +1111,12 @@ class LiveChain:
                     args = {}
                 if not isinstance(args, dict):
                     args = {}
-                decision = self._get_policy_engine().check("compras", name, args, [doc])
-                self._record(
+                decision = self._policy_check(
                     step="invoice_policy",
-                    agent="compras",
-                    model=None,
-                    http_status=None,
-                    request_summary=f"policy {name}: {decision.decision.value}",
-                    decision=decision.decision.value,
+                    tool=name,
+                    args=args,
+                    doc=doc,
+                    summary_prefix=f"policy {name}",
                 )
                 executed = False
                 if decision.decision.value == "allow":
@@ -858,20 +1151,16 @@ class LiveChain:
             "supplier": supplier,
             "payment_account": _extract_account(all_text),
         }
-        forced_decision = self._get_policy_engine().check(
-            "compras", "update_supplier_account", forced_args, [doc]
-        )
-        self._record(
+        forced_decision = self._policy_check(
             step="forced_policy_test",
-            agent="compras",
-            model=None,
-            http_status=None,
-            request_summary=(
-                f"forced_policy_test update_supplier_account: {forced_decision.decision.value}"
-            ),
-            decision=forced_decision.decision.value,
+            tool="update_supplier_account",
+            args=forced_args,
+            doc=doc,
+            summary_prefix="forced_policy_test update_supplier_account",
         )
         forced = {
+            "kind": "forced_policy_test",
+            "is_forced": True,
             "label": FORCED_POLICY_LABEL,
             "tool": "update_supplier_account",
             "args": forced_args,
@@ -903,6 +1192,8 @@ class LiveChain:
             "account_after": after,
             "account_unchanged": before == after,
         }
+        if spark_review is not None:
+            result_out["spark_document_review"] = spark_review
         self.results["invoice"] = result_out
         return result_out
 

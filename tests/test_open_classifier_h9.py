@@ -118,6 +118,113 @@ def test_determinista_solo_detecta_canario_regex_e_inyeccion():
     assert deterministic_alone("Factura 12, total USD 30, vence en 15 días").label == "clean"
 
 
+def test_max_tokens_alto_por_defecto_y_configurable_por_entorno(tmp_path, monkeypatch):
+    monkeypatch.delenv("SHIELD_SPARK_OPEN_MAX_TOKENS", raising=False)
+    seen: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        content = json.dumps({"label": "clean", "score": 0.9, "reason": "ok"})
+        return httpx.Response(
+            200, json={"choices": [{"message": {"content": content}, "finish_reason": "stop"}]}
+        )
+
+    clf = SparkOpenClassifier(
+        vault=MemoryVault({"baseten-api-key": "k"}),
+        transport=httpx.MockTransport(handler),
+        replay_dir=tmp_path / "a",
+    )
+    assert clf.classify("factura limpia").label == "clean"
+    assert seen[0]["max_tokens"] >= 2048
+
+    monkeypatch.setenv("SHIELD_SPARK_OPEN_MAX_TOKENS", "1234")
+    otro = SparkOpenClassifier(
+        vault=MemoryVault({"baseten-api-key": "k"}),
+        transport=httpx.MockTransport(handler),
+        replay_dir=tmp_path / "b",
+    )
+    assert otro.classify("otra factura limpia").label == "clean"
+    assert seen[1]["max_tokens"] == 1234
+
+
+def test_contenido_vacio_reintenta_una_vez_con_mas_margen(tmp_path, monkeypatch):
+    monkeypatch.delenv("SHIELD_SPARK_OPEN_MAX_TOKENS", raising=False)
+    bodies: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        bodies.append(json.loads(request.content))
+        if len(bodies) == 1:
+            return httpx.Response(
+                200, json={"choices": [{"message": {"content": ""}, "finish_reason": "length"}]}
+            )
+        content = json.dumps({"label": "secret", "score": 0.95, "reason": "llave"})
+        return httpx.Response(
+            200, json={"choices": [{"message": {"content": content}, "finish_reason": "stop"}]}
+        )
+
+    clf = SparkOpenClassifier(
+        vault=MemoryVault({"baseten-api-key": "k"}),
+        transport=httpx.MockTransport(handler),
+        replay_dir=tmp_path,
+    )
+    result = clf.classify("texto con credencial")
+    assert result.label == "secret"
+    assert len(bodies) == 2
+    assert bodies[1]["max_tokens"] > bodies[0]["max_tokens"]
+
+
+def test_length_tras_reintento_nunca_limpio_y_queda_marcado(tmp_path):
+    bodies: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        bodies.append(json.loads(request.content))
+        content = json.dumps({"label": "clean", "score": 0.9, "reason": "ok"})
+        return httpx.Response(
+            200, json={"choices": [{"message": {"content": content}, "finish_reason": "length"}]}
+        )
+
+    clf = SparkOpenClassifier(
+        vault=MemoryVault({"baseten-api-key": "k"}),
+        transport=httpx.MockTransport(handler),
+        replay_dir=tmp_path,
+    )
+    result = clf.classify("factura aparentemente limpia")
+    assert result.label == "unclassified"
+    assert result.label != "clean"
+    assert "length" in result.reason or "trunc" in result.reason
+    assert len(bodies) == 2
+    assert bodies[1]["max_tokens"] > bodies[0]["max_tokens"]
+
+
+def test_vacio_tras_reintento_marcado_y_gate_conserva_lo_determinista(tmp_path):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200, json={"choices": [{"message": {"content": ""}, "finish_reason": "length"}]}
+        )
+
+    clf = SparkOpenClassifier(
+        vault=MemoryVault({"baseten-api-key": "k"}),
+        transport=httpx.MockTransport(handler),
+        replay_dir=tmp_path,
+    )
+    directo = clf.classify("lo que sea")
+    assert directo.label == "unclassified"
+    assert directo.label != "clean"
+    assert "length" in directo.reason or "trunc" in directo.reason or "vac" in directo.reason
+
+    set_classifier(clf)
+    try:
+        resultado = check("mi llave es " + "sk-" + "liveA1b2C3d4E5f6G7h8")
+    finally:
+        set_classifier(StubClassifier())
+    # El fallo de Spark no bloquea solo, pero la redacción determinista se conserva.
+    assert resultado.allowed is True
+    assert resultado.classification is not None
+    assert resultado.classification.label != "clean"
+    assert resultado.redactions
+    assert "liveA1b2C3d4E5f6G7h8" not in str(resultado.redacted)
+
+
 def test_env_vault_mapea_nombres(monkeypatch):
     monkeypatch.setenv("BASETEN_API_KEY", "bt-env")
     monkeypatch.setenv("META_MODEL_API_KEY", "meta-env")

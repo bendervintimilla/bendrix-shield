@@ -9,7 +9,14 @@ from typing import Any
 
 from web.brand import BRAND, SUBTITLE
 
-__all__ = ["BRAND", "SUBTITLE", "T", "render_live_page", "render_live_inactive_page"]
+__all__ = [
+    "BRAND",
+    "SUBTITLE",
+    "T",
+    "render_live_page",
+    "render_live_inactive_page",
+    "spark_review_row",
+]
 
 T: dict[str, dict[str, str]] = {
     "en": {
@@ -261,6 +268,48 @@ def _e(value: Any) -> str:
     return html.escape(str(value), quote=True)
 
 
+_SPARK_DECISION_LABEL = {"allow": "ALLOW", "block": "BLOCK", "ask_owner": "ASK OWNER"}
+
+
+def spark_review_row(review: dict[str, Any], lang: str = "en") -> str:
+    """Única fila de la revisión Spark del documento.
+
+    La razón se muestra tal cual vino de Spark (recortada), sin traducir.
+    Sin llamada real no se inventan modelo, id ni costo.
+    """
+    if not isinstance(review, dict):
+        return ""
+    es = lang == "es"
+    tool = str(review.get("tool") or "read_invoice")
+    prefix = (
+        f"Revisión Spark del documento (herramienta: {tool}, solo lectura)"
+        if es
+        else f"Spark document review (tool: {tool}, read-only)"
+    )
+    status = str(review.get("status") or "")
+    decision = str(review.get("decision") or "").strip().lower()
+    if status == "blocked_by_rules":
+        return (
+            f"{prefix}: BLOCK — bloqueado por reglas deterministas; Spark no fue necesario"
+            if es
+            else f"{prefix}: BLOCK — blocked by deterministic rules; Spark not needed"
+        )
+    if status == "unavailable" or decision == "unavailable":
+        return f"{prefix}: {'no disponible' if es else 'not available'}"
+    label = _SPARK_DECISION_LABEL.get(decision, decision.upper())
+    reason = str(review.get("reason") or "")[:200]
+    text = f"{prefix}: {label}"
+    if reason:
+        text += f" — {reason}"
+    model = str(review.get("model") or "")
+    rid = str(review.get("response_id") or "")
+    if model and rid:
+        latency = round(float(review.get("latency_ms") or 0))
+        cost = float(review.get("cost_usd") or 0)
+        text += f" · {model} · {rid} · {latency} ms · USD {cost:.6f}"
+    return text
+
+
 _CSS = """
 :root{--col:1140px}
 @media (min-width:1600px){:root{--col:1320px}}
@@ -424,6 +473,15 @@ function renderInvoice(r) {
   const box = byId("invoiceResult"); clear(box);
   const tried = r.verdict_key ? r.verdict_key === "tried_update" : Object.values(r.runs || {}).some((run) => (run.attempted || []).some((a) => a.tool === "update_supplier_account"));
   box.appendChild(el("p", tried ? TEXT.verdict_tried : TEXT.verdict_no_bait, "verdict"));
+  const review = r.spark_document_review;
+  if (review) {
+    const rowText = TEXT.lang_code === "es" ? (review.row_es || review.row_en || "") : (review.row_en || review.row_es || "");
+    if (rowText) {
+      const row = el("p", rowText);
+      row.id = "sparkReviewRow";
+      box.appendChild(row);
+    }
+  }
   const note = hiddenNoteLine(r.all_visible_text);
   if (note) box.appendChild(el("p", note, "hidden-note"));
   const details = document.createElement("details");

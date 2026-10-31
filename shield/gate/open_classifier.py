@@ -1,4 +1,4 @@
-"""Clasificador de secretos e inyección con Muse Spark Open (bono Open Weights).
+"""Clasificador de secretos e inyección con Muse Spark Open.
 
 Modelo ``meta-models/muse-spark-open-1026`` servido por un socio de
 inferencia (SPEC §5). Proveedor primario: **Baseten** Model APIs
@@ -21,6 +21,18 @@ La selección del proveedor es por entorno:
 ``SHIELD_SPARK_OPEN_PROVIDER=baseten|modal`` (default ``baseten``) y
 ``SHIELD_SPARK_OPEN_FALLBACK=modal`` intenta Modal si Baseten no tiene
 créditos y Modal está configurado.
+
+El margen de salida va en ``max_tokens``: default alto
+``DEFAULT_MAX_TOKENS`` y configurable con ``SHIELD_SPARK_OPEN_MAX_TOKENS``
+(un valor inválido o no positivo vuelve al default). Otros participantes
+reportan respuestas con ``message.content`` vacío y
+``finish_reason='length'`` (dato de participantes, sin confirmar en este
+repo); por eso un contenido vacío o un ``finish_reason='length'`` cuenta
+como fallo —nunca como ``clean``—: se reintenta una sola vez con el doble
+de margen y, si vuelve a fallar, se devuelve ``unclassified`` marcado
+como truncado/vacío, sin bloquear por sí solo. En ese caso manda lo
+determinista (redacción y canarios del gate), igual que con
+``needs_credits``. Este módulo no se ha corrido en vivo en esta tarea.
 """
 
 from __future__ import annotations
@@ -44,6 +56,10 @@ VAULT_KEY_BY_PROVIDER = {"baseten": "baseten-api-key", "modal": "modal-api-key"}
 ENV_KEY_BY_PROVIDER = {"baseten": "BASETEN_API_KEY", "modal": "MODAL_API_KEY"}
 BLOCK_LABELS = frozenset({"secret", "injection"})
 BLOCK_THRESHOLD = 0.8
+MAX_TOKENS_ENV = "SHIELD_SPARK_OPEN_MAX_TOKENS"
+# Margen alto para que el razonamiento no se coma el JSON de salida.
+DEFAULT_MAX_TOKENS = 4096
+RETRY_MAX_TOKENS_MULTIPLIER = 2
 
 _SCHEMA = {
     "type": "object",
@@ -74,6 +90,25 @@ class _NeedsCredits(RuntimeError):
 
 class _ProviderError(RuntimeError):
     pass
+
+
+class _TruncatedResponse(RuntimeError):
+    """Contenido vacío o ``finish_reason='length'``: fallo, nunca ``clean``."""
+
+
+def _configured_max_tokens(explicit: int | None) -> int:
+    """Margen de tokens: explícito, luego ``MAX_TOKENS_ENV``, luego el default."""
+    if explicit is not None:
+        return explicit if explicit > 0 else DEFAULT_MAX_TOKENS
+    raw = os.environ.get(MAX_TOKENS_ENV)
+    if raw:
+        try:
+            value = int(raw)
+        except ValueError:
+            return DEFAULT_MAX_TOKENS
+        if value > 0:
+            return value
+    return DEFAULT_MAX_TOKENS
 
 
 def _payload_hash(provider: str, payload: object) -> str:
@@ -113,6 +148,7 @@ class SparkOpenClassifier:
         replay_dir: str | Path | None = None,
         replay_only: bool | None = None,
         timeout_s: float = 30.0,
+        max_tokens: int | None = None,
     ) -> None:
         self._vault = vault
         self._provider = (
@@ -123,6 +159,7 @@ class SparkOpenClassifier:
         self._api_key = api_key
         self._transport = transport
         self._timeout_s = timeout_s
+        self._max_tokens_arg = max_tokens
         self.replay_dir = (
             Path(replay_dir)
             if replay_dir
@@ -145,7 +182,37 @@ class SparkOpenClassifier:
                 self._vault = False  # type: ignore[assignment]
         return self._vault or None  # type: ignore[return-value]
 
+    def _max_tokens(self, *, retry: bool = False) -> int:
+        base = _configured_max_tokens(self._max_tokens_arg)
+        return base * RETRY_MAX_TOKENS_MULTIPLIER if retry else base
+
+    @staticmethod
+    def _truncated(provider: str, detail: str) -> Classification:
+        return Classification(
+            label="unclassified",
+            score=0.0,
+            model=MODEL,
+            reason=(
+                f"spark_open:{provider}: truncated_or_empty ({detail}), "
+                "no bloquea; manda lo determinista"
+            ),
+        )
+
     def _call_provider(self, provider: str, text: str) -> Classification:
+        # Un solo reintento, con más margen, ante contenido vacío o 'length'.
+        for attempt in (0, 1):
+            try:
+                return self._call_provider_once(
+                    provider, text, max_tokens=self._max_tokens(retry=attempt == 1)
+                )
+            except _TruncatedResponse as exc:
+                if attempt == 1:
+                    return self._truncated(provider, str(exc))
+        return self._truncated(provider, "reintentos agotados")  # inalcanzable
+
+    def _call_provider_once(
+        self, provider: str, text: str, *, max_tokens: int
+    ) -> Classification:
         base_url = _base_url(provider)
         if not base_url:
             raise _NeedsCredits(f"{provider}: endpoint no configurado")
@@ -155,6 +222,7 @@ class SparkOpenClassifier:
                 {"role": "system", "content": _SYSTEM},
                 {"role": "user", "content": text[:8000]},
             ],
+            "max_tokens": max_tokens,
             "response_format": {
                 "type": "json_schema",
                 "json_schema": {"name": "gate_classification", "schema": _SCHEMA},
@@ -164,7 +232,12 @@ class SparkOpenClassifier:
         replay_path = self.replay_dir / f"spark-open-{digest}.json"
         if replay_path.is_file():
             data = json.loads(replay_path.read_text(encoding="utf-8"))
-            return self._parse(data, provider, from_replay=True)
+            try:
+                return self._parse(data, provider, from_replay=True)
+            except _TruncatedResponse as exc:
+                if self.replay_only:
+                    return self._truncated(provider, str(exc))
+                raise
         if self.replay_only:
             raise _NeedsCredits(f"{provider}: replay miss ({digest[:12]}…)")
         key = self._api_key or _resolve_key(provider, self._vault_once())
@@ -193,21 +266,31 @@ class SparkOpenClassifier:
             raise _ProviderError(f"{provider}: HTTP {resp.status_code}")
         data = resp.json()
         self.live_calls += 1
+        # Una respuesta truncada/vacía no se guarda: no es un dato válido.
+        result = self._parse(data, provider, from_replay=False)
         self.replay_dir.mkdir(parents=True, exist_ok=True)
         replay_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-        return self._parse(data, provider, from_replay=False)
+        return result
 
     @staticmethod
     def _parse(data: dict[str, Any], provider: str, *, from_replay: bool) -> Classification:
         try:
             choices = data.get("choices") or []
-            raw = str((choices[0].get("message") or {}).get("content") or "")
+            first = choices[0] if choices else {}
+            finish = str(first.get("finish_reason") or "")
+            raw = str((first.get("message") or {}).get("content") or "")
+            if finish == "length" or not raw.strip():
+                raise _TruncatedResponse(
+                    f"finish_reason={finish or 'sin_dato'}, contenido_vacio={not raw.strip()}"
+                )
             parsed = json.loads(raw)
             label = str(parsed["label"])
             if label not in ("clean", "secret", "injection"):
                 raise ValueError(label)
             score = min(max(float(parsed["score"]), 0.0), 1.0)
             reason = str(parsed.get("reason", ""))[:200]
+        except _TruncatedResponse:
+            raise
         except Exception:
             return Classification(
                 label="unclassified",
