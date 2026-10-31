@@ -1,4 +1,4 @@
-"""bendrix_shield — paquete instalable del SDK de MuseShield.
+"""bendrix_shield — paquete instalable del SDK.
 
 from openai import OpenAI
 import bendrix_shield as shield

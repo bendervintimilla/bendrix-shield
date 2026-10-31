@@ -1,4 +1,4 @@
-"""MuseShield — capa de seguridad para agentes y apps de IA."""
+"""Capa de seguridad para agentes y apps de IA."""
 
 from shield.policy.injection import UntrustedDoc, untrusted
 from shield.sdk.tool import tool

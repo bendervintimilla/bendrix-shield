@@ -21,7 +21,7 @@ from typing import Any
 from crew.compras.invoice import ExtractedInvoice, extract_invoice, validate_invoice
 from crew.compras.ledger import Ledger, invoice_content_hash
 from shield.meta_client import MetaClient
-from shield.policy.check import PolicyEngine
+from shield.policy.check import PolicyEngine, spark_review_enabled
 from shield.sdk.pending import PendingRegistry, default_registry
 from shield.sdk.tool import tool
 
@@ -67,7 +67,8 @@ class ComprasAgent:
         self.ledger = ledger
         self.meta_client = meta_client
         self.token: str | None = None  # token Shield propio (shd_compras_...)
-        engine = engine or PolicyEngine()
+        # Spark por documento solo con SHIELD_SPARK_REVIEW=on (replay: apagado).
+        engine = engine or PolicyEngine(spark_review=spark_review_enabled())
         registry = registry or default_registry
 
         @tool(

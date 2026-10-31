@@ -1,4 +1,5 @@
-"""Marca visible: una sola línea para cambiar el nombre."""
+"""Reexporta la marca pública desde shield.brand (única fuente)."""
 
-BRAND = "MuseShield"
-SUBTITLE = "Business Protection"
+from shield.brand import BRAND, SUBTITLE
+
+__all__ = ["BRAND", "SUBTITLE"]

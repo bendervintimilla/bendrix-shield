@@ -6,5 +6,5 @@
   <text x="80" y="430" font-family="system-ui,sans-serif" font-size="36" fill="#1C2420">A trojanized package. Exposed cloud variables.</text>
   <text x="80" y="490" font-family="system-ui,sans-serif" font-size="36" fill="#1C2420">Our keys abused for ~16 hours: USD 310.</text>
   <text x="80" y="640" font-family="Georgia,serif" font-size="48" fill="#B42318">The real key was sitting inside the app.</text>
-  <text x="80" y="760" font-family="system-ui,sans-serif" font-size="32" fill="#1C2420">MuseShield — Business Protection: the app holds only a revocable token.</text>
+  <text x="80" y="760" font-family="system-ui,sans-serif" font-size="32" fill="#1C2420">NoKey — Business Protection: the app holds only a revocable token.</text>
 </svg>

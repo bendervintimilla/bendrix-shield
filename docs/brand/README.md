@@ -1,6 +1,6 @@
-# MuseShield — Business Protection · identidad ligera
+# NoKey — Business Protection · identidad ligera
 
-**Nombre público:** MuseShield
+**Nombre público por defecto:** NoKey
 **Subtítulo:** Business Protection
 **Tagline (EN, para video y envío):** Your app never holds the real key. One leaked token, revoked in seconds.
 **Tagline (ES):** Tu app nunca tiene la llave real. Un token filtrado, revocado en segundos.
@@ -10,20 +10,34 @@ Cifras que respaldan el tagline (solo `evals/report.md`, held-out v2):
 frente a ~16 h del incidente real · 4/12 bloqueados y 7/12 al dueño en held-out v2
 (1 lectura en inglés pasó en silencio: se dice, no se esconde).
 
-## Aviso de marca
+## Por qué NoKey
+
+El bot de Discord del hackatón avisó el 30-oct que el nombre público no
+puede usar Muse ni Meta. Juan aún no decide el nombre definitivo, así
+que queda NoKey por defecto: la promesa en el nombre, ningún agente tiene
+la llave, y no usa marca de terceros. Las excepciones a esa regla se
+piden a up_exceptions@meta.com.
+
+## Cómo cambiarlo (un comando)
+
+```bash
+uv run python scripts/set_brand.py NUEVO_NOMBRE          # aplica
+uv run python scripts/set_brand.py NUEVO_NOMBRE --dry-run # solo muestra
+```
+
+El comando actualiza `shield/brand.py` — la única fuente de la marca en
+código (`BRAND` y `SUBTITLE`; `web/brand.py` solo lo reexporta) — y
+reemplaza el nombre anterior en textos no-código: `README.md`,
+`pyproject.toml`, `docs/**/*.md`, `docs/brand/*.svg`,
+`docs/brand/slides/*.svg`, `web/README.md` y `shield/README.md`. No toca
+`evals/` ni datos medidos. Se conservan literalmente el nombre técnico
+`bendrix_shield`, `bendrix-shield` y las URLs de Cloud Run.
+
+## Aviso de no afiliación
 
 Built on Meta's Muse models; independent project, not affiliated with or endorsed by Meta.
 
-«Muse» es marca de Meta. El nombre MuseShield lo eligió el equipo para el
-hackathon y no implica respaldo de Meta. Si Meta o Cerebral Valley piden
-otro nombre, se usan las alternativas de abajo sin tocar código ni URLs.
-
-Revisión contra `01-REGLAS-OFICIALES.md` (H11-B-KIT, reglas leídas 29-oct):
-las reglas exigen obra original, repo público, uso real de modelos Meta y
-declarar lo nuevo; ninguna regla fija ni prohíbe nombres de proyecto ni
-exige aprobación previa del nombre. El riesgo no es de descalificación por
-una regla escrita: es de marca y de confusión (que parezca producto
-oficial de Meta). Por eso el aviso de arriba va en README, envío y video.
+Ese aviso se mantiene en inglés en README, envío y video.
 
 ## Paleta
 
@@ -45,14 +59,12 @@ sans para cuerpo. Sin degradados morados, sin iconos emoji.
 - `slides/01-portada.svg` — portada del video (1920×1080).
 - `slides/02-problema.svg` — Black October.
 - `slides/03-cierre.svg` — resultado 200 → 401 y cifras held-out v2.
-- El panel web usa favicon textual «M» sobre tinta (data URI en `web/app.py`)
-  y la misma paleta; no depende de archivos externos.
+- El panel web usa favicon textual con la inicial de `BRAND` sobre tinta
+  (data URI en `web/app.py`) y la misma paleta; no depende de archivos externos.
 
-## Variantes de nombre (por si Juan prefiere otra, ordenadas por impacto)
+## Variantes de nombre (por si Juan prefiere otra)
 
-1. **NoKey — Business Protection.** La promesa en el nombre: ningún agente
-   tiene la llave. Es la más memorable y no usa marca de terceros.
-2. **VaultGate — Business Protection.** Junta la bóveda de llaves y la
+1. **VaultGate — Business Protection.** Junta la bóveda de llaves y la
    puerta de política; suena a infraestructura seria para startups.
-3. **Revoke — Business Protection.** El gesto que vende el video
+2. **Revoke — Business Protection.** El gesto que vende el video
    (200 → 401 en segundos); corto, pero genérico para buscarlo en la web.

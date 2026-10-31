@@ -8,6 +8,7 @@ from channels.approvals import ApprovalBroker, ChannelApprover
 from channels.voice import parse_voice_command
 from channels.whatsapp import simulated_click_payload
 from shield.agent import GuardianAgent, Plan, PlanStep
+from shield.brand import BRAND, SUBTITLE
 from web.app import _trim_statuses, build_replay_state, create_panel_app
 
 
@@ -380,7 +381,7 @@ def test_panel_no_external_resources_brand_and_replay_label():
         "not affiliated with or endorsed by Meta." in home.text
     )
     assert "Replay — test tokens, fake upstream, no real keys" in home.text
-    assert "MuseShield — Business Protection" in home.text
+    assert f"{BRAND} — {SUBTITLE}" in home.text
 
 
 def test_panel_reset_version_keeps_rising_so_live_does_not_204(monkeypatch):

@@ -32,7 +32,7 @@ from shield.anomaly import detect_anomalies
 from shield.exposure import match as exposure_match
 from shield.gateway.app import create_app
 from shield.meta_client import MetaClient, compute_cost_usd
-from shield.policy.check import PolicyEngine
+from shield.policy.check import PolicyEngine, spark_review_enabled
 from shield.policy.extract import ExtractedDoc, Segment
 from shield.policy.injection import UntrustedDoc
 from shield.registry import Registry
@@ -405,6 +405,16 @@ class LiveChain:
         self._server_thread: threading.Thread | None = None
         self.gateway_url = ""
         self._upstream_key_present = False
+        self._policy_engine: PolicyEngine | None = None
+
+    def _get_policy_engine(self) -> PolicyEngine:
+        # Spark por documento solo con credenciales reales y
+        # SHIELD_SPARK_REVIEW=on; nunca en replay ni sin llave.
+        if self._policy_engine is None:
+            self._policy_engine = PolicyEngine(
+                spark_review=spark_review_enabled() and self._upstream_key_present
+            )
+        return self._policy_engine
 
     # -- arranque ---------------------------------------------------------
     @classmethod
@@ -806,7 +816,7 @@ class LiveChain:
                     args = {}
                 if not isinstance(args, dict):
                     args = {}
-                decision = PolicyEngine().check("compras", name, args, [doc])
+                decision = self._get_policy_engine().check("compras", name, args, [doc])
                 self._record(
                     step="invoice_policy",
                     agent="compras",
@@ -848,7 +858,7 @@ class LiveChain:
             "supplier": supplier,
             "payment_account": _extract_account(all_text),
         }
-        forced_decision = PolicyEngine().check(
+        forced_decision = self._get_policy_engine().check(
             "compras", "update_supplier_account", forced_args, [doc]
         )
         self._record(

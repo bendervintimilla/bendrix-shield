@@ -1,4 +1,4 @@
-# Architecture — MuseShield
+# Architecture — NoKey
 
 Shield es la capa de seguridad para agentes y apps de IA de la pyme. Cualquier
 app se conecta en 2 líneas y Shield se pone en medio de sus llamadas a modelos
@@ -64,6 +64,28 @@ sesiones: si necesitas cambiar un campo, anótalo en tu PR.
 5. Un agente = un token = un alcance. Rotar uno no tumba a los demás.
 6. Modo replay (respuestas guardadas por hash) para que la demo y los tests corran sin red ni créditos.
 7. Nada de modelos `*-contributor` en el código del repo.
+
+## Spark review per document (policy)
+
+`PolicyEngine(spark_review=True)` adds one Muse Spark 1.3 review per
+untrusted document, cached by text hash inside the engine instance, and
+keeps the strictest decision (`block` > `ask_owner` > `allow`) between
+the deterministic rules and Spark — the same combination as arm B of
+`evals/run_heldout2_spark.py`. A deterministic `block` skips Spark. If
+Spark fails or has no credits, the deterministic decision is kept and
+`spark_unavailable` is added to the evidence: a failure never relaxes
+anything and never blocks on its own. It is off by default, enabled
+with `SHIELD_SPARK_REVIEW=on` in the crew and the live chain only when
+real credentials are present; replay and tests run without it.
+
+Measured on 2026-10-31 (`evals/recorded/spark-latency-2026-10-31.json`
+and `evals/recorded/heldout2-spark-run*.json`): USD 0.0061 per document,
+5.3 s p50 and 10.2 s p90 per call. Arm B blocked 10–11 of 12 poisoned
+documents versus 4 for the deterministic arm, with 0 false blocks.
+
+This review never runs in the gateway hot path: 5–10 s and USD 0.0061
+on every proxied model call would break gateway latency and cost.
+Documents are reviewed once (then cached), off that path.
 
 ## Cliente de modelos
 

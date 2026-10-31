@@ -131,7 +131,8 @@ def main() -> int:
     metrics = evaluate()
     write_section(START, END, format_section(metrics))
     print(
-        f"open-classifier: modo {metrics['mode']}, det {metrics['det']}, combinado {metrics['combined']}"
+        f"open-classifier: modo {metrics['mode']}, det {metrics['det']}, "
+        f"combinado {metrics['combined']}"
     )
     return 0
 

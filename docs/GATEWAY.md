@@ -1,4 +1,4 @@
-# Gateway — MuseShield (H3)
+# Gateway — NoKey (H3)
 
 Proxy compatible con OpenAI. La app presenta su token Shield
 (`Authorization: Bearer [REDACTED]…`); el gateway valida y reenvía a la Meta

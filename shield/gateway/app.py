@@ -1,4 +1,4 @@
-"""Gateway compatible con OpenAI de MuseShield.
+"""Gateway compatible con OpenAI.
 
 Recibe ``Authorization: Bearer [REDACTED]…``, valida estado/modelo/tope/ritmo,
 pasa el payload por ``gate.check`` y reenvía a la Meta Model API con la llave
@@ -23,6 +23,7 @@ import httpx
 from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from shield.brand import BRAND
 from shield.gate.check import check as gate_check
 from shield.gateway.geo import country_for_ip
 from shield.meta_client import BASE_URL, compute_cost_usd
@@ -81,7 +82,7 @@ def create_app(
     vlt = vault or get_vault()
     is_sandbox = sandbox if sandbox is not None else os.environ.get("SHIELD_SANDBOX") == "1"
     limiter = RateLimiter(rate_limit_per_minute)
-    app = FastAPI(title="MuseShield Gateway", version="0.1.0")
+    app = FastAPI(title=f"{BRAND} Gateway", version="0.1.0")
     app.state.registry = reg
     app.state.vault = vlt
 

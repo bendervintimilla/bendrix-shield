@@ -1414,7 +1414,7 @@ def _page(state: DemoState, lang: str = "en") -> str:
         "data:image/svg+xml,%3Csvg viewBox='0 0 64 64'%3E"
         "%3Crect width='64' height='64' fill='%2314201C'/%3E"
         "%3Ctext x='32' y='42' font-family='Georgia,serif' font-size='28' "
-        "fill='%23E8A33D' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E"
+        f"fill='%23E8A33D' text-anchor='middle'%3E{(BRAND[:1] or 'N')}%3C/text%3E%3C/svg%3E"
     )
     return (
         f"<!doctype html>\n<html lang='{_esc(lang)}'><head><meta charset='utf-8'>"
@@ -1428,7 +1428,7 @@ def _page(state: DemoState, lang: str = "en") -> str:
 
 def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) -> FastAPI:
     demo = state or build_replay_state()
-    app = FastAPI(title="MuseShield — panel", version="0.1.0")
+    app = FastAPI(title=f"{BRAND} — panel", version="0.1.0")
     app.state.demo = demo
     app.state.live_chain = live_chain
     channel = WhatsAppChannel(demo.broker)

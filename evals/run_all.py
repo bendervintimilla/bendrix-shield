@@ -19,6 +19,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 ROOT = Path(__file__).parent
 REPORT = ROOT / "report.md"
+
+from shield.brand import BRAND  # noqa: E402, I001
 START, END = "<!-- H9:summary:start -->", "<!-- H9:summary:end -->"
 RUNNERS = [
     "run_injection.py",
@@ -95,7 +97,7 @@ def summary(text: str, p50: float, p95: float) -> str:
     stock = _grab(r"Conteo en imagen \(esperado 3\): [^\n]+", text)
     open_mode = _grab(r"needs_credits", text, "en vivo")
     return (
-        "# Evals de MuseShield — reporte completo (H11)\n\n"
+        f"# Evals de {BRAND} — reporte completo (H11)\n\n"
         "Las cifras sin red salen de `uv run python evals/run_all.py` "
         "(replay/fixtures). Las rondas EN VIVO de H11 (facturas Spark "
         "visión, SAM 3.1, Voice) se agregan con `run_invoices_live.py` y "
@@ -142,7 +144,7 @@ def summary(text: str, p50: float, p95: float) -> str:
 
 def main() -> int:
     # Reconstrucción limpia: cada runner escribe solo su sección marcada.
-    REPORT.write_text("# Evals de MuseShield\n", encoding="utf-8")
+    REPORT.write_text(f"# Evals de {BRAND}\n", encoding="utf-8")
     for runner in RUNNERS:
         print(f"== {runner}")
         proc = subprocess.run([sys.executable, str(ROOT / runner)], capture_output=True, text=True)
@@ -158,7 +160,7 @@ def main() -> int:
         _, after = rest.split(END, 1)
         text = before + block + after
     else:
-        text = text.replace("# Evals de MuseShield\n", "", 1).lstrip()
+        text = text.replace(f"# Evals de {BRAND}\n", "", 1).lstrip()
         text = block + "\n\n" + text
     REPORT.write_text(text, encoding="utf-8")
     print(f"reporte completo -> {REPORT} (gateway p50 {p50:.2f} ms, p95 {p95:.2f} ms)")

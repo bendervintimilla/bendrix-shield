@@ -15,5 +15,5 @@ jobs:
         with:
           python-version: "3.12"
       - run: uv sync --extra dev
-      - run: uv run ruff check shield tests scripts
+      - run: uv run ruff check shield tests scripts web evals
       - run: uv run pytest -q

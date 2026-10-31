@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from shield.anomaly import AnomalyFinding, detect_anomalies
+from shield.brand import BRAND
 from shield.exposure import match_all, triage_difficult
 from shield.notice import NoticeDraft, draft_notice
 from shield.schemas import Asset, CallLog, Exposure, ThreatCard
@@ -602,7 +603,7 @@ class GuardianAgent:
         messages: list[dict[str, Any]] = [
             {
                 "role": "system",
-                "content": "Eres el agente guardián de MuseShield. "
+                "content": f"Eres el agente guardián de {BRAND}. "
                 "Vigila, propón un plan, pide aprobación y actúa solo con approval_id.",
             },
             {"role": "user", "content": "Corre un ciclo de vigilancia completo y reporta."},

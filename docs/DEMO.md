@@ -1,6 +1,6 @@
-# Demo de 3:00 — MuseShield — Business Protection (guion del SPEC §4)
+# Demo de 3:00 — NoKey — Business Protection (guion del SPEC §4)
 
-Nombre que se dice en voz al abrir y al cerrar: «MuseShield, Business
+Nombre que se dice en voz al abrir y al cerrar: «NoKey, Business
 Protection». Aviso en pantalla al cierre: *Built on Meta's Muse models;
 independent project, not affiliated with or endorsed by Meta.* Portadas:
 `docs/brand/slides/`.

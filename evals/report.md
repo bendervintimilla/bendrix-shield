@@ -1,5 +1,5 @@
 <!-- H9:summary:start -->
-# Evals de MuseShield — reporte completo (H11)
+# Evals de NoKey — reporte completo (H11)
 
 Las cifras sin red salen de `uv run python evals/run_all.py` (replay/fixtures). Las rondas EN VIVO de H11 (facturas Spark visión, SAM 3.1, Voice) se agregan con `run_invoices_live.py` y `run_stock_live.py` y llevan su costo real. Las tasas de inyección se reportan por separado: la sintética comparte patrones con las reglas, la held-out v1 ajustó reglas en H10 y la held-out v2 es la principal (fresca, congelada, sin ajustar).
 

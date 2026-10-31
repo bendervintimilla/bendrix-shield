@@ -16,7 +16,7 @@ from crew.bodega.sam import count_stock as _count_stock
 from crew.bodega.voice import transcribe as _transcribe
 from crew.compras.ledger import Ledger
 from shield.meta_client import MetaClient
-from shield.policy.check import PolicyEngine
+from shield.policy.check import PolicyEngine, spark_review_enabled
 from shield.sdk.pending import PendingRegistry, default_registry
 from shield.sdk.tool import tool
 
@@ -37,7 +37,8 @@ class BodegaAgent:
         self.meta_client = meta_client
         self.sam_fn = sam_fn
         self.token: str | None = None  # token Shield propio (shd_bodega_...)
-        engine = engine or PolicyEngine()
+        # Spark por documento solo con SHIELD_SPARK_REVIEW=on (replay: apagado).
+        engine = engine or PolicyEngine(spark_review=spark_review_enabled())
         registry = registry or default_registry
 
         @tool(effect="read", agent="bodega", engine=engine, registry=registry, name="count_stock")

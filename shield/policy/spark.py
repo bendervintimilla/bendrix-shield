@@ -19,6 +19,18 @@ SCHEMA = {
 }
 
 
+def is_spark_failure(decision: Any) -> bool:
+    """True si el clasificador falló (sin red/créditos/respuesta inválida).
+
+    Solo las razones propias de fallo cuentan: empiezan con ``ambiguous_``
+    y no con ``spark: ``. La razón y la evidencia que vienen del modelo
+    nunca descartan una decisión: un documento envenenado podría hacer
+    que Spark repita ``spark_unavailable`` o ``needs_credits``.
+    """
+    reason = str(getattr(decision, "reason", "") or "")
+    return not reason.startswith("spark: ") and reason.startswith("ambiguous_")
+
+
 class Classifier(Protocol):
     def __call__(
         self, *, agent: str, tool: str, args: dict[str, Any], sources_text: str
@@ -79,7 +91,7 @@ def make_spark_classifier(client: Any | None = None) -> Classifier:
         except Exception:
             return PolicyDecision(
                 decision=Decision.ASK_OWNER,
-                reason="spark: respuesta no válida, se escala al dueño",
+                reason="ambiguous_invalid_response: se escala al dueño",
                 evidence=[raw[:160]] if raw else [],
             )
 

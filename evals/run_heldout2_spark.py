@@ -4,10 +4,13 @@ Sin tocar ``evals/heldout2/``, ni reglas, ni el prompt de
 ``shield/policy/spark.py``. Corre solo si se pide:
 ``uv run python evals/run_heldout2_spark.py``. Tope USD 1.00 por corrida.
 Un clasificador fallido cuenta como error, nunca como acierto.
+Brazo C opcional (``--arm-c``): ``PolicyEngine(spark_review=True)`` tal
+cual; no escribe en report ni en recorded salvo ``--write-report``.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -20,20 +23,15 @@ from shield.meta_client import MetaClient  # noqa: E402
 from shield.policy.check import PolicyEngine  # noqa: E402
 from shield.policy.extract import ExtractedDoc, Segment  # noqa: E402
 from shield.policy.injection import UntrustedDoc  # noqa: E402
-from shield.policy.spark import make_spark_classifier  # noqa: E402
+from shield.policy.spark import is_spark_failure, make_spark_classifier  # noqa: E402
 from shield.schemas import Decision  # noqa: E402
 
 HELDOUT_DIR = Path(__file__).parent / "heldout2"
 START, END = "<!-- H14:heldout2-spark:start -->", "<!-- H14:heldout2-spark:end -->"
 CAP_USD = 1.00
 _STRICT = {Decision.ALLOW: 0, Decision.ASK_OWNER: 1, Decision.BLOCK: 2}
-_FAILED_MARKS = (
-    "ambiguous_classifier_unavailable",
-    "ambiguous_needs_credits",
-    "spark: respuesta no válida",
-    "spark:unavailable",
-    "spark:needs_credits",
-)
+# Texto viejo de respuesta inválida, solo para datos ya grabados.
+_OLD_FAILED_MARKS = ("spark: respuesta no válida",)
 
 
 def load_cases() -> list[dict[str, Any]]:
@@ -78,9 +76,11 @@ class CountingClient:
 
 
 def _is_failed(decision: Any) -> bool:
-    reason = str(getattr(decision, "reason", ""))
-    evidence = " ".join(str(e) for e in getattr(decision, "evidence", []) or [])
-    return any(mark in reason or mark in evidence for mark in _FAILED_MARKS)
+    if is_spark_failure(decision):
+        return True
+    # Datos grabados con el texto viejo de respuesta inválida.
+    reason = str(getattr(decision, "reason", "") or "")
+    return any(mark in reason for mark in _OLD_FAILED_MARKS)
 
 
 def _empty_metrics() -> dict[str, Any]:
@@ -129,7 +129,7 @@ def _tally(m: dict[str, Any], case: dict[str, Any], decision: Decision, *, faile
     _ = value
 
 
-def evaluate() -> dict[str, Any]:
+def evaluate(*, include_arm_c: bool = False) -> dict[str, Any]:
     cases = load_cases()
     arms: dict[str, Any] = {}
 
@@ -225,15 +225,90 @@ def evaluate() -> dict[str, Any]:
 
     arms["A"] = ma
     arms["B"] = mb
+    total_cost = ma["cost_usd"] + mb["cost_usd"]
+
+    if include_arm_c:
+        # Brazo C: PolicyEngine(spark_review=True) tal cual, sin atajos.
+        client_c = CountingClient()
+        classifier_c = make_spark_classifier(client_c)
+        engine_c = PolicyEngine(spark_review=True, classifier=classifier_c)
+        mc = _empty_metrics()
+        try:
+            for case in cases:
+                if total_cost + client_c.cost_usd >= CAP_USD:
+                    mc["per_case"].append(
+                        {"id": case.get("id"), "arm": "C", "error": "cost_cap_reached"}
+                    )
+                    mc["errors"] += 1
+                    continue
+                before_calls = client_c.calls
+                before_cost = client_c.cost_usd
+                before_failures = engine_c.spark_review_failures
+                decision = engine_c.check(
+                    "compras",
+                    str(case.get("tool", "read_invoice")),
+                    dict(case.get("args") or {}),
+                    [doc_of(case)],
+                )
+                used_spark = client_c.calls > before_calls
+                failed = engine_c.spark_review_failures > before_failures
+                _tally(mc, case, decision.decision, failed=failed)
+                mc["per_case"].append(
+                    {
+                        "id": case.get("id"),
+                        "arm": "C",
+                        "label": case.get("label"),
+                        "expected": case.get("expected"),
+                        "decision": decision.decision.value,
+                        "reason": decision.reason,
+                        "spark_called": used_spark,
+                        "response_id": client_c.last_response_id if used_spark else None,
+                        "cost_usd": round(client_c.cost_usd - before_cost, 6),
+                        "error": "classifier_failed" if failed else None,
+                    }
+                )
+        finally:
+            mc["spark_calls"] = client_c.calls
+            mc["cost_usd"] = round(client_c.cost_usd, 6)
+            client_c.close()
+        arms["C"] = mc
+        total_cost += mc["cost_usd"]
     return {
         "cap_usd": CAP_USD,
-        "total_cost_usd": round(ma["cost_usd"] + mb["cost_usd"], 6),
+        "total_cost_usd": round(total_cost, 6),
         "arms": arms,
     }
 
 
-def main() -> int:
-    result = evaluate()
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--arm-c", action="store_true", help="medir el brazo C (spark_review)")
+    parser.add_argument(
+        "--write-report",
+        action="store_true",
+        help="con --arm-c, escribir recorded y la sección en report (por defecto no)",
+    )
+    opts = parser.parse_args(argv)
+    result = evaluate(include_arm_c=opts.arm_c)
+    # Con --arm-c no se escribe nada salvo que se pida con --write-report.
+    write_output = not opts.arm_c or opts.write_report
+    if not write_output:
+        print(
+            json.dumps(
+                {
+                    "total_cost_usd": result["total_cost_usd"],
+                    "arms": {
+                        k: {
+                            x: v[x]
+                            for x in ("blocked", "ask_owner", "silent", "errors", "spark_calls")
+                        }
+                        for k, v in result["arms"].items()
+                    },
+                },
+                ensure_ascii=False,
+            )
+        )
+        return 0
     out_path = Path(__file__).parent / "recorded" / "heldout2-spark.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -243,10 +318,11 @@ def main() -> int:
         "MetaClient(fresh=True) directo, modelo muse-spark-1.3. "
         "A: PolicyEngine(use_spark=True) tal cual. "
         "B: Spark en todos los casos, final = la más estricta. "
+        "C: PolicyEngine(spark_review=True) tal cual. "
         f"Tope USD {CAP_USD:.2f}; costo real total USD {result['total_cost_usd']:.4f}.",
         "",
     ]
-    for arm in ("A", "B"):
+    for arm in tuple(result["arms"].keys()):
         m = result["arms"][arm]
         lines += [
             f"### Brazo {arm}",

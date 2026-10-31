@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" role="img" aria-label="MuseShield cover">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" role="img" aria-label="NoKey cover">
   <rect width="1920" height="1080" fill="#14201C"/>
   <path d="M860 90 L1010 140 V300 C1010 400 960 460 860 500 C760 460 710 400 710 300 V140 Z" fill="none" stroke="#1F7A4D" stroke-width="10"/>
   <path d="M760 330 L830 330 L855 260 L885 390 L910 305 L960 305" fill="none" stroke="#E8A33D" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="960" y="640" font-family="Georgia,serif" font-size="110" fill="#F2F2EA" text-anchor="middle">MuseShield</text>
+  <text x="960" y="640" font-family="Georgia,serif" font-size="110" fill="#F2F2EA" text-anchor="middle">NoKey</text>
   <text x="960" y="720" font-family="system-ui,sans-serif" font-size="44" letter-spacing="6" fill="#E8A33D" text-anchor="middle">BUSINESS PROTECTION</text>
   <text x="960" y="830" font-family="system-ui,sans-serif" font-size="36" fill="#C8CEC4" text-anchor="middle">Your app never holds the real key.</text>
   <text x="960" y="1010" font-family="system-ui,sans-serif" font-size="24" fill="#8A948A" text-anchor="middle">Built on Meta's Muse models; independent project, not affiliated with or endorsed by Meta.</text>

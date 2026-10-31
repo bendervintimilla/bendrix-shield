@@ -1,7 +1,7 @@
-# MuseShield — Business Protection
+# NoKey — Business Protection
 
 **Your app never holds the real key. One leaked token, revoked in seconds.**
-MuseShield is the safety layer for AI agents and apps: in our blind
+NoKey is the safety layer for AI agents and apps: in our blind
 held-out v2 eval, 0/12 sensitive writes slipped through silently, and a
 stolen token went from `200` to `401` in under 10 seconds (replay) —
 versus ~16 hours in the real Black October incident. Shield sits between your app
@@ -207,11 +207,12 @@ Routes and prices were verified against the official docs; see
 ## Name and affiliation
 
 Built on Meta's Muse models; independent project, not affiliated with
-or endorsed by Meta. «Muse» is a trademark of Meta; the MuseShield name
-is a hackathon project name chosen by the team (Bendrix) and implies no
-endorsement. Brand assets live in `docs/brand/`. The GitHub repository,
-Python package (`bendrix_shield`) and live Cloud Run URLs keep their
-original technical names — only the public product name changed.
+or endorsed by Meta. The public name is NoKey by default — it uses no
+Meta trademark — and it lives in one place (`shield/brand.py`; change it
+with `uv run python scripts/set_brand.py NUEVO_NOMBRE`). Brand assets
+live in `docs/brand/`. The GitHub repository, Python package
+(`bendrix_shield`) and live Cloud Run URLs keep their original technical
+names — only the public product name changed.
 
 ## License
 

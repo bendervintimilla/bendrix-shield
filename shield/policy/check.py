@@ -2,17 +2,37 @@
 
 Orden: 1) reglas deterministas YAML, 2) inyección en fuentes no confiables,
 3) campos sensibles y límites, 4) Spark 1.3 solo para lo ambiguo.
+Con ``spark_review=True``: Spark por documento no confiable (caché por
+(herramienta, hash del texto); los fallos no se cachean) y gana la
+decisión más estricta (block > ask_owner > allow).
 """
 
 from __future__ import annotations
 
+import hashlib
+import os
 from pathlib import Path
 from typing import Any
 
 from shield.policy.injection import UntrustedDoc, scan_sources
 from shield.policy.rules import amount_in, load_policy, sensitive_fields_in
-from shield.policy.spark import Classifier, make_spark_classifier
+from shield.policy.spark import Classifier, is_spark_failure, make_spark_classifier
 from shield.schemas import Decision, PolicyDecision
+
+_STRICT = {Decision.ALLOW: 0, Decision.ASK_OWNER: 1, Decision.BLOCK: 2}
+_ENV_ON = {"on", "1", "true", "yes"}
+
+
+def spark_review_enabled() -> bool:
+    """True si SHIELD_SPARK_REVIEW está encendido (on/1/true/yes)."""
+    return os.environ.get("SHIELD_SPARK_REVIEW", "").strip().lower() in _ENV_ON
+
+
+def _source_text(source: Any) -> str:
+    if isinstance(source, str):
+        return source
+    text = getattr(source, "text", None)
+    return text if isinstance(text, str) else ""
 
 
 class PolicyEngine:
@@ -22,12 +42,20 @@ class PolicyEngine:
         policies_dir: Path | None = None,
         classifier: Classifier | None = None,
         use_spark: bool = False,
+        spark_review: bool | None = None,
     ) -> None:
         self.policies_dir = policies_dir
         self._classifier = classifier
         self.use_spark = use_spark or classifier is not None
+        # Apagado por defecto; SHIELD_SPARK_REVIEW=on lo activa si no se
+        # pasa un valor explícito.
+        self.spark_review = spark_review_enabled() if spark_review is None else bool(spark_review)
         self.classifier_calls = 0
+        self.spark_review_calls = 0
+        self.spark_review_failures = 0
+        self.spark_calls = 0
         self.classifier_cost_usd = 0.0
+        self._spark_cache: dict[tuple[str, str], PolicyDecision] = {}
 
     @property
     def classifier(self) -> Classifier:
@@ -36,6 +64,71 @@ class PolicyEngine:
         return self._classifier
 
     def check(
+        self,
+        agent: str,
+        tool: str,
+        args: dict[str, Any] | None = None,
+        sources: list[Any] | tuple[Any, ...] | None = None,
+        *,
+        effect: str | None = None,
+    ) -> PolicyDecision:
+        deterministic = self._check_deterministic(agent, tool, args, sources, effect=effect)
+        if not self.spark_review or deterministic.decision is Decision.BLOCK:
+            return deterministic
+        return self._apply_spark_review(deterministic, agent, tool, args, sources)
+
+    def _apply_spark_review(
+        self,
+        deterministic: PolicyDecision,
+        agent: str,
+        tool: str,
+        args: dict[str, Any] | None,
+        sources: list[Any] | tuple[Any, ...] | None,
+    ) -> PolicyDecision:
+        texts = [t for t in (_source_text(s) for s in (sources or [])) if t.strip()]
+        if not texts:
+            return deterministic
+        best: PolicyDecision | None = None
+        failed = False
+        for text in texts:
+            key = (tool, hashlib.sha256(text.encode("utf-8")).hexdigest())
+            if key in self._spark_cache:
+                cached = self._spark_cache[key]
+                if best is None or _STRICT[cached.decision] > _STRICT[best.decision]:
+                    best = cached
+                continue
+            self.classifier_calls += 1
+            self.spark_review_calls += 1
+            self.spark_calls += 1
+            try:
+                result = self.classifier(
+                    agent=agent, tool=tool, args=dict(args or {}), sources_text=text
+                )
+            except Exception:
+                result = None
+            if result is None or is_spark_failure(result):
+                # Sin caché: un fallo temporal se reintenta en la
+                # siguiente revisión.
+                self.spark_review_failures += 1
+                failed = True
+                continue
+            self._spark_cache[key] = result
+            if best is None or _STRICT[result.decision] > _STRICT[best.decision]:
+                best = result
+        if best is not None and _STRICT[best.decision] > _STRICT[deterministic.decision]:
+            evidence = list(deterministic.evidence) + list(best.evidence)
+            if failed:
+                evidence.append("spark_unavailable")
+            return PolicyDecision(decision=best.decision, reason=best.reason, evidence=evidence)
+        if failed:
+            return PolicyDecision(
+                decision=deterministic.decision,
+                reason=deterministic.reason,
+                evidence=list(deterministic.evidence) + ["spark_unavailable"],
+            )
+        return deterministic
+
+    def _check_deterministic(
         self,
         agent: str,
         tool: str,
@@ -154,8 +247,9 @@ class PolicyEngine:
                 evidence=[f"amount:{amount}", f"limit:{policy.max_amount_usd}"],
             )
         # Ambiguo: señales débiles combinadas en un write -> Spark (o ask_owner).
+        # Con spark_review la llamada la hace la revisión por documento.
         if scan.suspicious and tool_effect == "write":
-            if self.use_spark:
+            if self.use_spark and not self.spark_review:
                 self.classifier_calls += 1
                 sources_text = "\n".join(getattr(s, "text", str(s)) for s in sources)
                 return self.classifier(agent=agent, tool=tool, args=args, sources_text=sources_text)

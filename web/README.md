@@ -30,8 +30,9 @@ funcionando por POST normal.
 
 Inglés por defecto. Español con `?lang=es`; queda guardado en la
 cookie `panel_lang`. El diccionario es `T = {"en": ..., "es": ...}` en
-`web/app.py`. El nombre del producto vive en las constantes `BRAND`
-y `SUBTITLE`: cambiarlas no toca nada más.
+`web/app.py`. El nombre del producto vive en `shield/brand.py`
+(`BRAND` y `SUBTITLE`, reexportadas por `web/brand.py`): cambiarlo ahí
+o con `scripts/set_brand.py` no toca nada más.
 
 ## En vivo sin recargar
 
@@ -49,6 +50,8 @@ y `SUBTITLE`: cambiarlas no toca nada más.
   cuando `clock_running` es verdadero.
 
 ## Correrlo
+
+`SHIELD_SPARK_REVIEW=on` activa la revisión Spark por documento; solo `make live` la enciende (demo y pruebas van apagados).
 
 ```bash
 DEMO=replay uv run python -m web.app   # http://127.0.0.1:8001
