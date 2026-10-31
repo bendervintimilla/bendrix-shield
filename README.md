@@ -62,6 +62,19 @@ Secret Manager, never committed) and run `make smoke` for one live call
 per model. Deploy the gateway with `bash deploy/cloudrun.sh` (GCP
 project `bendrix-hackathon` only).
 
+## Run it live with your own key
+
+```bash
+export SHIELD_VAULT_BACKEND=env
+export META_MODEL_API_KEY=<your key>   # never committed
+uv sync --extra dev
+make live                              # DEMO=live, panel on 127.0.0.1:8001
+```
+
+Open `/live` in your browser (the replay panel stays on `/`). Live steps
+call the real Meta API through the Shield gateway and cost real credits:
+see the cost shown on screen.
+
 ## Architecture
 
 ```text
@@ -150,6 +163,7 @@ with it in H10.
 |---|---|
 | Synthetic injection set (shares patterns with the rules; regression only) | Blocked 30/30 (100%); clean false positives 0/30 |
 | **Held-out v2 (headline)** — fresh, blind to the rules, frozen | Blocked 4/12, escalated to owner 7/12, **silently allowed 1/12** — one English read asking to reveal the gateway token; sensitive writes silently allowed **0/12**. Legitimate formal account changes reach `ask_owner` 3/3; clean reads allowed 5/5 |
+| **Live** held-out v2 with Muse Spark reviewing every document, stricter decision wins (2 runs, same frozen set) | Blocked 10/12 and 11/12, escalated 1 and 0, **silently allowed 1/12 in both** (same English read); legitimate changes  3/3, clean reads 5/5, false blocks 0. USD 0.1121 and 0.1316. A measurement: the shipped engine does not call Spark on every document, and on this set it made 0 Spark calls |
 | Held-out v1 (history; rules were later adjusted with it) | Blocked 3/12, escalated to owner 9/12, silently allowed 0/12 after the H10 fix (2 before). Legitimate formal changes `ask_owner` 4/4; clean reads 4/4 |
 | **Live** smoke: Spark 1.3, Wonder, Voice, SAM 3.1 | 4/4 `[ok]` live, USD 0.0063 |
 | **Live** invoices ×20 (Spark 1.3 vision on rendered invoices) | Supplier/number/date/currency/subtotal/tax/total and arithmetic validation 20/20, USD 0.1812 |
