@@ -25,13 +25,16 @@ class KeychainVault(BaseVault):
             raise VaultUnavailable("macOS `security` CLI not available") from exc
 
     def get(self, name: str) -> str | None:
-        out = self._call(
-            ["security", "find-generic-password", "-s", name, "-a", self._account, "-w"]
-        )
-        if out.returncode != 0:
-            return None
-        value = out.stdout.strip()
-        return value or None
+        # El llavero guarda «meta-model-api-key»; el código pide «META_MODEL_API_KEY».
+        alias = name.lower().replace("_", "-")
+        for service in dict.fromkeys((name, alias)):
+            out = self._call(
+                ["security", "find-generic-password", "-s", service, "-a", self._account, "-w"]
+            )
+            value = out.stdout.strip() if out.returncode == 0 else ""
+            if value:
+                return value
+        return None
 
     def put(self, name: str, value: str) -> None:
         if not value:

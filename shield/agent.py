@@ -292,6 +292,24 @@ class GuardianAgent:
         self._approval_id: str | None = None
         self._approved_steps: set[tuple[str, str]] = set()
 
+    def set_external_plan(self, steps: list[Any], summary: str = "") -> Plan:
+        """Fija un plan propuesto fuera del loop determinista (p. ej. Spark live)."""
+        plan_steps: list[PlanStep] = []
+        for step in steps or []:
+            if isinstance(step, PlanStep):
+                plan_steps.append(step)
+            elif isinstance(step, dict):
+                plan_steps.append(
+                    PlanStep(
+                        action=str(step.get("action", "")),
+                        target=str(step.get("target", "")),
+                        reason=str(step.get("reason", "")),
+                        requires_approval=bool(step.get("requires_approval", True)),
+                    )
+                )
+        self._plan = Plan(steps=plan_steps, summary=str(summary or ""))
+        return self._plan
+
     # -- herramientas de lectura -------------------------------------------
 
     def tool_match_exposure(self) -> dict[str, Any]:
@@ -370,9 +388,7 @@ class GuardianAgent:
     def _steps_for(self, approval_id: str) -> set[tuple[str, str]]:
         scoped = getattr(self.approver, "approved_steps_for", None)
         if callable(scoped):
-            steps = scoped(approval_id)
-            if steps:
-                return set(steps)
+            return set(scoped(approval_id))
         assert self._plan is not None
         return {(s.action, s.target) for s in self._plan.steps if s.requires_approval}
 
@@ -449,7 +465,7 @@ class GuardianAgent:
             return "sin backend de acciones (H6): nada que ejecutar"
         if not approval_id or approval_id != self._approval_id:
             return "approval_required: pide primero ask_owner y usa su approval_id"
-        if (action, target) not in self._approved_steps and self._approved_steps:
+        if (action, target) not in self._approved_steps:
             return f"paso no aprobado en el plan: {action} {target}"
         return None
 
@@ -532,10 +548,7 @@ class GuardianAgent:
             if report.approval_id:
                 for step in self._plan.steps if self._plan else []:
                     if step.action in EFFECT_TOOLS:
-                        if (
-                            self._approved_steps
-                            and (step.action, step.target) not in self._approved_steps
-                        ):
+                        if (step.action, step.target) not in self._approved_steps:
                             report.executed.append(
                                 {
                                     "action": step.action,

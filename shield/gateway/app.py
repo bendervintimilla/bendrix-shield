@@ -150,21 +150,46 @@ def create_app(
         except Exception:
             return None
 
+    def _upstream_request_id(resp: httpx.Response) -> str | None:
+        return resp.headers.get("x-request-id") or resp.headers.get("request-id") or None
+
     def map_upstream_error(resp: httpx.Response) -> JSONResponse:
+        raw_detail = (resp.text or "")[:1000]
+        gated = gate_check(raw_detail)
+        redacted = gated.redacted if isinstance(gated.redacted, str) else raw_detail
+        detail = str(redacted)[:300]
         if resp.status_code in (401, 402, 403):
-            return _error(
+            out = _error(
                 503, "needs_credits", "Upstream needs credits or a valid key (needs_credits)"
             )
-        return JSONResponse(
-            status_code=resp.status_code,
-            content={
-                "error": {
-                    "message": "upstream error",
-                    "type": "shield_error",
-                    "code": "upstream_error",
-                }
-            },
-        )
+            # _error no lleva detail; reconstruir con detail redactado.
+            out = JSONResponse(
+                status_code=503,
+                content={
+                    "error": {
+                        "message": "Upstream needs credits or a valid key (needs_credits)",
+                        "type": "shield_error",
+                        "code": "needs_credits",
+                        "detail": detail,
+                    }
+                },
+            )
+        else:
+            out = JSONResponse(
+                status_code=resp.status_code,
+                content={
+                    "error": {
+                        "message": "upstream error",
+                        "type": "shield_error",
+                        "code": "upstream_error",
+                        "detail": detail,
+                    }
+                },
+            )
+        uid = _upstream_request_id(resp)
+        if uid:
+            out.headers["x-upstream-request-id"] = uid
+        return out
 
     async def forward_json(
         request: Request, token: AgentToken, path: str, payload: dict[str, Any]
@@ -208,6 +233,13 @@ def create_app(
             log_call(request, token, model, decision=Decision.BLOCK, started=started)
             return _error(502, "gate_blocked_response", "Upstream response blocked by Shield gate")
         body = out_gate.redacted if isinstance(out_gate.redacted, dict) else data
+        if isinstance(body, dict) and isinstance(data, dict):
+            # La redacción puede mutar un id con dígitos (p. ej. teléfono);
+            # la procedencia de primer nivel viene intacta del upstream.
+            body = dict(body)
+            for field_name in ("id", "model", "created", "object"):
+                if field_name in data:
+                    body[field_name] = data[field_name]
         cost = compute_cost_usd(model, usage)
         log_call(
             request,
@@ -219,7 +251,11 @@ def create_app(
             tokens_out=tokens_out,
             cost=cost,
         )
-        return JSONResponse(content=body)
+        out = JSONResponse(content=body)
+        uid = _upstream_request_id(resp)
+        if uid:
+            out.headers["x-upstream-request-id"] = uid
+        return out
 
     async def _forward_stream(
         client: httpx.AsyncClient,
@@ -282,9 +318,11 @@ def create_app(
                     cost=cost,
                 )
 
-        return StreamingResponse(
-            chunks(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"}
-        )
+        stream_headers = {"Cache-Control": "no-cache"}
+        uid = _upstream_request_id(resp)
+        if uid:
+            stream_headers["x-upstream-request-id"] = uid
+        return StreamingResponse(chunks(), media_type="text/event-stream", headers=stream_headers)
 
     def redact_stream_text(text: str) -> bytes:
         from shield.gate.redact import redact_text
@@ -355,14 +393,47 @@ def create_app(
             log_call(request, token, model, decision=Decision.BLOCK, started=started)
             return map_upstream_error(resp)
         data = resp.json()
-        cost = compute_cost_usd(model, data)
+        duration_ms = (
+            data.get("audioDurationMs")
+            or data.get("audio_duration_ms")
+            or data.get("duration_ms")
+            or 0
+        )
+        if not duration_ms:
+            # Duración desde la cabecera WAV si el upstream no la reporta.
+            try:
+                import io
+                import wave
+
+                with wave.open(io.BytesIO(audio)) as wav:
+                    frames = wav.getnframes()
+                    rate = wav.getframerate() or 0
+                    duration_ms = int(frames * 1000 / rate) if rate else 0
+            except Exception:
+                duration_ms = 0
+        cost_data = dict(data)
+        if duration_ms and not cost_data.get("audioDurationMs"):
+            cost_data["audioDurationMs"] = duration_ms
+        cost = compute_cost_usd(model, cost_data)
         log_call(request, token, model, decision=Decision.ALLOW, started=started, cost=cost)
         text = data.get("transcript") or data.get("text") or ""
         out_gate = gate_check(text)
         if not out_gate.allowed:
             return _error(502, "gate_blocked_response", "Upstream response blocked by Shield gate")
         redacted_text = out_gate.redacted if isinstance(out_gate.redacted, str) else text
-        return {"text": redacted_text, **({} if redacted_text == text else {})}
+        session_id = data.get("session_id") or data.get("sessionId") or data.get("id")
+        out = JSONResponse(
+            content={
+                "text": redacted_text,
+                "session_id": str(session_id) if session_id else None,
+                "audio_duration_ms": int(float(duration_ms or 0)),
+                "cost_usd": cost,
+            }
+        )
+        uid = _upstream_request_id(resp)
+        if uid:
+            out.headers["x-upstream-request-id"] = uid
+        return out
 
     return app
 

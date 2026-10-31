@@ -75,6 +75,7 @@ class CallResult:
     from_replay: bool = False
     replay_hash: str = ""
     usage: dict[str, Any] = field(default_factory=dict)
+    upstream_request_id: str | None = None
 
 
 def get_api_key() -> str | None:
@@ -155,6 +156,7 @@ class MetaClient:
         transport: httpx.BaseTransport | None = None,
         gate_fn: Callable[[object], Any] = gate_check,
         sleep_fn: Callable[[float], None] = time.sleep,
+        fresh: bool = False,
     ) -> None:
         self._api_key = api_key if api_key is not None else get_api_key()
         self.base_url = base_url.rstrip("/")
@@ -165,6 +167,7 @@ class MetaClient:
         )
         self.replay_only = replay_only or os.environ.get("SHIELD_REPLAY") == "1"
         self.max_retries = max_retries
+        self.fresh = fresh
         self._gate_fn = gate_fn
         self._sleep = sleep_fn
         self._cache: dict[str, CallResult] = {}
@@ -215,10 +218,19 @@ class MetaClient:
                 pass
         return (0.5 * (2**attempt)) + random.uniform(0, 0.25)
 
+    @staticmethod
+    def _upstream_id(resp: httpx.Response) -> str | None:
+        return (
+            resp.headers.get("x-request-id")
+            or resp.headers.get("request-id")
+            or resp.headers.get("x-upstream-request-id")
+            or None
+        )
+
     def _post_json(self, path: str, payload: dict[str, Any], *, model: str) -> CallResult:
         self._gate(payload)
         digest = payload_hash(path, payload)
-        if digest in self._cache:
+        if not self.fresh and digest in self._cache:
             hit = self._cache[digest]
             return CallResult(
                 data=hit.data,
@@ -227,8 +239,9 @@ class MetaClient:
                 from_cache=True,
                 replay_hash=digest,
                 usage=hit.usage,
+                upstream_request_id=hit.upstream_request_id,
             )
-        replayed = self._load_replay(digest)
+        replayed = None if self.fresh else self._load_replay(digest)
         if replayed is not None:
             usage = replayed.get("usage") or {}
             result = CallResult(
@@ -271,9 +284,11 @@ class MetaClient:
                 latency_ms=latency,
                 replay_hash=digest,
                 usage=usage,
+                upstream_request_id=self._upstream_id(resp),
             )
-            self._cache[digest] = result
-            self._save_replay(digest, data)
+            if not self.fresh:
+                self._cache[digest] = result
+                self._save_replay(digest, data)
             return result
         raise MetaAPIError(429, f"reintentos agotados: {last_error}")
 
@@ -306,7 +321,11 @@ class MetaClient:
         )
 
     def transcribe_file(
-        self, wav_path: str | Path, *, model: str = "muse-voice-transcribe-1.0"
+        self,
+        wav_path: str | Path,
+        *,
+        model: str = "muse-voice-transcribe-1.0",
+        fresh: bool | None = None,
     ) -> CallResult:
         """Transcribe un WAV: ``POST /v1/asr/transcribe`` multipart (doc speech-to-text)."""
         path = Path(wav_path)
@@ -316,8 +335,9 @@ class MetaClient:
             "audioEncoding": "WAV",
         }
         self._gate(request_obj)
+        use_fresh = self.fresh if fresh is None else fresh
         digest = payload_hash("/asr/transcribe", {"request": request_obj, "file": path.name})
-        replayed = self._load_replay(digest)
+        replayed = None if use_fresh else self._load_replay(digest)
         if replayed is not None:
             return CallResult(
                 data=replayed,
@@ -346,13 +366,15 @@ class MetaClient:
         if resp.status_code >= 400:
             raise MetaAPIError(resp.status_code, resp.text[:500])
         data = resp.json()
-        self._save_replay(digest, data)
+        if not use_fresh:
+            self._save_replay(digest, data)
         return CallResult(
             data=data,
             model=model,
             cost_usd=compute_cost_usd(model, data),
             latency_ms=(time.perf_counter() - started) * 1000,
             replay_hash=digest,
+            upstream_request_id=self._upstream_id(resp),
         )
 
     def openai_client(self) -> Any:

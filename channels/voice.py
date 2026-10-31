@@ -20,8 +20,33 @@ from typing import Any
 
 from channels.approvals import ApprovalBroker, ChannelApprover
 
-_REJECT_WORDS = ("rechaza", "rechazo", "no apruebo", "cancela", "cancelar", "deten")
-_APPROVE_WORDS = ("si", "aprueba", "apruebo", "aprobado", "rota", "rotar", "adelante", "hazlo")
+_REJECT_WORDS = (
+    "rechaza",
+    "rechazo",
+    "no apruebo",
+    "cancela",
+    "cancelar",
+    "deten",
+    "reject",
+    "cancel",
+    "deny",
+    "stop",
+)
+_APPROVE_WORDS = (
+    "si",
+    "aprueba",
+    "apruebo",
+    "aprobado",
+    "rota",
+    "rotar",
+    "adelante",
+    "hazlo",
+    "yes",
+    "approve",
+    "rotate",
+)
+_APPROVE_PHRASES = ("go ahead",)
+_NEGATION_RE = re.compile(r"\b(?:no|nunca|never|do not|don't|dont)\b")
 
 
 def _normalize(text: str) -> str:
@@ -53,26 +78,63 @@ class VoiceIntent:
         }
 
 
+def _clean_target(raw: str) -> str:
+    name = raw.strip().rstrip(".,")
+    name = re.split(r"\s+(?:y|pero|por favor|and|please)\b", name)[0].strip()
+    return name.rstrip(".,").strip()
+
+
 def parse_voice_command(transcript: str) -> VoiceIntent:
-    """Parser determinista (español neutro) de la orden del dueño."""
+    """Parser determinista (español e inglés) de la orden del dueño."""
     text = _normalize(transcript)
     intent = VoiceIntent(action="unknown", transcript=transcript)
-    for match in re.finditer(r"\b(?:menos|excepto|salvo)\s+([a-z0-9 _-]+)", text):
-        name = match.group(1).strip().rstrip(".,")
-        # Cortar en conectores que ya no son parte del nombre.
-        name = re.split(r"\s+(?:y|pero|por favor)\b", name)[0].strip()
+    for match in re.finditer(r"\b(?:menos|excepto|salvo|except)\s+([a-z0-9 _-]+)", text):
+        name = _clean_target(match.group(1))
         if name:
             intent.exclude_targets.append(name)
-    only = re.search(r"\bsolo\s+([a-z0-9 _-]+)", text)
+    for match in re.finditer(r"\bbut not\s+([a-z0-9 _-]+)", text):
+        name = _clean_target(match.group(1))
+        if name and name not in intent.exclude_targets:
+            intent.exclude_targets.append(name)
+    only = re.search(r"\b(?:solo|only)\s+([a-z0-9 _-]+)", text)
     if only and not intent.exclude_targets:
-        name = re.split(r"\s+(?:y|pero|por favor)\b", only.group(1).strip().rstrip(".,"))[0].strip()
+        name = _clean_target(only.group(1))
         if name:
             intent.only_targets.append(name)
     if any(word in text for word in _REJECT_WORDS):
         intent.action = "reject"
-    elif any(re.search(rf"\b{re.escape(w)}\b", text) for w in _APPROVE_WORDS):
+    elif _NEGATION_RE.search(text):
+        intent.action = "unknown"
+    elif any(re.search(rf"\b{re.escape(w)}\b", text) for w in _APPROVE_WORDS) or any(
+        phrase in text for phrase in _APPROVE_PHRASES
+    ):
         intent.action = "approve"
     return intent
+
+
+def _target_matches(target: str, names: list[str]) -> bool:
+    low = target.lower()
+    return any(name and name.lower() in low for name in names)
+
+
+def plan_preview(plan: dict[str, Any], intent: VoiceIntent) -> dict[str, Any]:
+    """Calcula qué se rotaría con una intención parcial, sin aprobar nada."""
+    targets: list[str] = []
+    for step in plan.get("steps") or []:
+        if not step.get("requires_approval", True):
+            continue
+        if step.get("action") not in (None, "rotate_token"):
+            continue
+        target = str(step.get("target", ""))
+        if target and target not in targets:
+            targets.append(target)
+    excluded = list(intent.exclude_targets)
+    if intent.only_targets:
+        will_run = [t for t in targets if _target_matches(t, intent.only_targets)]
+    else:
+        will_run = [t for t in targets if not _target_matches(t, excluded)]
+    unmatched = [name for name in excluded if not any(name.lower() in t.lower() for t in targets)]
+    return {"will_run": will_run, "excluded": excluded, "unmatched": unmatched}
 
 
 def interpret_with_spark(transcript: str, client: Any | None) -> VoiceIntent:
@@ -106,6 +168,96 @@ def interpret_with_spark(transcript: str, client: Any | None) -> VoiceIntent:
         )
     except (NeedsCredits, ValueError, TypeError, KeyError, IndexError):
         return parse_voice_command(transcript)
+
+
+def interpret_checked(transcript: str, client: Any | None) -> tuple[VoiceIntent, Any | None]:
+    """Corre Spark y el determinista; desacuerdo en aprobar -> unknown.
+
+    Devuelve (intent, call_result|None). Sin Spark no aprueba a ciegas:
+    si no hay cliente, el intent es unknown con source="no_spark".
+    """
+    deterministic = parse_voice_command(transcript)
+    if client is None:
+        return (
+            VoiceIntent(action="unknown", transcript=transcript, source="no_spark"),
+            None,
+        )
+    # Capturar CallResult si el cliente lo expone vía chat_completions.
+    call_result: Any | None = None
+    orig = client.chat_completions if hasattr(client, "chat_completions") else None
+
+    def _capturing(*a: Any, **k: Any) -> Any:
+        nonlocal call_result
+        res = orig(*a, **k)  # type: ignore[misc]
+        call_result = res
+        return res
+
+    # interpret_with_spark usa client.chat_completions; envolver temporalmente
+    # solo si es un objeto mutable simple.
+    spark_intent: VoiceIntent
+    try:
+        if orig is not None:
+            try:
+                client.chat_completions = _capturing  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        spark_intent = interpret_with_spark(transcript, client)
+    finally:
+        if orig is not None:
+            try:
+                client.chat_completions = orig  # type: ignore[attr-defined]
+            except Exception:
+                pass
+    # Si Spark cayó al determinista (source deterministic), no hubo Spark real.
+    if spark_intent.source != "spark":
+        # interpret_with_spark devuelve deterministic ante NeedsCredits/error.
+        # Sin aprobación de Spark no se aprueba a ciegas.
+        if deterministic.action == "approve":
+            return (
+                VoiceIntent(
+                    action="unknown",
+                    exclude_targets=list(deterministic.exclude_targets),
+                    only_targets=list(deterministic.only_targets),
+                    transcript=transcript,
+                    source="no_spark",
+                ),
+                call_result,
+            )
+        return deterministic, call_result
+    if spark_intent.action == "approve" and deterministic.action != "approve":
+        return (
+            VoiceIntent(
+                action="unknown",
+                exclude_targets=list(spark_intent.exclude_targets),
+                only_targets=list(spark_intent.only_targets),
+                transcript=transcript,
+                source="disagreement",
+            ),
+            call_result,
+        )
+    if spark_intent.action != deterministic.action and spark_intent.action == "approve":
+        return (
+            VoiceIntent(action="unknown", transcript=transcript, source="disagreement"),
+            call_result,
+        )
+    # Acuerdo (o Spark no aprueba): se conserva el intent de Spark,
+    # fusionando exclusiones del determinista si Spark aprobó igual.
+    if spark_intent.action == "approve" and deterministic.action == "approve":
+        merged_ex = list(
+            dict.fromkeys([*spark_intent.exclude_targets, *deterministic.exclude_targets])
+        )
+        merged_only = spark_intent.only_targets or deterministic.only_targets
+        return (
+            VoiceIntent(
+                action="approve",
+                exclude_targets=merged_ex,
+                only_targets=list(merged_only),
+                transcript=transcript,
+                source="spark",
+            ),
+            call_result,
+        )
+    return spark_intent, call_result
 
 
 def transcribe_audio(wav_path: str | Path, client: Any | None) -> dict[str, Any]:
@@ -150,8 +302,27 @@ class VoiceApprovalFlow:
             return {"status": "nothing_to_confirm", "approval_id": approval_id}
         return self._apply(approval_id, intent, confirmed=True)
 
+    def cancel(self, approval_id: str) -> dict[str, Any]:
+        intent = self._awaiting.pop(approval_id, None)
+        if intent is None:
+            return {"status": "nothing_to_confirm", "approval_id": approval_id}
+        return {
+            "status": "cancelled",
+            "approval_id": approval_id,
+            "intent": intent.public(),
+        }
+
+    def awaiting_intent(self, approval_id: str) -> VoiceIntent | None:
+        return self._awaiting.get(approval_id)
+
+    def has_awaiting(self) -> bool:
+        return bool(self._awaiting)
+
     def _apply(self, approval_id: str, intent: VoiceIntent, *, confirmed: bool) -> dict[str, Any]:
         base = {"approval_id": approval_id, "intent": intent.public()}
+        req = self.broker.get(approval_id)
+        if intent.is_partial and req is not None:
+            base.update(plan_preview(req.plan, intent))
         if intent.action == "unknown":
             return {**base, "status": "unknown_command"}
         if intent.action == "reject":
@@ -160,12 +331,12 @@ class VoiceApprovalFlow:
         if intent.is_partial and not confirmed:
             self._awaiting[approval_id] = intent
             return {**base, "status": "confirmation_required"}
-        req = self.broker.approve(
+        approved_req = self.broker.approve(
             approval_id,
             exclude_targets=intent.exclude_targets,
             only_targets=intent.only_targets or None,
         )
-        return {**base, "status": "approved", "approved_steps": req.approved_steps}
+        return {**base, "status": "approved", "approved_steps": approved_req.approved_steps}
 
 
 class VoiceApprover(ChannelApprover):

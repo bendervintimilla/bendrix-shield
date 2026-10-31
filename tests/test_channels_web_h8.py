@@ -355,7 +355,7 @@ def test_panel_replay_approve_executes_and_attacker_401():
     client = TestClient(create_panel_app(state))
     home = client.get("/")
     assert home.status_code == 200
-    for needle in ("bodega", "compras", "Terminal del atacante", "clock", "Aprobar"):
+    for needle in ("bodega", "compras", "Attacker", "clock", "Approve"):
         assert needle in home.text, needle
 
     before = client.get("/panel/state").json()
@@ -372,6 +372,17 @@ def test_panel_replay_approve_executes_and_attacker_401():
 
     probe = client.post("/panel/attacker/probe")
     assert probe.status_code == 200 and "401" in probe.text
+
+
+def test_panel_lang_es_shows_aprobar_and_cookie_keeps_it():
+    client = TestClient(create_panel_app(build_replay_state()))
+    spanish = client.get("/?lang=es")
+    assert spanish.status_code == 200
+    assert "Aprobar" in spanish.text
+    assert "Alguien está usando el token robado de Bodega." in spanish.text
+    # La cookie guarda el idioma para la siguiente visita sin parámetro.
+    again = client.get("/")
+    assert "Aprobar" in again.text
 
 
 def test_panel_voice_partial_confirmation_flow():

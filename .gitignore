@@ -25,6 +25,8 @@ evals/private/
 *.jpg
 *.jpeg
 !docs/*.png
+!evals/fixtures/live/*.png
+!evals/recorded/*
 replay-cache/
 .smoke-audio/
 shield-registry.db

@@ -1,19 +1,52 @@
 # web/
 
-Panel del dueño (H8): FastAPI + HTMX en una página, sin build pesado.
+Panel del dueño: FastAPI en una página, sin build y sin recursos
+externos. Todo el CSS y el JS van inline en `web/app.py`; la página
+funciona sin red (en replay) y sin JavaScript los formularios siguen
+funcionando por POST normal.
 
-- Apps y agentes conectados (registro del gateway, sin tokens en claro).
-- Flujo en vivo de las decisiones de la política (`CallLog`, con
-  refresco HTMX cada 3 s en el fragmento de decisiones).
-- Incidentes con anomalías y exposición, plan del guardián y botones
-  de aprobación/rechazo: es el plan B de WhatsApp y usa el mismo
-  `approval_id` del `PendingRegistry`.
-- Formulario de voz: pega la transcripción de la nota («sí, rota todo»)
-  y pasa por el mismo flujo de aprobación parcial con confirmación.
-- Terminal del atacante con la línea de tiempo `200 → 401` de
-  `sandbox/attacker.py`, y cronómetro desde el incidente.
-- Incluye el webhook de WhatsApp (`/webhook/whatsapp`) en modo
-  simulador mientras el vault no tenga `whatsapp-test-*`.
+- Franja oscura con la frase del incidente según la fase real
+  (`pending`, `awaiting_confirmation`, `contained`, `rejected`,
+  `not_rotated`), el detalle traducido de la anomalía (por tipo:
+  `new_country`, `new_model`, `cost_spike`), la tira de intentos del
+  token robado con los códigos reales y el reloj medido de esta corrida
+  (frente a las ~16 h del incidente real).
+- Decisión del dueño justo debajo: plan en lenguaje llano (qué, sobre
+  quién y por qué), Approve/Reject, nota de voz con su aviso
+  (`confirmation_required`, `unknown_command`, `not_pending`,
+  `nothing_to_confirm`, `cancelled`) y, cuando ya no hay pendiente,
+  el resumen de lo ejecutado con el estado real de cada paso.
+- Warehouse (bodega) y Attacker lado a lado, con las tiras reales de
+  `agent_statuses` y `attacker_timeline`; Purchasing (compras) debajo,
+  con su último estado real.
+- Tabla de agentes (nombre, app, estado, modelos y `token_id` corto;
+  nunca el token) y feed de decisiones de la política.
+- Tira «Where Meta models run» con la función y la etiqueta honesta de
+  cada modelo. Las cifras salen de `evals/report.md` y la corrida en
+  vivo de Spark Open sigue pendiente (sin llave).
+- Pie con el aviso de marca de `docs/brand/README.md`.
+
+## Idioma
+
+Inglés por defecto. Español con `?lang=es`; queda guardado en la
+cookie `panel_lang`. El diccionario es `T = {"en": ..., "es": ...}` en
+`web/app.py`. El nombre del producto vive en las constantes `BRAND`
+y `SUBTITLE`: cambiarlas no toca nada más.
+
+## En vivo sin recargar
+
+- El JS propio (menos de 120 líneas, sin dependencias) intercepta los
+  formularios con `fetch` y la cabecera `X-Panel-Fetch: 1`, y
+  reemplaza solo `#app`.
+- Sondeo cada 2 s a `/panel/live?v=<versión>`: un 204 no toca nada;
+  al reemplazar se conserva el texto y el foco del campo de voz si el
+  usuario está escribiendo. Se pausa con la pestaña oculta.
+- El atacante reintenta solo con POST a `/panel/tick` cada 4 s
+  mientras `#app` tenga `data-autotick="1"`. El servidor decide:
+  hasta 12 ticks en pendiente desde el último cambio y 3 más tras
+  contener; después `DemoState.tick()` no sondea más.
+- El reloj sale del servidor y el JS solo lo avanza entre refrescos
+  cuando `clock_running` es verdadero.
 
 ## Correrlo
 
