@@ -1,7 +1,7 @@
 """Broker de aprobaciones del dueño: un solo camino para WhatsApp, voz y panel.
 
-El broker crea la solicitud en el ``PendingRegistry`` de H4/H6. El
-``approval_id`` que consumen los runbooks de H6 es ese ``pending_id``:
+El broker crea la solicitud en el ``PendingRegistry`` de. El
+``approval_id`` que consumen los runbooks de es ese ``pending_id``:
 ningún canal inventa su propio id. Aprobar deja el pending en
 ``approved`` (válido para ``Actions.check_approval``); rechazar lo deja
 en ``rejected`` y ningún efecto puede ejecutarse con él.

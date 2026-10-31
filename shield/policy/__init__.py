@@ -1,4 +1,4 @@
-"""Política de herramientas de Shield (H4)."""
+"""Política de herramientas de Shield."""
 
 from shield.policy.check import PolicyEngine, check
 from shield.policy.extract import ExtractedDoc, Segment, extract_any, extract_pdf

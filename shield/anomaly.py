@@ -1,8 +1,8 @@
-"""Uso raro por agente o llave, con estadística simple (H5).
+"""Uso raro por agente o llave, con estadística simple.
 
 Sobre los CallLog del gateway (y las series de evals/usage/): país nuevo,
 modelo que el agente no usa, pico de costo contra su propia mediana, pico
-de volumen y ráfaga de bloqueos. ``flag_anomalies`` (H1) se conserva: la
+de volumen y ráfaga de bloqueos. ``flag_anomalies`` se conserva: la
 función rica es ``detect_anomalies`` con baseline explícito o inferido.
 """
 
@@ -33,7 +33,7 @@ def _median_cost(logs: list[CallLog]) -> float:
 
 
 def flag_anomalies(logs: list[CallLog], *, spike_factor: float = 5.0) -> list[CallLog]:
-    """Marca picos de costo contra la mediana del propio agente (H1)."""
+    """Marca picos de costo contra la mediana del propio agente."""
     if not logs:
         return []
     costs = sorted(log.cost_usd for log in logs)

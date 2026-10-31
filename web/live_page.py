@@ -1,4 +1,4 @@
-"""Pantalla /live (H14-2): HTML, CSS y JS propio inline, sin externos."""
+"""Pantalla /live: HTML, CSS y JS propio inline, sin externos."""
 
 # ruff: noqa: E501
 

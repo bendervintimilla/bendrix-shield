@@ -1,4 +1,4 @@
-"""Acciones pendientes de aprobación del dueño (canal H8 las consume)."""
+"""Acciones pendientes de aprobación del dueño (los canales las consumen)."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ class PendingAction:
 
 
 class PendingRegistry:
-    """Registro en memoria con espejo JSON opcional para el canal (H8)."""
+    """Registro en memoria con espejo JSON opcional para el canal."""
 
     def __init__(self, store_path: Path | str | None = None) -> None:
         self._items: dict[str, PendingAction] = {}

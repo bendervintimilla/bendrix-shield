@@ -1,7 +1,7 @@
 """Clasificador de secretos e inyección con Muse Spark Open.
 
 Modelo ``meta-models/muse-spark-open-1026`` servido por un socio de
-inferencia (SPEC §5). Proveedor primario: **Baseten** Model APIs
+inferencia. Proveedor primario: **Baseten** Model APIs
 (``POST https://inference.baseten.co/v1/chat/completions``, compatible con
 OpenAI, llave ``Authorization: Bearer …``; ver el anuncio de Baseten del
 15-oct-2026 en ``docs/OPEN_WEIGHTS.md``). Respaldo: **Modal** con la misma
@@ -14,7 +14,7 @@ La llave vive en el vault con el nombre ``baseten-api-key`` (o
 
 Sin llave o sin créditos (401/402/403) devuelve la etiqueta
 ``needs_credits`` y **no bloquea**: la redacción determinista y los canarios
-siguen mandando (H-COMUN §4). Con ``SHIELD_REPLAY=1`` responde solo desde la
+siguen mandando. Con ``SHIELD_REPLAY=1`` responde solo desde la
 caché por hash en ``SHIELD_REPLAY_DIR``; un miss también es ``needs_credits``.
 
 La selección del proveedor es por entorno:
@@ -24,15 +24,14 @@ créditos y Modal está configurado.
 
 El margen de salida va en ``max_tokens``: default alto
 ``DEFAULT_MAX_TOKENS`` y configurable con ``SHIELD_SPARK_OPEN_MAX_TOKENS``
-(un valor inválido o no positivo vuelve al default). Otros participantes
-reportan respuestas con ``message.content`` vacío y
-``finish_reason='length'`` (dato de participantes, sin confirmar en este
-repo); por eso un contenido vacío o un ``finish_reason='length'`` cuenta
-como fallo —nunca como ``clean``—: se reintenta una sola vez con el doble
-de margen y, si vuelve a fallar, se devuelve ``unclassified`` marcado
-como truncado/vacío, sin bloquear por sí solo. En ese caso manda lo
+(un valor inválido o no positivo vuelve al default). Un contenido vacío
+o un ``finish_reason='length'`` cuenta como fallo —nunca como
+``clean``—: se reintenta una sola vez con el doble de margen y, si
+vuelve a fallar, se devuelve ``unclassified`` marcado como
+truncado/vacío, sin bloquear por sí solo. En ese caso manda lo
 determinista (redacción y canarios del gate), igual que con
-``needs_credits``. Este módulo no se ha corrido en vivo en esta tarea.
+``needs_credits``. Este módulo no se ha corrido en vivo, por falta de
+créditos.
 """
 
 from __future__ import annotations

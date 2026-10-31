@@ -1,7 +1,7 @@
-# Gateway — NoKey (H3)
+# Gateway — NoKey
 
 Proxy compatible con OpenAI. La app presenta su token Shield
-(`Authorization: Bearer [REDACTED]…`); el gateway valida y reenvía a la Meta
+(`Authorization: Bearer shd_<agent>_...`); el gateway valida y reenvía a la Meta
 Model API con la llave real, que vive solo en el vault. La app nunca ve esa
 llave. Arranque local:
 
@@ -47,18 +47,16 @@ bloqueo corta el flujo con un evento de error).
 ## Vault
 
 `shield/vault/` expone `get/put/fingerprint/last4` con tres backends:
-Secret Manager (`bendrix-hackathon`, import perezoso), llavero de macOS
+Secret Manager (proyecto de `SHIELD_GCP_PROJECT`, import perezoso), llavero de macOS
 (`security` CLI) y memoria (tests). Solo nombre, huella sha256[:8] y
 últimos 4 pueden loguearse; el valor jamás.
 
-## Latencia agregada (medida, 28-oct-2026)
+## Latencia agregada (medida)
 
 Método: `TestClient` contra el gateway con upstream falso instantáneo
 (`httpx.MockTransport`), 80 llamadas `chat/completions` en esta Mac.
 
-- p50 extremo a extremo local: **1,57 ms** (p95: 2,04 ms).
-- p50 registrado en `CallLog.latency_ms` (solo tramo interno del gateway):
-  **0,22 ms**.
+- p50 extremo a extremo local: **1,74 ms** (p95: 2,48 ms), según `evals/report.md`.
 
 Es el costo agregado de Shield sin red; contra la Meta Model API manda la
 latencia del upstream. Reproduce con `Registry.latency_percentile(50)`.
@@ -67,4 +65,4 @@ latencia del upstream. Reproduce con `Registry.latency_percentile(50)`.
 
 Rotar el token de un agente marca el viejo como `rotated` (401 inmediato) y
 emite uno nuevo con el mismo alcance. Los demás agentes ni se enteran: es
-el invariante SPEC §2.5 y está cubierto por tests.
+ese invariante y está cubierto por tests.

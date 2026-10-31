@@ -1,6 +1,6 @@
 # shield/watch/
 
-Lee avisos públicos y produce `ThreatCard` (H5):
+Lee avisos públicos y produce `ThreatCard`:
 
 - `feeds.py`: parsers puros de CISA KEV, OSV/GHSA, RSS/Atom y status de
   proveedores (statuspage), más `fetch_feed` con `FeedCache` en disco

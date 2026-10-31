@@ -1,8 +1,8 @@
-"""Prueba de humo de H1: 1 llamada mínima por modelo de la demo.
+"""Prueba de humo de 1 llamada mínima por modelo de la demo.
 
 Uso: ``make smoke`` (en vivo) o ``python scripts/smoke.py --replay``.
 Sin créditos (401/402/403) cada llamada se marca ``needs_credits`` y el
-script termina en verde (H-COMUN §4). Nunca imprime la llave.
+script termina en verde. Nunca imprime la llave.
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Canal WhatsApp (H8): webhook verificado, botones y simulador.
+"""Canal WhatsApp: webhook verificado, botones y simulador.
 
 Protocolo según la doc de Meta WhatsApp Business Platform: verificación
 ``GET`` con ``hub.mode``/``hub.verify_token``/``hub.challenge`` y ``POST``
@@ -26,6 +26,12 @@ from fastapi.responses import PlainTextResponse
 from channels.approvals import ApprovalBroker
 
 GRAPH_URL = "https://graph.facebook.com/v21.0"
+
+
+def _local_or_sandbox() -> bool:
+    if os.environ.get("SHIELD_SANDBOX") == "1":
+        return True
+    return os.environ.get("DEMO", "replay") in ("replay", "sandbox", "local")
 
 
 def verify_signature(body: bytes, signature: str | None, app_secret: str) -> bool:
@@ -188,7 +194,11 @@ class WhatsAppChannel:
         return not self.config.live
 
     def verify_challenge(self, mode: str, token: str, challenge: str) -> str | None:
-        expected = self.config.verify_token or "shield-demo-verify"
+        expected = self.config.verify_token or (
+            "shield-demo-verify" if _local_or_sandbox() else None
+        )
+        if not expected:
+            return None
         if mode == "subscribe" and hmac.compare_digest(token, expected):
             return challenge
         return None
@@ -288,6 +298,8 @@ def create_router(channel: WhatsAppChannel) -> Any:
     async def receive(request: Request) -> Any:
         body = await request.body()
         secret = channel.config.app_secret
+        if not secret and not _local_or_sandbox():
+            return PlainTextResponse("app secret required", status_code=403)
         if secret and not verify_signature(
             body, request.headers.get("x-hub-signature-256"), secret
         ):

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Despliega el gateway de Shield SOLO en el proyecto bendrix-hackathon.
+# Despliega el gateway de Shield en el proyecto GCP de $GCP_PROJECT.
 # Región us-central1, min 0 / max 2 instancias. Los secretos se montan
 # desde Secret Manager (--set-secrets); ninguno va en la imagen ni en git.
-# Uso: bash deploy/cloudrun.sh
+# Uso: GCP_PROJECT=<tu-proyecto> bash deploy/cloudrun.sh
 set -euo pipefail
 
-PROJECT="bendrix-hackathon"
-REGION="us-central1"
+PROJECT="${GCP_PROJECT:?set GCP_PROJECT to your GCP project}"
+REGION="${GCP_REGION:-us-central1}"
 SERVICE="bendrix-shield-gateway"
 
 if [[ "$(gcloud config get-value project 2>/dev/null)" != "$PROJECT" ]]; then
@@ -28,7 +28,7 @@ gcloud run deploy "$SERVICE" \
   --min-instances=0 \
   --max-instances=2 \
   --allow-unauthenticated \
-  --set-env-vars="SHIELD_VAULT_BACKEND=env,SHIELD_REPLAY=0" \
+  --set-env-vars="SHIELD_VAULT_BACKEND=env,SHIELD_REPLAY=0,SHIELD_GCP_PROJECT=$PROJECT" \
   --set-secrets="$SECRETS"
 
 gcloud run services describe "$SERVICE" \

@@ -1,4 +1,4 @@
-"""Motor del modo live (H14): cadena real por el gateway, sin HTML.
+"""Motor del modo live: cadena real por el gateway, sin HTML.
 
 Nada aquí simula respuestas: si el upstream falla, el error exacto queda
 en el resultado y en la procedencia. Solo en tests se inyecta un
@@ -177,6 +177,37 @@ GUARDIAN_TOOLS: list[dict[str, Any]] = [
         ),
     ]
 ]
+
+
+_LIVE_VAULT_KEYS = ("META_MODEL_API_KEY", "baseten-api-key", "modal-api-key")
+_LIVE_ENV_KEYS = ("META_MODEL_API_KEY", "BASETEN_API_KEY", "MODAL_API_KEY")
+
+
+def _redact_live_text(text: str, secrets: list[str]) -> str:
+    out = text
+    for secret in sorted({s for s in secrets if s}, key=len, reverse=True):
+        out = out.replace(secret, "[REDACTED]")
+    from shield.gate.redact import redact_text
+
+    redacted, _ = redact_text(out)
+    return redacted
+
+
+def _redact_live_value(value: Any, secrets: list[str]) -> Any:
+    if isinstance(value, str):
+        return _redact_live_text(value, secrets)
+    if isinstance(value, dict):
+        return {
+            (_redact_live_text(str(k), secrets) if isinstance(k, str) else k): _redact_live_value(
+                v, secrets
+            )
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_live_value(item, secrets) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_redact_live_value(item, secrets) for item in value)
+    return value
 
 
 def _now() -> str:
@@ -858,7 +889,7 @@ class LiveChain:
             "http_status": http_status,
             "started_at": _now(),
             "request_summary": str(request_summary)[:200],
-            "error": error,
+            "error": self._redact_error(error) if error else error,
             "decision": decision,
         }
         self.provenance.append(entry)
@@ -895,7 +926,7 @@ class LiveChain:
             "http_status": http_status,
             "started_at": _now(),
             "request_summary": str(request_summary)[:200],
-            "error": error,
+            "error": self._redact_error(error) if error else error,
             "decision": decision,
         }
         self.provenance.append(entry)
@@ -956,10 +987,10 @@ class LiveChain:
             agent=agent,
             model=model,
             http_status=int(status) if status else None,
-            error=str(exc),
+            error=self._redact_error(exc),
             request_summary=summary,
         )
-        result = {"status": "error", "error": str(exc)}
+        result = {"status": "error", "error": self._redact_error(exc)}
         self.results[step] = result
         return result
 
@@ -969,7 +1000,7 @@ class LiveChain:
         if busy:
             return busy
         try:
-            return self._step_invoice()
+            return self._redact_output(self._step_invoice())
         finally:
             self._lock.release()
 
@@ -1224,7 +1255,7 @@ class LiveChain:
         if busy:
             return busy
         try:
-            return self._step_count(image_bytes)
+            return self._redact_output(self._step_count(image_bytes))
         finally:
             self._lock.release()
 
@@ -1296,7 +1327,7 @@ class LiveChain:
         if busy:
             return busy
         try:
-            return self._step_attack()
+            return self._redact_output(self._step_attack())
         finally:
             self._lock.release()
 
@@ -1396,7 +1427,7 @@ class LiveChain:
         if busy:
             return busy
         try:
-            return self._step_guardian()
+            return self._redact_output(self._step_guardian())
         finally:
             self._lock.release()
 
@@ -1665,7 +1696,7 @@ class LiveChain:
         if busy:
             return busy
         try:
-            return self._step_voice(wav_bytes, typed)
+            return self._redact_output(self._step_voice(wav_bytes, typed))
         finally:
             self._lock.release()
 
@@ -1841,7 +1872,7 @@ class LiveChain:
         if busy:
             return busy
         try:
-            return self._step_contain()
+            return self._redact_output(self._step_contain())
         finally:
             self._lock.release()
 
@@ -2026,12 +2057,51 @@ class LiveChain:
         )
         return {"count": counted["count"], "track_ids": counted["track_ids"], "via": "meta_client"}
 
+    def _live_secrets(self) -> list[str]:
+        secrets: list[str] = []
+        secrets.extend(str(v) for v in self._raw_tokens.values() if v)
+        store_data = getattr(self.token_store, "_data", None)
+        if isinstance(store_data, dict):
+            for agent in list(store_data):
+                try:
+                    token = self.token_store.get_token(str(agent))
+                except Exception:
+                    token = None
+                if token:
+                    secrets.append(str(token))
+        for agent in ("bodega", "compras", "guardian"):
+            try:
+                token = self.token_store.get_token(agent)
+            except Exception:
+                token = None
+            if token:
+                secrets.append(str(token))
+        if self.vault is not None:
+            for name in _LIVE_VAULT_KEYS:
+                try:
+                    value = self.vault.get(name)
+                except Exception:
+                    value = None
+                if value:
+                    secrets.append(str(value))
+        for name in _LIVE_ENV_KEYS:
+            value = os.environ.get(name)
+            if value:
+                secrets.append(value)
+        return secrets
+
+    def _redact_output(self, value: Any) -> Any:
+        return _redact_live_value(value, self._live_secrets())
+
+    def _redact_error(self, text: Any) -> str:
+        return _redact_live_text(str(text), self._live_secrets())
+
     # -- estado / export ---------------------------------------------------------
     def state(self) -> dict[str, Any]:
         tokens = []
         if self.registry is not None:
             tokens = [t.model_dump(mode="json") for t in self.registry.list_tokens()]
-        return {
+        payload = {
             "run_id": self.run_id,
             "status": self.status,
             "no_key_message": self.no_key_message if self.status == "no_key" else "",
@@ -2052,6 +2122,7 @@ class LiveChain:
             "contained_in_s": self._contained_in_s,
             "provenance": list(self.provenance),
         }
+        return self._redact_output(payload)
 
     @property
     def gateway_logged_cost_usd(self) -> float:
@@ -2069,19 +2140,9 @@ class LiveChain:
             "material_label": self.material_label,
             "provenance": list(self.provenance),
         }
-        text = json.dumps(payload, ensure_ascii=False, indent=2)
-        # Defensa: ningún secreto puede salir en el export.
-        for raw in list(self._raw_tokens.values()):
-            if raw:
-                text = text.replace(raw, "[REDACTED]")
-        if self.vault is not None:
-            try:
-                key = self.vault.get("META_MODEL_API_KEY")
-            except Exception:
-                key = None
-            if key:
-                text = text.replace(str(key), "[REDACTED]")
-        return text
+        redacted = self._redact_output(payload)
+        text = json.dumps(redacted, ensure_ascii=False, indent=2)
+        return _redact_live_text(text, self._live_secrets())
 
 
 class _CapReached(Exception):

@@ -1,4 +1,4 @@
-"""Canales con el dueño: WhatsApp + voz (H8)."""
+"""Canales con el dueño: WhatsApp + voz."""
 
 from channels.approvals import ApprovalBroker, ApprovalRequest, ChannelApprover
 from channels.voice import (

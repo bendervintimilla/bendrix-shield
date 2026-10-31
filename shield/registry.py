@@ -2,7 +2,7 @@
 
 Solo se guarda el **hash sha256** del token Shield, nunca el token en claro.
 Formato del token: ``shd_<agente>_<aleatorio>``. Un agente = un token = un
-alcance: rotar o revocar uno no toca a ningún otro (invariante SPEC §2.5).
+alcance: rotar o revocar uno no toca a ningún otro (invariante ).
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ def new_raw_token(agent: str) -> str:
 
 
 class Registry:
-    """SQLite (archivo o ``:memory:``) con AgentToken y CallLog del SPEC §3."""
+    """SQLite (archivo o ``:memory:``) con AgentToken y CallLog del """
 
     def __init__(self, db_path: str | Path | None = None) -> None:
         path = db_path or os.environ.get("SHIELD_REGISTRY_DB") or "shield-registry.db"

@@ -1,4 +1,4 @@
-"""Vault de llaves reales de Shield (H3). El valor nunca se loguea."""
+"""Vault de llaves reales de Shield. El valor nunca se loguea."""
 
 from shield.vault.keychain import KeychainVault
 from shield.vault.secret_manager import SecretManagerVault

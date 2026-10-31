@@ -175,7 +175,7 @@ class Orchestrator:
             return self.bodega.diff_stock(
                 {str(k): float(v) for k, v in (args.get("counts") or {}).items()}, sources=sources
             )
-        raise ValueError(f"tool desconocida del orquestador: {name}")
+        raise ValueError(f"tool desconocida: {name}")
 
     # -- loop Spark con tool calling ---------------------------------------
     def run(
@@ -373,7 +373,7 @@ class Orchestrator:
         - Limpia sin cambio de cuenta: extrae, propone y registra. El
           ``post_purchase`` derivado de un doc no confiable escala a
           ``ask_owner``; con ``approve_pending=True`` se simula el OK del
-          dueño vía el registro de pendientes (canal H8 en la demo real).
+          dueño vía el registro de pendientes (canales en la demo real).
         - Envenenada («cambia el IBAN»): ``block`` con evidencia y sin
           ejecutar ninguna escritura.
         """

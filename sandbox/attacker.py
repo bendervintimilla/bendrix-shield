@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Atacante de la Cantina Demo: reusa un token de PRUEBA contra el gateway PROPIO.
 
-Jamás apunta fuera de allowlist.yaml (SPEC §2.2, defensa pura). Sin red real en
+Jamás apunta fuera de allowlist.yaml (defensa pura). Sin red real en
 tests: la URL por defecto es localhost y los tests usan un transporte falso.
 Uso: SHIELD_TOKEN_CREW_BODEGA=<token-demo> python sandbox/attacker.py --attempts 3
 Tras rotar el token en el panel, el mismo comando debe pasar de 200 a 401.
 
-Integración con el panel (H8): ``attempt_statuses`` y ``format_timeline``
+Integración con el panel: ``attempt_statuses`` y ``format_timeline``
 devuelven los códigos para pintar la terminal del atacante en vivo
 (``200 → 401``) sin que el panel tenga que parsear stdout.
 """

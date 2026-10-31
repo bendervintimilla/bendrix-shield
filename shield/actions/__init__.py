@@ -1,4 +1,4 @@
-"""Runbooks idempotentes y reversibles (H6)."""
+"""Runbooks idempotentes y reversibles."""
 
 from shield.actions.runbooks import (
     ActionResult,

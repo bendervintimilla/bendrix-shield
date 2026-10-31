@@ -1,4 +1,4 @@
-"""Auto-recuperación del cliente si su token Shield rotó (H6.3).
+"""Auto-recuperación del cliente si su token Shield rotó.
 
 ``ShieldClient`` envuelve cualquier cliente estilo OpenAI: si una llamada
 devuelve 401 (token rotado/revocado), refresca ``api_key`` desde el registro
@@ -42,7 +42,7 @@ def refresh_allowed(
     expected: str | None = None,
     fetcher: IdentityFetcher | None = None,
 ) -> bool:
-    """Sin identidad exigida, el refresh local sigue como en H6.
+    """Sin identidad exigida, el refresh local sigue como siempre.
 
     Con ``SHIELD_EXPECTED_SERVICE_ACCOUNT`` fijada, el refresh solo
     procede si la identidad del servicio coincide; si no se puede

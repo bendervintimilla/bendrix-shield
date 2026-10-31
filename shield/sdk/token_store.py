@@ -1,7 +1,7 @@
 """Registro local del agente: último token Shield válido por agente.
 
 Lo escribe ``shield.actions`` al rotar y lo lee el SDK para recuperarse
-solo (SPEC H6.3): Bodega sigue contando sin redeploy ni edición manual.
+solo: Bodega sigue contando sin redeploy ni edición manual.
 Solo vive en disco local del agente (0600), nunca en git.
 """
 

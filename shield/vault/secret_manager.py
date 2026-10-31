@@ -1,4 +1,4 @@
-"""Backend Google Secret Manager (proyecto ``bendrix-hackathon``).
+"""Backend Google Secret Manager (proyecto de ``SHIELD_GCP_PROJECT``).
 
 Usa ``google-cloud-secret-manager`` si está instalado (import perezoso: no es
 dependencia dura, el gateway local corre con llavero o memoria). El cliente se
@@ -12,12 +12,17 @@ from typing import Any
 
 from shield.vault.vault import BaseVault, VaultUnavailable
 
-DEFAULT_PROJECT = "bendrix-hackathon"
+DEFAULT_PROJECT = ""  # sin default: el proyecto sale de SHIELD_GCP_PROJECT
 
 
 class SecretManagerVault(BaseVault):
     def __init__(self, project: str | None = None, client: Any | None = None) -> None:
-        self._project = project or os.environ.get("SHIELD_GCP_PROJECT") or DEFAULT_PROJECT
+        self._project = (
+            project
+            or os.environ.get("SHIELD_GCP_PROJECT")
+            or os.environ.get("GCP_PROJECT")
+            or DEFAULT_PROJECT
+        )
         self._client = client
 
     @property

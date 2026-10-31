@@ -1,4 +1,4 @@
-"""Aprobación por voz (H8): Voice Transcribe → Spark → aprobación parcial.
+"""Aprobación por voz: Voice Transcribe → Spark → aprobación parcial.
 
 La nota de voz se transcribe con Muse Voice Transcribe vía
 ``shield.meta_client.MetaClient.transcribe_file`` (ruta documentada

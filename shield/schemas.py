@@ -1,7 +1,4 @@
-"""Esquemas mínimos del SPEC §3. Fuente única para gateway, gate, policy y evals.
-
-No cambies un campo sin anotarlo en el PR: H2-H9 dependen de estas formas.
-"""
+"""Esquemas compartidos. Fuente única para gateway, gate, policy y evals."""
 
 from __future__ import annotations
 

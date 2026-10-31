@@ -32,7 +32,7 @@ def wrap(
         client = wrap(OpenAI(api_key="shd_…"), "shd_…")
         client = wrap(OpenAI(), token)  # cualquier cliente estilo OpenAI
 
-    Con ``token_store`` + ``agent`` (H6.3), si el token rota el cliente se
+    Con ``token_store`` + ``agent``, si el token rota el cliente se
     recupera solo: ante un 401 refresca ``api_key`` desde el registro local
     del agente y reintenta una vez, sin redeploy.
     """

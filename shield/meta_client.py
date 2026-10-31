@@ -8,7 +8,7 @@ Rutas y campos verificados en la doc oficial el 28-oct-2026 (ver docs/MODELS.md)
 - ``POST /v1/asr/transcribe`` — Muse Voice Transcribe (multipart: ``request`` JSON + ``audio`` WAV).
 - SAM 3.1 va por ``POST /v1/responses`` con ``model="sam-3.1"`` e ``input_image``.
 
-Todo payload saliente pasa por ``gate.check`` antes de salir (SPEC §2.4).
+Todo payload saliente pasa por ``gate.check`` antes de salir.
 Ante ``429`` reintenta con backoff exponencial + jitter y respeta ``Retry-After``.
 Sin créditos (401/402/403) levanta :class:`NeedsCredits` para que el humo y la
 demo sigan en modo replay sin fallar.

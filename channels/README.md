@@ -1,9 +1,9 @@
 # channels/
 
-Canales con el dueño (H8). Un solo camino de aprobación: el guardián
-propone un plan, `ask_owner` lo registra en el `PendingRegistry` (H4) vía
+Canales con el dueño. Un solo camino de aprobación: el guardián
+propone un plan, `ask_owner` lo registra en el `PendingRegistry` vía
 `channels/approvals.py:ApprovalBroker`, y el `approval_id` resultante es
-el que consumen los runbooks de H6. WhatsApp, voz y panel solo recogen
+el que consumen los runbooks. WhatsApp, voz y panel solo recogen
 la decisión; ninguno inventa su propio id.
 
 ## WhatsApp (`whatsapp.py`)
@@ -40,10 +40,10 @@ la decisión; ninguno inventa su propio id.
   dada, `run_once` ejecuta solo los pasos aprobados y marca el resto
   como `skipped`.
 
-## Guardián conectado (H5 → H6)
+## Guardián conectado
 
 `shield/agent.py:RunbookGuardianActions` implementa la interfaz
-`GuardianActions` de H5 sobre los runbooks reales de
+`GuardianActions` sobre los runbooks reales de
 `shield/actions/` (plan → apply con `approval_id` → verify). El flujo
 de la demo queda en un solo camino: aviso/anomalía → guardián →
 `ask_owner` (WhatsApp, voz o panel) → `approval_id` → runbook →

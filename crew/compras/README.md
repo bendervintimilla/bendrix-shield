@@ -1,6 +1,6 @@
 # crew/compras/
 
-Agente de Compras (H7): ledger SQLite (insumos, proveedores con su cuenta
+Agente de Compras: ledger SQLite (insumos, proveedores con su cuenta
 de pago, compras idempotentes por hash, costo promedio ponderado y
 recetas de 1 nivel), `extract_invoice` con Spark 1.3 en visión y
 validación aritmética con tolerancia 0,02. Herramientas vía

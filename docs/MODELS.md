@@ -8,7 +8,7 @@ cada ruta sale de la página citada. Si una ruta cambia, se corrige aquí primer
 - Base URL: `https://api.meta.ai/v1` ([Quickstart](https://dev.meta.ai/docs/quickstart)).
 - Auth: `Authorization: Bearer <llave>`. El SDK de OpenAI no lee `MODEL_API_KEY`
   solo: hay que pasar `api_key` explícito o usar `OPENAI_API_KEY`.
-- En este repo la variable canónica es `META_MODEL_API_KEY` (SPEC §2.3);
+- En este repo la variable canónica es `META_MODEL_API_KEY`;
   `meta_client` también acepta `MODEL_API_KEY` por compatibilidad con la doc.
 
 ## Endpoints usados por Shield
@@ -53,7 +53,7 @@ Fuente: [Pricing and rate limits](https://dev.meta.ai/docs/pricing-rate-limits).
 |---|---|---|---|---|
 | `muse-wonder-1.0` | $4.00 | $0.20 | $20.00 | — |
 | `muse-spark-1.3` / `1.2` / `1.1` | $1.25 | $0.15 | $4.25 | — |
-| `muse-spark-1.3-contributor` | $0.10 | $0.002 | $0.20 | prohibido en este repo (SPEC §2.7) |
+| `muse-spark-1.3-contributor` | $0.10 | $0.002 | $0.20 | no usado en este repo |
 | `muse-image-1.0` | — | — | — | $0.01 por imagen |
 | `muse-voice-transcribe-1.0` | — | — | — | $0.18 por hora de audio |
 | `sam-3.1` | — | — | — | $2.50 / 1.000 imágenes · $0.20 / 1.000 frames |
@@ -78,4 +78,4 @@ Ante `429`: backoff exponencial con jitter (base 500 ms, duplicando) y respetar
 
 `401` (llave inválida o ausente), `402` y `403` (sin tarjeta o sin créditos).
 En ese caso `make smoke` marca cada llamada como `needs_credits` y termina en
-verde: la demo y los tests siguen con replay o fixtures sintéticos (H-COMUN §4).
+verde: la demo y los tests siguen con replay o fixtures sintéticos.

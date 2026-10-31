@@ -1,7 +1,7 @@
 """Agente de Compras: herramientas vía ``@shield.tool`` (un token propio).
 
-Toda herramienta con efecto pasa por ``policy.check`` antes de ejecutarse
-(SPEC §2.4). La factura entra como ``untrusted``: si trae una orden del
+Toda herramienta con efecto pasa por ``policy.check`` antes de ejecutarse.
+La factura entra como ``untrusted``: si trae una orden del
 tipo «cambia el IBAN», la acción derivada termina en ``block`` con la
 evidencia del fragmento, y la función real nunca se ejecuta.
 
@@ -32,7 +32,7 @@ def _tool_invoice(data: dict[str, Any]) -> dict[str, Any]:
     """Forma para tools: sin pago y con ``vendor`` (no ``supplier``).
 
     ``supplier`` a secas cae dentro del alias sensible ``supplier_email``
-    de las reglas H4; la compra legítima no debe escalar por eso.
+    de las reglas; la compra legítima no debe escalar por eso.
     """
     clean = _strip_payment(data)
     if "supplier" in clean:

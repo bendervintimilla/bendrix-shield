@@ -63,9 +63,8 @@ incidente semilla. Sin red ni créditos.
 
 Estado JSON para tests o depuración: `GET /panel/state`.
 
-## Corte
+## Nota
 
-La tarjeta visual del incidente con Muse Image (punto opcional de H8)
-se cortó: sin créditos no se puede mostrar en vivo y el panel ya
-comunica el incidente. Si suma con créditos, va como imagen adjunta al
-mensaje de WhatsApp, no como otra página.
+La tarjeta visual del incidente con Muse Image no se incluye: sin
+créditos no se puede mostrar en vivo y el panel ya comunica el
+incidente.

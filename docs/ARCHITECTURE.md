@@ -16,34 +16,34 @@ app ──(token Shield shd_<agente>_…)──▶ gateway ──(llave real, va
                                           │
                                      agente guardián ──▶ actions (con OK del dueño)
                                           │
-                                     WhatsApp / voz / panel
+                                     voz / panel (WhatsApp: webhook en simulador)
 ```
 
-## Componentes (SPEC §1)
+## Componentes
 
-| Carpeta | Qué hace | Sesión |
-|---|---|---|
-| `shield/gateway/` | Proxy compatible con OpenAI con streaming; mapea token → agente → llave del vault; registra cada llamada | H3 |
-| `shield/vault/` | Llaves reales (Secret Manager / llavero / env en tests); nunca se loguea el valor | H3 |
-| `shield/gate/` | Filtro de salida: redacción, canarios y clasificador Spark Open | H1 stub, H3 completo |
-| `shield/policy/` | `check(agent, tool, args, sources) -> PolicyDecision`; reglas YAML primero, Spark para lo ambiguo | H4 |
-| `shield/sdk/` | `shield.wrap(client)`, `@shield.tool(...)`, `shield.untrusted(doc)` | H3/H4 |
-| `shield/watch/` | Avisos públicos → `ThreatCard` | H5 |
-| `shield/estate/` | Inventario de solo lectura de apps conectadas | H5 |
-| `shield/exposure.py` | `ThreatCard × Asset → Exposure` | H5 |
-| `shield/anomaly.py` | Uso raro por agente o llave (estadística) | H5 |
-| `shield/actions/` | Runbooks idempotentes y reversibles; todo efecto pide OK del dueño | H6 |
-| `shield/agent.py` | El agente guardián (tool calling) | H5 |
-| `channels/` | WhatsApp + aprobación por voz | H8 |
-| `web/` | Panel FastAPI + HTMX | H8 |
-| `crew/` | Cliente cero: Compras + Bodega vía SDK y gateway | H7 |
-| `sandbox/` | Cantina Demo y atacante con llaves de prueba propias | H2/H6 |
-| `evals/` | Avisos, estates, uso, inyecciones, facturas y canarios | H2 |
+| Carpeta | Qué hace |
+|---|---|
+| `shield/gateway/` | Proxy compatible con OpenAI con streaming; mapea token → agente → llave del vault; registra cada llamada |
+| `shield/vault/` | Llaves reales (Secret Manager / llavero / env en tests); nunca se loguea el valor |
+| `shield/gate/` | Filtro de salida: redacción, canarios y clasificador Spark Open |
+| `shield/policy/` | `check(agent, tool, args, sources) -> PolicyDecision`; reglas YAML primero, Spark para lo ambiguo |
+| `shield/sdk/` | `shield.wrap(client)`, `@shield.tool(...)`, `shield.untrusted(doc)` |
+| `shield/watch/` | Avisos públicos → `ThreatCard` |
+| `shield/estate/` | Inventario de solo lectura de apps conectadas |
+| `shield/exposure.py` | `ThreatCard × Asset → Exposure` |
+| `shield/anomaly.py` | Uso raro por agente o llave (estadística) |
+| `shield/actions/` | Runbooks idempotentes y reversibles; todo efecto pide OK del dueño, salvo contención automática opcional ante un canario (`auto_contain=True`), auditada |
+| `shield/agent.py` | El agente guardián (tool calling) |
+| `channels/` | Webhook de WhatsApp en simulador + aprobación por voz |
+| `web/` | Panel FastAPI + HTMX |
+| `crew/` | Cliente cero: Compras + Bodega vía SDK y gateway |
+| `sandbox/` | Cantina Demo y atacante con llaves de prueba propias |
+| `evals/` | Avisos, estates, uso, inyecciones, facturas y canarios |
 
-## Esquemas mínimos (SPEC §3)
+## Esquemas mínimos
 
-Definidos como modelos Pydantic en `shield/schemas.py`. Son el contrato entre
-sesiones: si necesitas cambiar un campo, anótalo en tu PR.
+Definidos como modelos Pydantic en `shield/schemas.py`. Son el contrato
+entre componentes.
 
 | Esquema | Campos |
 |---|---|
@@ -57,7 +57,7 @@ sesiones: si necesitas cambiar un campo, anótalo en tu PR.
 
 ## Invariantes que el código debe respetar
 
-1. Cero producción: solo el proyecto GCP `bendrix-hackathon` y el sandbox.
+1. Cero producción: solo el proyecto GCP configurado en `SHIELD_GCP_PROJECT` (o `$GCP_PROJECT` en despliegue) y el sandbox.
 2. Defensa pura: el atacante usa llaves de prueba propias, solo contra el gateway propio.
 3. La llave de Meta es `META_MODEL_API_KEY` (llavero o Secret Manager); nunca se imprime ni se commitea.
 4. Todo payload saliente pasa por `gate.check` y toda herramienta con efecto pasa por `policy.check`.
@@ -82,7 +82,8 @@ Measured on 2026-10-31 (`evals/recorded/spark-latency-2026-10-31.json`
 and `evals/recorded/heldout2-spark-run*.json`): USD 0.0061 per document,
 5.3 s p50 and 10.2 s p90 per call. Arm B (Spark on every case, stricter
 decision wins) blocked 10–11 of 12 poisoned documents versus 4 for the
-deterministic arm, with 0 false blocks.
+deterministic arm, with 1 false block across the three runs (in the
+third run; runs 1–2 had 0).
 
 Three runs of the shipped engine itself — `PolicyEngine(spark_review=True)`,
 arm C — on the same frozen held-out v2 set, with no rule or prompt change

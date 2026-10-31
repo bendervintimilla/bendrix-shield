@@ -1,4 +1,4 @@
-"""Lectores de avisos públicos -> ThreatCard (H5).
+"""Lectores de avisos públicos -> ThreatCard.
 
 Parsers puros (sin red) para CISA KEV, OSV/GHSA, RSS/Atom y status de
 proveedores, más un fetch con caché en disco (replay): la segunda lectura

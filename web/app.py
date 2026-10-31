@@ -1,12 +1,11 @@
-"""Panel web de Shield (H8): FastAPI + HTMX, una página, sin build.
+"""Panel web de Shield: FastAPI + HTMX, una página, sin build.
 
 Muestra apps y agentes conectados, el flujo en vivo de decisiones de la
 política (``CallLog`` del gateway), incidentes con su exposición, botones
 de aprobación (plan B de WhatsApp), la terminal del atacante
 (``200 → 401``) y un cronómetro desde el incidente. Con ``DEMO=replay``
 (o por defecto en este módulo) todo corre en memoria con un upstream
-falso: sin red ni créditos. La tarjeta visual con Muse Image se cortó:
-no sumaba frente al riesgo de enseñarlo sin créditos (ver web/README.md).
+falso: sin red ni créditos.
 """
 
 from __future__ import annotations
@@ -1426,9 +1425,29 @@ def _page(state: DemoState, lang: str = "en") -> str:
     )
 
 
+def _panel_local_or_sandbox() -> bool:
+    if os.environ.get("SHIELD_SANDBOX") == "1":
+        return True
+    return os.environ.get("DEMO", "replay") in ("replay", "sandbox", "local")
+
+
+def _host_name(value: str) -> str:
+    raw = (value or "").strip().lower()
+    if raw.startswith("["):
+        return raw[1:].split("]", 1)[0]
+    return raw.split(":", 1)[0]
+
+
 def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) -> FastAPI:
     demo = state or build_replay_state()
-    app = FastAPI(title=f"{BRAND} — panel", version="0.1.0")
+    local = _panel_local_or_sandbox()
+    app = FastAPI(
+        title=f"{BRAND} — panel",
+        version="0.1.0",
+        docs_url="/docs" if local else None,
+        openapi_url="/openapi.json" if local else None,
+        redoc_url="/redoc" if local else None,
+    )
     app.state.demo = demo
     app.state.live_chain = live_chain
     channel = WhatsAppChannel(demo.broker)
@@ -1554,7 +1573,7 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         demo.tick()
         return _post_response(request)
 
-    # -- modo live (H14): solo DEMO=live y solo loopback --------------------
+    # -- modo live: solo DEMO=live y solo loopback --------------------
     def _live_guard(request: Request) -> JSONResponse | None:
         if os.environ.get("DEMO", "replay") != "live":
             return JSONResponse(
@@ -1567,6 +1586,27 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
                 {"error": "live mode only accepts loopback clients (127.0.0.1/::1)"},
                 status_code=403,
             )
+        if request.method == "POST":
+            host_header = request.headers.get("host", "")
+            if _host_name(host_header) not in (
+                "127.0.0.1",
+                "::1",
+                "localhost",
+                "testclient",
+                "testserver",
+            ):
+                return JSONResponse(
+                    {"error": "live mode only accepts loopback hosts"},
+                    status_code=403,
+                )
+            origin = request.headers.get("origin")
+            if origin:
+                origin_netloc = urlparse(origin).netloc
+                if not origin_netloc or origin_netloc.lower() != host_header.strip().lower():
+                    return JSONResponse(
+                        {"error": "cross-origin live requests are not allowed"},
+                        status_code=403,
+                    )
         return None
 
     def _get_chain() -> Any:

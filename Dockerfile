@@ -1,4 +1,4 @@
-# Bendrix Shield — gateway (+ panel cuando H8 lo fusione) para Cloud Run.
+# Bendrix Shield — gateway y panel para Cloud Run.
 # La llave real vive en Secret Manager y entra por --set-secrets como
 # variable de entorno (SHIELD_VAULT_BACKEND=env); la imagen no trae secretos.
 FROM python:3.12-slim

@@ -1,6 +1,6 @@
 """Gateway compatible con OpenAI.
 
-Recibe ``Authorization: Bearer [REDACTED]…``, valida estado/modelo/tope/ritmo,
+Recibe ``Authorization: Bearer shd_<agent>_...``, valida estado/modelo/tope/ritmo,
 pasa el payload por ``gate.check`` y reenvía a la Meta Model API con la llave
 real del vault (la app nunca la ve). Registra cada llamada como ``CallLog``.
 
@@ -82,7 +82,13 @@ def create_app(
     vlt = vault or get_vault()
     is_sandbox = sandbox if sandbox is not None else os.environ.get("SHIELD_SANDBOX") == "1"
     limiter = RateLimiter(rate_limit_per_minute)
-    app = FastAPI(title=f"{BRAND} Gateway", version="0.1.0")
+    app = FastAPI(
+        title=f"{BRAND} Gateway",
+        version="0.1.0",
+        docs_url="/docs" if is_sandbox else None,
+        openapi_url="/openapi.json" if is_sandbox else None,
+        redoc_url="/redoc" if is_sandbox else None,
+    )
     app.state.registry = reg
     app.state.vault = vlt
 

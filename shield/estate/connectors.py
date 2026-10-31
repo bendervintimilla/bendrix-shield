@@ -1,15 +1,16 @@
-"""Conectores de inventario de SOLO LECTURA (H5).
+"""Conectores de inventario de SOLO LECTURA.
 
 Cada conector expone ``list_assets() -> list[Asset]`` y ninguno escribe,
 ejecuta ni guarda valores de secretos: de Railway solo salen nombres de
-variables, de GCP solo restricciones/uso (proyecto bendrix-hackathon) y de
+variables, de GCP solo restricciones/uso (proyecto configurado) y de
 la web propia solo la versión detectada por header/meta, únicamente de
-dominios en la allowlist (SPEC §2.1/2.2). Todo es inyectable para tests.
+dominios en la allowlist. Todo es inyectable para tests.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import re
 import tomllib
 from collections.abc import Callable, Mapping
@@ -21,7 +22,16 @@ import yaml
 
 from shield.schemas import Asset
 
-HACKATHON_PROJECT = "bendrix-hackathon"
+
+def _configured_gcp_project() -> str:
+    return (
+        os.environ.get("SHIELD_GCP_PROJECT")
+        or os.environ.get("GCP_PROJECT")
+        or "configured-project"
+    )
+
+
+HACKATHON_PROJECT = _configured_gcp_project()
 
 
 class EstateConnector(Protocol):
@@ -99,24 +109,27 @@ class RailwayConnector:
         return assets
 
 
-# -- GCP API keys (bendrix-hackathon): restricciones y uso ----------------------
+# -- GCP API keys: restricciones y uso ----------------------
 
 
 class GcpApiKeysConnector:
-    """Llaves de API de GCP del proyecto del hackathon: restricciones y uso.
+    """Llaves de API de GCP del proyecto configurado: restricciones y uso.
 
     ``lister`` devuelve dicts con name/display_name/restrictions/usage. Se
-    rechaza cualquier proyecto que no sea el del hackathon (SPEC §2.1) y
+    rechaza cualquier proyecto que no sea el configurado y
     nunca se recoge el valor de la llave, solo last4 si la fuente lo trae.
     """
 
     name = "gcp-api-keys"
 
     def __init__(
-        self, lister: Callable[[], list[dict[str, Any]]], *, project: str = HACKATHON_PROJECT
+        self, lister: Callable[[], list[dict[str, Any]]], *, project: str | None = None
     ) -> None:
-        if project != HACKATHON_PROJECT:
-            raise ValueError(f"solo se permite el proyecto {HACKATHON_PROJECT} (SPEC §2.1)")
+        allowed = _configured_gcp_project()
+        if project is None:
+            project = allowed
+        if project != allowed:
+            raise ValueError(f"solo se permite el proyecto {allowed}")
         self._lister = lister
         self.project = project
 
@@ -236,7 +249,7 @@ class WebAllowlistConnector:
     """Versión de PHP/CMS de webs propias, solo header o meta. Sin explotar.
 
     ``fetcher(url) -> (headers, html)`` es inyectable. Cualquier dominio
-    fuera de la allowlist se rechaza antes de pedir nada (SPEC §2.2).
+    fuera de la allowlist se rechaza antes de pedir nada.
     """
 
     name = "web-allowlist"
@@ -253,7 +266,7 @@ class WebAllowlistConnector:
         for url in urls:
             host = (urlparse(url).hostname or "").lower()
             if host not in self._allowed:
-                raise ValueError(f"dominio fuera de la allowlist: {host} (SPEC §2.2)")
+                raise ValueError(f"dominio fuera de la allowlist: {host}")
         self._urls = list(urls)
 
     @classmethod

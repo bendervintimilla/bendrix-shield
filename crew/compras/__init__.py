@@ -1,4 +1,4 @@
-"""Compras: factura -> costo con Spark visión (H7)."""
+"""Compras: factura -> costo con Spark visión."""
 
 from crew.compras.agent import ComprasAgent
 from crew.compras.invoice import ExtractedInvoice, extract_invoice, validate_invoice

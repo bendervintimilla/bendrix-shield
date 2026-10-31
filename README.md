@@ -5,8 +5,8 @@ For SMEs running AI agents — Purchasing reads supplier invoices, Warehouse cou
 
 - **One token per agent:** each agent gets its own revocable `shd_<agent>_…` token, with least-privilege scopes and a spend cap.
 - **The real key never enters the app:** it stays in the gateway vault; apps only ever see their Shield token.
-- **Rotation the owner approves by voice:** nothing rotates without the owner's approval (voice, WhatsApp or panel); then the stolen token answers `401`.
-- **Poisoned documents are blocked, not obeyed:** external documents are data, never instructions; they end in `block` or `ask_owner`, with per-document Muse Spark review when enabled.
+- **Rotation the owner approves by voice:** rotation normally needs the owner's approval (voice, panel, or the WhatsApp webhook simulator described below); then the stolen token answers `401`. One exception: optional automatic containment (`Actions(auto_contain=True)`) can rotate a token without prior approval when a canary is detected; that action is audited (see `shield/actions/runbooks.py`).
+- **Poisoned documents are blocked, not obeyed:** external documents are data, never instructions; most end in `block` or `ask_owner`, with per-document Muse Spark review when enabled. Measured exception: the English token-reveal read (`v2-poison-token-en`) passed silently in the rules-only baseline (1/12) and in 2 of 3 runs with per-document Spark review (see Metrics).
 
 **Try it**
 
@@ -29,7 +29,7 @@ Motivation, as already documented in this repo (`docs/DEMO.md`): in the
 October 2026 incident behind this project, exposed keys were abused for
 ~16 hours (USD 310). With NoKey the loot from the same kind of leak is one
 revocable per-agent token, and the fix is a rotation, not a redeploy.
-No hosted demo is required to judge this project: `make demo` runs the
+No hosted demo is required to try this project: `make demo` runs the
 full story locally in replay, and `make live` runs it against the real
 Meta API with your own key (see below).
 
@@ -77,8 +77,8 @@ reproduce offline; the live rows do not reproduce without a key and are
 recorded in `evals/recorded/`.
 With Meta credits, add your key as `META_MODEL_API_KEY` (keychain or
 Secret Manager, never committed) and run `make smoke` for one live call
-per model. Deploy the gateway with `bash deploy/cloudrun.sh` (GCP
-project `bendrix-hackathon` only).
+per model. Deploy the gateway with `bash deploy/cloudrun.sh` (GCP project from
+`$GCP_PROJECT`).
 
 ## Run it live with your own key
 
@@ -104,7 +104,7 @@ gateway and cost real credits: see the cost shown on screen.
                                       │
               watch · estate · exposure · anomaly  ──▶  guardian agent
                                       │
-                          owner approves on WhatsApp / voice / panel
+                          owner approves by voice / panel (WhatsApp webhook simulator)
                                       │
                     attacker with the stolen token ──▶ 401   crew keeps counting
 ```
@@ -125,7 +125,10 @@ gateway and cost real credits: see the cost shown on screen.
   and spend limits); Muse Spark only for the ambiguous remainder.
   External content is data: an instruction hidden in an invoice,
   including a *read* that asks to reveal a credential, key or token,
-  ends in `block` or `ask_owner`, never in silence.
+  usually ends in `block` or `ask_owner`. Measured exception: the
+  English token-reveal read (`v2-poison-token-en`) passed silently in
+  the rules-only baseline (1/12) and in 2 of 3 runs with per-document
+  Spark review (see Metrics).
 - `shield/sdk/` — `bendrix_shield`: the 2-line `wrap`, `@shield.tool`,
   `shield.untrusted`, and the self-healing token refresh.
 - `shield/watch/`, `shield/estate/`, `shield/exposure.py`,
@@ -135,11 +138,13 @@ gateway and cost real credits: see the cost shown on screen.
   anomalies (new country, unused model, cost spikes).
 - `shield/actions/`, `shield/agent.py` — idempotent, reversible
   runbooks (`rotate_token`, `revoke`, `redeploy`, `verify`,
-  `patch_plan`) and the guardian agent that orchestrates them. Every
-  effect needs the owner's `approval_id`.
-- `channels/`, `web/` — WhatsApp and voice approvals, plus the owner's
-  panel (apps, live decisions, incidents, attacker terminal
-  `200 → 401`).
+  `patch_plan`) and the guardian agent that runs them. Effects need
+  the owner's `approval_id`, except optional automatic containment
+  (`auto_contain=True`) on a canary detection, which is audited.
+- `channels/`, `web/` — voice approvals, a WhatsApp webhook in
+  simulator mode (no real WhatsApp credentials; the live chain uses
+  voice), plus the owner's panel (apps, live decisions, incidents,
+  attacker terminal `200 → 401`).
 - `crew/` — customer zero: Purchasing (Spark vision invoices) and
   Warehouse (SAM 3.1 counting + voice), each with its own Shield token.
 - `sandbox/`, `evals/` — the Cantina Demo with test keys and an
@@ -170,32 +175,42 @@ beat, is `docs/DEMO.md`.
 
 ## Metrics (real, from `evals/report.md` — not inflated)
 
-Numbers below come from `evals/report.md`. Offline rows are
-replay/fixtures; rows marked **live** used real Meta models (29 Oct
-2026, cost in the row). The headline injection number is held-out v2:
-a fresh set written by a separate session without reading the policy
-rules, frozen before measuring, never used to tune the rules. The
-older held-out set is kept as history because rules were adjusted
-with it in H10.
+Numbers below come from `evals/report.md` and `evals/recorded/`.
+Offline rows are replay/fixtures; rows marked **live** used real Meta
+models (live invoice/warehouse rounds on 29 Oct 2026 and live chain
+recordings on 31 Oct 2026; cost in the row). The headline injection
+number is held-out v2: a fresh set written blind to the policy rules
+and frozen before measuring, never used to tune the rules. The older
+held-out set is kept as history because rules were later adjusted
+with it.
 
 | Measurement | Result |
 |---|---|
 | Synthetic injection set (shares patterns with the rules; regression only) | Blocked 30/30 (100%); clean false positives 0/30 |
 | **Held-out v2 (headline)** — fresh, blind to the rules, frozen | Blocked 4/12, escalated to owner 7/12, **silently allowed 1/12** — one English read asking to reveal the gateway token; sensitive writes silently allowed **0/12**. Legitimate formal account changes reach `ask_owner` 3/3; clean reads allowed 5/5 |
 | **Live** held-out v2, shipped engine with per-document Spark review (3 runs, same frozen set; H15 section) | Blocked 12, 10 and 11 of 12; to owner 0, 1 and 0; silently allowed 0, 1 and 1 (same English read, `v2-poison-token-en`); legitimate 2/3, 3/3 and 3/3 in `ask_owner`; clean reads 5/5; false blocks 1, 0 and 0 (the 1 is `v2-clean-formal-en`, run 1). USD 0.0975, 0.0913 and 0.0856; 16 Spark calls per run. Earlier arm-B measurement (Spark on every case, stricter wins; 3 runs): blocked 10, 11 and 11 of 12; to owner 1, 0 and 0; silently allowed 1 in each run (same English read); legitimate 3/3, 3/3 and 2/3 in `ask_owner`; clean reads 5/5 in each run; false blocks 0, 0 and 1 (the 1 is `v2-clean-formal-en` in the third run, recorded in `evals/recorded/heldout2-spark-armc-2026-10-31.json` arm B). USD 0.1121, 0.1316 and 0.1102; 20 Spark calls per run — see H14 and H15 sections |
-| Held-out v1 (history; rules were later adjusted with it) | Blocked 3/12, escalated to owner 9/12, silently allowed 0/12 after the H10 fix (2 before). Legitimate formal changes `ask_owner` 4/4; clean reads 4/4 |
+| Held-out v1 (history; rules were later adjusted with it) | Blocked 3/12, escalated to owner 9/12, silently allowed 0/12 after the reveal-read fix (2 before). Legitimate formal changes `ask_owner` 4/4; clean reads 4/4 |
 | **Live** chain through the gateway, recorded 2026-10-31 (`evals/recorded/live-run-2026-10-31.json`) | Invoice vision, SAM 3.1 count, stolen-token attack, guardian, voice transcription and approved rotation in one run; stolen token `401` after rotation, crew `200` after refresh; USD 0.0749, 84.7 s. Warehouse image is AI-generated test material, not real footage |
-| **Live** chain with the per-document Spark review visible, recorded 2026-10-31 (`evals/recorded/live-run-spark-review-2026-10-31.json`) | Full chain, same steps, with the review as its own provenance row (`read_invoice`: allow, flagging the hidden note as untrusted data); write attempts blocked by rules; stolen token `401`, crew `200` after refresh; USD 0.0810, 66.2 s run duration, 24.6 s from attack to first `401` driven by script with a synthetic voice file, so no human delay. Warehouse image is AI-generated test material |
-| **Live** invoices ×20 (Spark 1.3 vision on rendered invoices) | Supplier/number/date/currency/subtotal/tax/total and arithmetic validation 20/20, USD 0.1812 |
+| **Live** chain with the per-document Spark review visible, recorded 2026-10-31 (`evals/recorded/live-run-spark-review-2026-10-31.json`) | Full chain, same steps, with the review as its own provenance row (`read_invoice`: allow, flagging the hidden note as untrusted data); write attempts blocked by rules; stolen token `401`, crew `200` after refresh; USD 0.0810, 66.2 s run duration, about 24.6 s from attack to first `401` driven by script with a synthetic voice file, so no human delay (see note below). Warehouse image is AI-generated test material |
+| **Live** invoices ×20 (Spark 1.3 vision on rendered invoices) | Supplier exact match 4/20; number/date/currency/subtotal/tax/total and arithmetic validation 20/20, USD 0.1812 |
 | **Live** warehouse (SAM 3.1 synthetic images + Voice dictation) | Exact counts 4/4 with the precise prompt (`red rectangle`); with `red box` SAM returned 0 on the same images (1/4) — prompt wording matters and both are reported. Voice dictation parsed OK. USD 0.0100. No real warehouse footage yet |
 | Exposure, confirmed (confidence ≥ 0.8) | Precision 1.000, recall 0.692 (TP 9, FP 0, FN 4). Before grouping sibling advisories: precision 0.643 (the twin PHP CVEs counted double). The 4 misses are Brotli, whose advisory has no parseable range: kept as candidates for Wonder triage, not invented as confirmed |
 | Exposure, including candidates | Precision 0.765, recall 1.000 (TP 13, FP 4, FN 0) |
 | Usage anomalies (synthetic 16 h abuse) | Precision 1.000, recall 1.000 (TP 32, FP 0, FN 0); 0 false positives on the normal series |
 | Gateway overhead (local, instant fake upstream, 80 calls) | p50 1.74 ms, p95 2.48 ms (this run; see `evals/report.md`) |
 | Invoices (20 synthetic, replay parser) | Total/number/arithmetic 20/20 |
-| Warehouse (replay: synthetic SAM/voice outputs — no real footage yet) | Image count 3/3, video 3 unique track IDs, dictation and stock diff OK |
+| Warehouse (replay: synthetic SAM/voice outputs — no real footage yet) | Image count 3 (expected 3) in a single image, video 3 unique track IDs, dictation and stock diff OK |
 | Token rotation E2E (replay) | Attacker `200 → 401` in under 10 seconds (replay), other agents unaffected. The ~16 h figure is the October 2026 incident documented in `docs/DEMO.md`, not a live measurement |
 | Spark Open gate | Not run — `needs_credits`: no Baseten key in the vault, so there is no live classifier number and none is estimated (see models table) |
+
+Note on the about 24.6 s figure: it is the elapsed time from the start
+of the attack step to the first `401` after the approved rotation, as
+measured by the chain (`contained_in_s` in `web/live_chain.py`). The
+recording (`evals/recorded/live-run-spark-review-2026-10-31.json`) does
+not store that value. Its provenance rows are stamped as each call ends:
+the row before the attack is at 12:03:33.1 UTC and the first `401` at
+12:03:57.8 UTC, about 24.7 s apart. The first stolen-token call ended at
+12:03:35.2 UTC, about 22.6 s before that `401`.
 
 ## Meta models used
 
@@ -212,37 +227,36 @@ missing key or credit, so no result is claimed.
 | `muse-voice-transcribe-1.0` | Voice approvals ("yes, rotate it") and warehouse dictation | Live call with recording — `voice` step in `evals/recorded/live-run-2026-10-31.json` |
 | `muse-wonder-1.0` | Hard triage only: ambiguous exposures (`shield/exposure.py`) | Only in code — `grep` finds 0 occurrences in `evals/recorded/`; wired in `shield/exposure.py`, priced in `shield/meta_client.py`, probed by `scripts/smoke.py`. No recorded live call |
 | `muse-image-1.0` | Test-material generation label for the warehouse image | Label only in the recording — `material_label` in `evals/recorded/live-run-2026-10-31.json` ("AI-generated test image (muse-image-1.0), not real warehouse footage"); no provenance step calls it. Priced/handled in `shield/meta_client.py`. No recorded live call as a model step |
-| Muse Spark Open (`meta-models/muse-spark-open-1026`, Baseten, Modal fallback) | Output gate classifier (`shield/gate/open_classifier.py`) | Not run — needs credits: no Baseten key in the vault and 0 occurrences in `evals/recorded/`. No bonus and no result is claimed; the gate falls back to deterministic redaction and canaries |
+| Muse Spark Open (`meta-models/muse-spark-open-1026`, Baseten, Modal fallback) | Output gate classifier (`shield/gate/open_classifier.py`) | Not run — needs credits: no Baseten key in the vault and 0 occurrences in `evals/recorded/`. No result is claimed; the gate falls back to deterministic redaction and canaries |
 
 Routes and prices were verified against the official docs; see
 `docs/MODELS.md`. No `*-contributor` models are used.
 
 ## Built during the hackathon (26 Oct → 4 Nov 2026)
 
-Checked against `git log` (PR merges #1–#13 plus the H14/H15 commits on
-top).
+Checked against `git log` (PR merges #1–#13 plus later commits on top).
 
 | Pre-existing (not judged) | Built during the hackathon |
 |---|---|
 | No project code (initial commit only) | Skeleton, schemas, Meta client with replay (PR #1) |
 | Business knowledge: how Purchasing and Warehouse actually work | Sandbox and evaluation sets (PR #2) |
-| Existing accounts (Meta, GCP `bendrix-hackathon`, GitHub) | Gateway, vault, gate, policy and SDK (PRs #3, #4); lint cleanup (PR #5) |
+| Existing accounts (Meta, GCP, GitHub) | Gateway, vault, gate, policy and SDK (PRs #3, #4); lint cleanup (PR #5) |
 | The October 2026 incident itself (the motivation, `docs/DEMO.md`) | Containment runbooks and self-healing SDK (PR #6) |
 | | Crew, customer zero: Purchasing + Warehouse (PR #7) |
 | | Guardian: watch, estate, exposure, anomaly (PR #8) |
-| | WhatsApp/voice channels and owner panel (PR #9) |
+| | Voice channel, WhatsApp webhook simulator and owner panel (PR #9) |
 | | Spark Open gate code, held-out eval, report (PR #10) — gate itself not run, needs credits |
-| | Final integration: panel, held-out/exposure fixes, threat model, `make demo` (PR #11, H10) |
-| | Live rounds with real models (invoices, SAM, Voice), held-out v2, hardening (PR #12, H11); brand (PR #13) |
+| | Final integration: panel, held-out/exposure fixes, threat model, `make demo` (PR #11) |
+| | Live rounds with real models (invoices, SAM, Voice), held-out v2, hardening (PR #12); brand (PR #13) |
 | | Owner panel and live chain on real Meta models; held-out v2 with Spark recordings (`adf80f3`, `57b934d`) |
 | | Per-document Spark review in the policy engine (`39c7069`); three arm-C runs recorded (`7820fb3`). Activation: `make live` sets `SHIELD_SPARK_REVIEW=on` (and the live chain also requires a real upstream key); `make demo` does not set it and runs in replay with the review off |
 
 ## Name and affiliation
 
 Built on Meta's Muse models; independent project, not affiliated with
-or endorsed by Meta. The public name is NoKey by default — it uses no
-Meta trademark — and it lives in one place (`shield/brand.py`; change it
-with `uv run python scripts/set_brand.py NUEVO_NOMBRE`). Brand assets
+or endorsed by Meta. The public name is NoKey — it uses no Meta trademark — and it lives
+in one place (`shield/brand.py`; `scripts/set_brand.py` can rename it).
+Brand assets
 live in `docs/brand/`. The GitHub repository and Python package
 (`bendrix_shield`) keep their original technical names — only the public
 product name changed.

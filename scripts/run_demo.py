@@ -120,7 +120,7 @@ def main() -> int:
             print(
                 f"[ok] held-out: bloqueados {held['blocked']}/{held['poisoned']}, "
                 f"ask_owner {held['asked']}, en silencio {held['missed']} "
-                f"(antes de H10: 2 en silencio)"
+                f"(antes de 2 en silencio)"
             )
             assert held["missed"] == 0 and held["silent_write_allow"] == 0
 

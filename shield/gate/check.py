@@ -1,11 +1,10 @@
-"""`gate.check(payload)` — hook obligatorio antes de todo envío saliente (SPEC §2.4).
+"""`gate.check(payload)` — hook obligatorio antes de todo envío saliente.
 
-H1: bloqueo de canarios. H3 suma, sin cambiar la firma:
-- redacción determinista de llaves/PII (ver ``gate/redact.py``); el payload
-  redactado va en ``GateResult.redacted`` y el gateway reenvía ese;
-- alerta al detectar un canario (hook registrable, por defecto log);
-- clasificación vía ``gate.classify`` (stub en H3; Spark Open en H9).
-El clasificador nunca bloquea por sí solo en este stub.
+bloqueo de canarios, redacción determinista de llaves/PII
+(ver ``gate/redact.py``; el payload redactado va en
+``GateResult.redacted`` y el gateway reenvía ese), alerta al detectar
+un canario (hook registrable, por defecto log) y clasificación vía
+``gate.classify``.
 """
 
 from __future__ import annotations
@@ -71,7 +70,7 @@ def check(payload: object, *, canaries: list[str] | tuple[str, ...] | None = Non
         return GateResult(allowed=False, canaries_found=found, reason="canary_in_payload")
     redacted, redactions = redact_payload(payload)
     classification = classify(text)
-    # Spark Open (H9) sí bloquea con confianza alta; el stub y needs_credits no.
+    # Spark Open sí bloquea con confianza alta; el stub y needs_credits no.
     if (
         classification is not None
         and classification.label in BLOCK_LABELS

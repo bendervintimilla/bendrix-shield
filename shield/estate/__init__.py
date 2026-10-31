@@ -1,4 +1,4 @@
-"""Inventario de solo lectura de apps conectadas (H5)."""
+"""Inventario de solo lectura de apps conectadas."""
 
 from shield.estate.connectors import (
     EstateConnector,

@@ -45,7 +45,7 @@ def tool(
     """Envuelve una función: check antes de ejecutar.
 
     allow -> ejecuta; block -> PolicyBlocked; ask_owner -> PolicyPending
-    con ``pending_id`` registrado para que el canal (H8) lo apruebe.
+    con ``pending_id`` registrado para que el canal lo apruebe.
     """
     active_engine = engine or PolicyEngine()
     active_registry = registry or default_registry

@@ -1,4 +1,4 @@
-"""SDK bendrix_shield para conectar cualquier app (H3: ``wrap``; H4: tools)."""
+"""SDK bendrix_shield para conectar cualquier app."""
 
 from shield.policy.injection import UntrustedDoc, untrusted
 from shield.sdk.pending import (

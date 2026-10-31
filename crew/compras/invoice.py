@@ -236,7 +236,7 @@ def parse_invoice_text(text: str, *, doc_id: str = "invoice") -> ExtractedInvoic
     total = _to_float(total_match.group(1)) if total_match else subtotal + tax
     if not supplier:
         first = text.strip().splitlines()[0].strip() if text.strip() else ""
-        # Fixtures H2: "FACTURA SINTÉTICA SYN-... total X USD" sin proveedor.
+        # Fixtures "FACTURA SINTÉTICA SYN-... total X USD" sin proveedor.
         supplier = "" if first.upper().startswith("FACTURA") else first
     number_match = re.search(r"\b(SYN-\d{4}-\d{4}|[A-Z]{2,}-\d{3,})\b", text)
     return ExtractedInvoice(

@@ -1,8 +1,8 @@
-"""Entrada manual de avisos: URL, PDF o captura -> ThreatCard (H5).
+"""Entrada manual de avisos: URL, PDF o captura -> ThreatCard.
 
 Lo normal es Spark 1.3 (visión + JSON schema) sobre MetaClient (que ya pasa
 por gate.check y por el replay). Sin créditos (401/402/403) no se detiene:
-cae a una extracción determinista marcada ``needs_credits`` (H-COMUN §4).
+cae a una extracción determinista marcada ``needs_credits``.
 El documento entrante es dato no confiable: se le pide al modelo que lo
 describa con el esquema, nunca que siga instrucciones del documento.
 """

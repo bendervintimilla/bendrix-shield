@@ -1,6 +1,6 @@
 # shield/policy/
 
-`check(agent, tool, args, sources) -> PolicyDecision` (H4).
+`check(agent, tool, args, sources) -> PolicyDecision`.
 
 - Reglas YAML por agente en `policies/*.yaml`: herramientas permitidas,
   `effect` (read/write), campos sensibles, `ask_owner_if` y límites.

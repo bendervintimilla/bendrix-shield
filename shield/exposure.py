@@ -1,4 +1,4 @@
-"""`ThreatCard x Asset -> Exposure` con razón y confianza (H5).
+"""`ThreatCard x Asset -> Exposure` con razón y confianza.
 
 Determinista primero: nombre normalizado + veredicto de versión (afectada /
 segura / desconocida). Solo lo ambiguo (confianza media, especificaciones

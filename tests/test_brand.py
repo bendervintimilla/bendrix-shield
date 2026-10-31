@@ -103,7 +103,7 @@ def _mini_tree(tmp_path: Path) -> Path:
         "# Evals de OldBrand — reporte completo\nDatos de OldBrand medidos.\n",
         encoding="utf-8",
     )
-    url = "https://bendrix-shield-panel-290240328973.us-central1.run.app"
+    url = "https://bendrix-shield-panel-example.us-central1.run.app"
     (tmp_path / "README.md").write_text(
         f"# OldBrand — Business Protection\nbendrix_shield bendrix-shield {url}\n",
         encoding="utf-8",
@@ -133,7 +133,7 @@ def test_set_brand_cambia_textos_y_conserva_nombres_tecnicos(tmp_path):
     readme = (root / "README.md").read_text(encoding="utf-8")
     assert readme.startswith("# NoKey — Business Protection")
     assert "bendrix_shield" in readme and "bendrix-shield" in readme
-    assert "bendrix-shield-panel-290240328973.us-central1.run.app" in readme
+    assert "bendrix-shield-panel-example.us-central1.run.app" in readme
     assert "OldBrand" not in readme
     assert 'name = "bendrix-shield"' in (root / "pyproject.toml").read_text(encoding="utf-8")
     assert "NoKey" in (root / "pyproject.toml").read_text(encoding="utf-8")

@@ -1,4 +1,4 @@
-"""Gateway compatible con OpenAI de Shield (H3)."""
+"""Gateway compatible con OpenAI de Shield."""
 
 from shield.gateway.app import UPSTREAM_KEY_NAME, RateLimiter, create_app
 from shield.gateway.geo import country_for_ip

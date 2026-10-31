@@ -1,1 +1,1 @@
-"""Panel web de Shield (H8)."""
+"""Panel web de Shield."""

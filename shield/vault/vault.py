@@ -79,7 +79,7 @@ class MemoryVault(BaseVault):
 
 
 class EnvVault(BaseVault):
-    """Secretos inyectados como variables de entorno por el orquestador.
+    """Secretos inyectados como variables de entorno por el entorno de ejecución.
 
     En Cloud Run las variables vienen de Secret Manager con
     ``--set-secrets`` (ver ``deploy/cloudrun.sh``); el secreto sigue viviendo

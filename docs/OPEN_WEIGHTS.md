@@ -10,12 +10,8 @@ hardening it, no API key was used, and no live results are claimed in
 this document. Anything about live behaviour remains unverified until
 someone runs it with credits (see "How to run it" below).
 
-Other participants report that, through Baseten with the model slug
-below, some responses arrive with empty `message.content` and
-`finish_reason='length'`, apparently because reasoning consumes the
-token budget. That is a participant report, not confirmed in this
-repository. The hardening below is written against that report and is
-covered only by tests with doubles.
+Spark Open has not been run live for lack of credits. The hardening
+below is covered only by tests with doubles.
 
 ## What the code does
 

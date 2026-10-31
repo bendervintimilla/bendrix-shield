@@ -1,8 +1,8 @@
-"""Runbooks idempotentes y reversibles de contención (H6, SPEC §1).
+"""Runbooks idempotentes y reversibles de contención.
 
 Cada runbook expone ``plan()`` (sin efecto), ``apply(plan, approval_id=…)``
 (con efecto), ``verify()`` y ``rollback(result)``. Todo efecto exige una
-aprobación de H4/H8 (``PendingRegistry``), salvo la contención automática
+aprobación (``PendingRegistry``), salvo la contención automática
 opcional ante un canario, que queda auditada. Ningún valor secreto se
 escribe en planes, resultados públicos ni en la auditoría: solo token_id,
 huella (sha256[:8]) y últimos 4.
@@ -26,7 +26,7 @@ from shield.vault.vault import BaseVault
 
 
 class ApprovalRequired(RuntimeError):
-    """Falta una aprobación válida (H4/H8) para un runbook con efecto."""
+    """Falta una aprobación válida para un runbook con efecto."""
 
 
 class ManualStepRequired(RuntimeError):
@@ -91,7 +91,7 @@ class AuditEntry:
 
 
 class Actions:
-    """Fachada H6: construye runbooks compartiendo registry/vault/auditoría."""
+    """Fachada: construye runbooks compartiendo registry/vault/auditoría."""
 
     def __init__(
         self,
@@ -164,7 +164,7 @@ class Actions:
             raise ApprovalRequired(f"approval_id no aprobado: {approval_id}")
         if auto_reason == "canary_detected" and self.auto_contain:
             return True
-        raise ApprovalRequired("se requiere approval_id de H4/H8")
+        raise ApprovalRequired("se requiere approval_id")
 
     def agent_health(self, agent: str) -> bool:
         if self.health_checker is not None:
@@ -361,7 +361,7 @@ class RotateUpstreamKeyRunbook(_BaseRunbook):
 
     def plan(self, *, provider: str) -> Plan:
         if not self.ctx.sandbox:
-            raise PermissionError("rotate_upstream_key solo en sandbox (SPEC §2.1)")
+            raise PermissionError("rotate_upstream_key solo en sandbox")
         has_api = self.ctx.key_providers.get(provider) is not None
         steps = (
             ["crear llave nueva vía API del proveedor", "guardarla en el vault", "verificar huella"]
@@ -382,7 +382,7 @@ class RotateUpstreamKeyRunbook(_BaseRunbook):
         if plan.plan_id in self._applied:
             return self._applied[plan.plan_id]
         if not self.ctx.sandbox:
-            raise PermissionError("rotate_upstream_key solo en sandbox (SPEC §2.1)")
+            raise PermissionError("rotate_upstream_key solo en sandbox")
         if self.ctx.vault is None:
             raise ValueError("rotate_upstream_key requiere vault")
         self._require(plan, approval_id, None)
@@ -442,7 +442,7 @@ class RedeployRunbook(_BaseRunbook):
 
     def plan(self, *, service: str) -> Plan:
         if not self.ctx.sandbox:
-            raise PermissionError("redeploy solo en sandbox (SPEC §2.1)")
+            raise PermissionError("redeploy solo en sandbox")
         plan = _new_plan(
             self.action,
             service,
@@ -456,7 +456,7 @@ class RedeployRunbook(_BaseRunbook):
         if plan.plan_id in self._applied:
             return self._applied[plan.plan_id]
         if not self.ctx.sandbox:
-            raise PermissionError("redeploy solo en sandbox (SPEC §2.1)")
+            raise PermissionError("redeploy solo en sandbox")
         self._require(plan, approval_id, None)
         deployer = self.ctx.deployer or (
             lambda service: {"service": service, "status": "redeployed"}
@@ -592,7 +592,7 @@ class PatchPlanRunbook(_BaseRunbook):
         if plan.plan_id in self._applied:
             return self._applied[plan.plan_id]
         if not self.ctx.sandbox:
-            raise PermissionError("patch_plan solo en sandbox (SPEC §2.1)")
+            raise PermissionError("patch_plan solo en sandbox")
         self._require(plan, approval_id, None)
         result = ActionResult(
             status="applied",

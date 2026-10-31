@@ -2,7 +2,7 @@
 
 **Nombre público por defecto:** NoKey
 **Subtítulo:** Business Protection
-**Tagline (EN, para video y envío):** Your app never holds the real key. One leaked token, revoked in seconds.
+**Tagline (EN, para video y envío):** Your app never holds the real key. One leaked token, revoked in seconds (replay).
 **Tagline (ES):** Tu app nunca tiene la llave real. Un token filtrado, revocado en segundos.
 
 Cifras que respaldan el tagline (solo `evals/report.md`, held-out v2):
@@ -10,19 +10,13 @@ Cifras que respaldan el tagline (solo `evals/report.md`, held-out v2):
 frente a ~16 h del incidente real · 4/12 bloqueados y 7/12 al dueño en held-out v2
 (1 lectura en inglés pasó en silencio: se dice, no se esconde).
 
-## Por qué NoKey
-
-El bot de Discord del hackatón avisó el 30-oct que el nombre público no
-puede usar Muse ni Meta. Juan aún no decide el nombre definitivo, así
-que queda NoKey por defecto: la promesa en el nombre, ningún agente tiene
-la llave, y no usa marca de terceros. Las excepciones a esa regla se
-piden a up_exceptions@meta.com.
+El nombre público es NoKey. No usa marca de terceros.
 
 ## Cómo cambiarlo (un comando)
 
 ```bash
-uv run python scripts/set_brand.py NUEVO_NOMBRE          # aplica
-uv run python scripts/set_brand.py NUEVO_NOMBRE --dry-run # solo muestra
+uv run python scripts/set_brand.py <new-name>          # aplica
+uv run python scripts/set_brand.py <new-name> --dry-run # solo muestra
 ```
 
 El comando actualiza `shield/brand.py` — la única fuente de la marca en
@@ -62,9 +56,3 @@ sans para cuerpo. Sin degradados morados, sin iconos emoji.
 - El panel web usa favicon textual con la inicial de `BRAND` sobre tinta
   (data URI en `web/app.py`) y la misma paleta; no depende de archivos externos.
 
-## Variantes de nombre (por si Juan prefiere otra)
-
-1. **VaultGate — Business Protection.** Junta la bóveda de llaves y la
-   puerta de política; suena a infraestructura seria para startups.
-2. **Revoke — Business Protection.** El gesto que vende el video
-   (200 → 401 en segundos); corto, pero genérico para buscarlo en la web.

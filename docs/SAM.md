@@ -75,6 +75,4 @@ En este repo el costo por llamada también lo calcula
 `usage.video_frames_processed` si la API lo reporta; si no, una imagen).
 Sin créditos (401/402/403) todo corre en replay con salidas SAM
 sintéticas y el costo reportado es el teórico de esta tabla, marcado
-como tal en `evals/report.md`. **No hay tomas reales de bodega todavía**:
-la lista de tomas por grabar vive en `evals/private/tomas.md` (H2,
-ignorado por git).
+como tal en `evals/report.md`. **No hay tomas reales de bodega todavía**.

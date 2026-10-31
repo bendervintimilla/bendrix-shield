@@ -1,4 +1,4 @@
-"""Cuadrilla cliente cero: Compras + Bodega + orquestador (H7)."""
+"""Cuadrilla cliente cero: Compras + Bodega y coordinación."""
 
 from crew.bodega.agent import BodegaAgent
 from crew.compras.agent import ComprasAgent

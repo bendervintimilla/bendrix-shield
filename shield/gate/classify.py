@@ -1,8 +1,8 @@
 """Interfaz del clasificador de salida (Muse Spark Open).
 
-H3 deja la interfaz y un stub determinista que **no bloquea nada**.
-H9 lo reemplaza por Spark Open (``meta-models/muse-spark-open-1026``)
-sin cambiar esta firma.
+Interfaz con un stub determinista que **no bloquea nada**; Spark Open
+(``meta-models/muse-spark-open-1026``) la implementa sin cambiar esta
+firma.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ class Classification:
     label: str = "unclassified"
     score: float = 0.0
     model: str = "stub"
-    reason: str = "classifier not configured (H9: Spark Open)"
+    reason: str = "classifier not configured"
 
 
 @runtime_checkable

@@ -1,4 +1,4 @@
-"""Borradores de notificación de incidente: RGPD art. 33 y LOPDP (H5).
+"""Borradores de notificación de incidente: RGPD art. 33 y LOPDP.
 
 Siempre un borrador para revisión humana: nunca se envía solo y el texto
 lo dice en la primera línea. Sin datos inventados: lo que no se conoce

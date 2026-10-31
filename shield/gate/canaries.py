@@ -1,6 +1,6 @@
 """Canarios: secretos trampa que jamás deben salir en un payload.
 
-H1 trae una lista corta y sintética. H2 la reemplaza por `evals/canaries.json`
+La lista trae una lista corta y sintética. La lista completa la reemplaza por `evals/canaries.json`
 (10 secretos trampa) sin cambiar esta interfaz.
 """
 

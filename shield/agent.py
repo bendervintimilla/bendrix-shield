@@ -1,10 +1,10 @@
-"""El agente guardián: orquesta watch/estate/exposure/anomaly/actions (H5).
+"""El agente guardián: orquesta watch/estate/exposure/anomaly/actions.
 
 Tool calling con Spark 1.3 cuando hay cliente; sin créditos cae al pipeline
 determinista (mismas herramientas, sin modelo). Las acciones con efecto son
 una interfaz (``GuardianActions``): ``RegistryActions`` es el adaptador
-local de demo y ``RunbookGuardianActions`` (H8) delega en los runbooks
-reales de H6 (``shield/actions/``) por el mismo camino. Ninguna acción con
+local de demo y ``RunbookGuardianActions`` delega en los runbooks
+reales (``shield/actions/``) por el mismo camino. Ninguna acción con
 efecto se ejecuta sin un ``approval_id`` emitido por ``ask_owner`` en esta
 misma corrida: rotar o revocar sin OK del dueño no es una ruta válida.
 """
@@ -26,7 +26,7 @@ EFFECT_TOOLS = ("rotate_token", "rotate_upstream_key", "revoke")
 
 
 class GuardianActions(Protocol):
-    """Interfaz de acciones con efecto. La implementación real es de H6."""
+    """Interfaz de acciones con efecto. La implementación real es la de los runbooks."""
 
     def rotate_token(self, agent: str, approval_id: str) -> dict[str, Any]: ...
     def rotate_upstream_key(self, provider: str, approval_id: str) -> dict[str, Any]: ...
@@ -35,10 +35,10 @@ class GuardianActions(Protocol):
 
 
 class RegistryActions:
-    """Adaptador local/demo sobre el Registry (H6 lo reemplaza por runbooks).
+    """Adaptador local/demo sobre el Registry.
 
     Nunca devuelve el token en claro: solo ids. Rotar un token no toca a
-    ningún otro agente (invariante SPEC §2.5, ya garantizado por Registry).
+    ningún otro agente (ya garantizado por Registry).
     """
 
     def __init__(self, registry: Any) -> None:
@@ -58,7 +58,7 @@ class RegistryActions:
         return {
             "status": "manual_step_required",
             "provider": provider,
-            "detail": "el proveedor no expone rotación por API aquí; paso manual + verify (H6)",
+            "detail": "el proveedor no expone rotación por API aquí; paso manual + verify",
         }
 
     def verify(self, target: str) -> dict[str, Any]:
@@ -76,11 +76,11 @@ class RegistryActions:
 
 
 class RunbookGuardianActions:
-    """``GuardianActions`` sobre los runbooks reales de H6 (conexión H8).
+    """``GuardianActions`` sobre los runbooks reales.
 
     Cada método hace plan → apply(approval_id) → verify del runbook. El
     ``approval_id`` es el ``pending_id`` del ``PendingRegistry`` compartido
-    con los canales: sin aprobación aprobada, H6 levanta
+    con los canales: sin aprobación aprobada, el runbook levanta
     ``ApprovalRequired`` y aquí se devuelve ``blocked`` sin efecto.
     Nunca devuelve secretos: solo ids, huellas y estados.
     """
@@ -156,7 +156,7 @@ class Approver(Protocol):
 
 
 class SimulatedApprover:
-    """Aprobador de demo/tests: aprueba o rechaza sin canal externo (H8)."""
+    """Aprobador de demo/tests: aprueba o rechaza sin canal externo."""
 
     def __init__(self, approve: bool = True) -> None:
         self.approve = approve
@@ -463,7 +463,7 @@ class GuardianAgent:
 
     def _require_approval(self, action: str, target: str, approval_id: str) -> str | None:
         if self.actions is None:
-            return "sin backend de acciones (H6): nada que ejecutar"
+            return "sin backend de acciones: nada que ejecutar"
         if not approval_id or approval_id != self._approval_id:
             return "approval_required: pide primero ask_owner y usa su approval_id"
         if (action, target) not in self._approved_steps:

@@ -1,4 +1,4 @@
-"""Lectura de avisos públicos -> ThreatCard (H5)."""
+"""Lectura de avisos públicos -> ThreatCard."""
 
 from shield.watch.feeds import (
     PARSERS,
