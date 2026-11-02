@@ -33,6 +33,7 @@ from shield.agent import GuardianAgent, RunbookGuardianActions
 from shield.registry import Registry
 from shield.schemas import CallLog
 from shield.sdk.token_store import InMemoryTokenStore
+from shield.vault.vault import get_vault
 from web.brand import BRAND, SUBTITLE
 from web.live_page import render_live_inactive_page, render_live_page
 
@@ -1240,82 +1241,92 @@ _CSS = """
 :root{--col:1140px}
 @media (min-width:1600px){:root{--col:1320px}}
 *{box-sizing:border-box}
-body{margin:0;background:#EEF0EA;color:#1C2420;
-font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45}
-h1,h2,h3{font-family:Georgia,"Times New Roman",serif;line-height:1.1}
+body{margin:0;background:#111113;color:#f4f6f9;font-size:17px;
+font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+h1,h2,h3{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.12}
 h2{font-size:26px;margin:0 0 12px} h3{font-size:19px;margin:18px 0 8px}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-a{color:#1F7A4D} :focus-visible{outline:3px solid #E8A33D;outline-offset:2px}
+a{color:#8ab8ff} :focus-visible{outline:3px solid #f5a623;outline-offset:2px}
 .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;
-padding:10px 18px;border:2px solid #14201C;background:#EEF0EA;color:#14201C;
+padding:10px 18px;border:1px solid #2c303a;border-radius:999px;background:#23262f;color:#f4f6f9;
 font:inherit;cursor:pointer;text-decoration:none}
-.btn.primary{background:#1F7A4D;border-color:#1F7A4D;color:#fff}
-.btn.secondary{background:#fff}
-.btn.ghost{background:#14201C;border-color:#EEF0EA;color:#EEF0EA}
+.btn.primary{background:#2563eb;border-color:#2563eb;color:#fff}
+.btn.secondary{background:#23262f;color:#f4f6f9}
+.btn.ghost{background:#23262f;border-color:#2c303a;color:#f4f6f9}
 form{display:inline} .band form,.actions form{display:inline-block}
-.band{background:#14201C;color:#EEF0EA}
+.band{background:#111113;color:#f4f6f9;border-bottom:1px solid #2c303a}
 .band .inner{width:min(var(--col),calc(100% - 40px));max-width:var(--col);
 margin:0 auto;padding:18px 0 22px}
 .band-top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;
 justify-content:space-between}
 .brandline{margin:0;font-size:15px}
 .band-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.replay{font-size:13px;border:1px solid #EEF0EA;padding:9px 10px}
+.replay{font-size:13px;border:1px solid #2c303a;border-radius:999px;padding:9px 10px;color:#c3cad4}
 .mode-switch{display:inline-flex}
 .mode-switch a{display:inline-flex;align-items:center;min-height:44px;
-padding:8px 12px;color:#EEF0EA;border:1px solid #EEF0EA;text-decoration:none}
-.mode-switch a[aria-current="true"]{background:#E8A33D;color:#14201C}
+padding:8px 12px;color:#c3cad4;border:1px solid #2c303a;border-radius:999px;text-decoration:none}
+.mode-switch a[aria-current="true"]{background:#2563eb;border-color:#2563eb;color:#fff}
 .lang{display:inline-flex}.lang a{display:inline-flex;align-items:center;
-min-height:44px;padding:8px 12px;color:#EEF0EA;border:1px solid #EEF0EA;
-text-decoration:none}.lang a[aria-current="true"]{background:#E8A33D;color:#14201C}
+min-height:44px;padding:8px 12px;color:#c3cad4;border:1px solid #2c303a;border-radius:999px;
+text-decoration:none}.lang a[aria-current="true"]{background:#2563eb;
+border-color:#2563eb;color:#fff}
 .band-main{display:flex;gap:28px;align-items:flex-start;justify-content:space-between}
 .band-copy{max-width:760px}
-.band h1{font-size:clamp(38px,5vw,64px);margin:20px 0 10px;font-weight:400}
-.support{font-size:18px;margin:0 0 18px}
-.advisory{font-size:13px;margin:0 0 14px;opacity:.85}
+.band h1{font-size:clamp(38px,5vw,64px);margin:20px 0 10px;font-weight:750;letter-spacing:-.02em}
+.support{font-size:18px;margin:0 0 18px;color:#c3cad4}
+.advisory{font-size:14px;margin:0 0 14px;color:#c3cad4}
 .attempts-label{margin:0 0 8px;font-size:15px}
 .attempts{display:flex;flex-wrap:wrap;gap:8px}
 .code-block{display:inline-flex;align-items:center;justify-content:center;
 min-width:64px;min-height:52px;padding:8px 12px;font-size:22px;
 font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .attempts.small .code-block{min-width:48px;min-height:44px;font-size:17px}
-.code-200{background:#E8A33D;color:#14201C}
-.code-agent-200{background:#1F7A4D;color:#fff}
-.code-401{background:#B42318;color:#fff}
-.code-none,.code-0{background:#EEF0EA;color:#14201C}
+.code-block{border-radius:12px;background:#262a33;color:#f4f6f9}
+.code-200{background:#f5a623;color:#211603}
+.code-agent-200{background:#1f9d63;color:#fff}
+.code-401{background:#1f9d63;color:#fff}
+.code-none,.code-0{background:#262a33;color:#c3cad4}
 .attempts .code-block:last-child{animation:in .35s ease-out}
 #app.no-new-attempt .attempts .code-block:last-child{animation:none}
 @keyframes in{from{opacity:0}to{opacity:1}}
 .clockbox{text-align:right;min-width:220px;padding-top:26px}
 .clock-label{font-size:13px;margin:0;line-height:1.2}
-#clock{font-family:Georgia,serif;font-size:clamp(34px,4vw,56px);margin:0;line-height:1.1}
-.clock-note{margin:6px 0 0;font-size:15px}
+#clock{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(40px,4vw,64px);font-weight:750;margin:0;line-height:1.1}
+.clock-note{margin:6px 0 0;font-size:15px;color:#c3cad4}
 .wrap{width:min(var(--col),calc(100% - 40px));max-width:var(--col);
 margin:0 auto;padding:22px 0}
-.decision{background:#fff;border-top:6px solid #1F7A4D;padding:22px 20px}
+.decision{background:#17191f;border:1px solid #2c303a;border-radius:18px;
+padding:22px 20px;margin-top:22px}
 .decision-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
 .plan{margin:0;padding-left:22px}.plan li{margin:8px 0}
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
 .voice-box label{display:block;font-weight:700;margin-bottom:6px}
-.voice-box input{width:100%;min-height:44px;padding:10px;font:inherit;margin-bottom:10px}
-.voice-notice{border:2px solid #E8A33D;background:#EEF0EA;padding:12px 14px;margin-top:12px}
-.columns{display:grid;grid-template-columns:1fr 1fr;gap:0;padding-top:0}
-.col{padding:20px;background:#fff}.col+.col{background:#14201C;color:#EEF0EA}
-.bigline{font-family:Georgia,serif;font-size:24px}
-.terminal{background:#000;color:#EEF0EA;padding:14px;overflow-wrap:anywhere}
+.voice-box input{width:100%;min-height:44px;padding:10px;font:inherit;
+margin-bottom:10px;background:#101216;border:1px solid #2c303a;
+border-radius:10px;color:#f4f6f9}
+.voice-notice{border:1px solid rgba(245,166,35,.7);border-radius:14px;
+background:rgba(245,166,35,.1);color:#ffe9bd;padding:12px 14px;margin-top:12px}
+.columns{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding-top:22px}
+.col{padding:20px;background:#17191f;border:1px solid #2c303a;
+border-radius:18px}.col+.col{background:#17191f;color:#f4f6f9}
+.bigline{font-family:system-ui,sans-serif;font-size:24px;font-weight:700}
+.terminal{background:#0a0a0c;border:1px solid #2c303a;border-radius:12px;
+color:#f4f6f9;padding:14px;overflow-wrap:anywhere}
 .terminal p{margin:6px 0}
-.term-401{background:#B42318;color:#fff;font-weight:700;padding:1px 5px}
+.term-401{background:#1f9d63;color:#fff;font-weight:700;padding:1px 5px;
+border-radius:4px}
 #attacker form{display:block;margin:8px 0 0 -2px;padding:0}
-.purchasing{grid-column:1/-1;margin:0;padding:14px 20px;background:#fff;
-border-top:2px solid #14201C;font-size:17px}
+.purchasing{grid-column:1/-1;margin:0;padding:14px 20px;background:#17191f;
+border:1px solid #2c303a;border-radius:18px;font-size:17px}
 .purchasing-code{min-width:48px;min-height:44px;font-size:17px;vertical-align:middle}
 .decisions-total{margin:0 0 8px;font-size:14px}
-.status{font-weight:700}.status-active{color:#1F7A4D}.status-revoked{color:#B42318}
+.status{font-weight:700}.status-active{color:#7ce7b2}.status-revoked{color:#ff9a86}
 .tablewrap{overflow-x:auto}
-table{border-collapse:collapse;width:100%;background:#fff}
-td,th{border-bottom:1px solid #c9cec2;padding:9px 8px;text-align:left;vertical-align:top}
+table{border-collapse:collapse;width:100%;background:#14161b;border:1px solid #2c303a}
+td,th{border-bottom:1px solid #2c303a;padding:9px 8px;text-align:left;vertical-align:top}
+th{color:#c3cad4}
 .feed{padding-left:20px}.feed li{margin:6px 0}
-.footer{border-top:2px solid #14201C;font-size:14px}
+.footer{border-top:1px solid #2c303a;font-size:14.5px;color:#c3cad4}
 @media (max-width:760px){.band-main,.decision-grid,.columns{grid-template-columns:1fr;
 display:block}.col{margin-bottom:14px}.clockbox{text-align:left;padding-top:0}
 .band h1{font-size:38px} td,th{padding:7px 5px;font-size:14px}}
@@ -1411,8 +1422,8 @@ def _resolve_lang(request: Request | None) -> str:
 def _page(state: DemoState, lang: str = "en") -> str:
     favicon = (
         "data:image/svg+xml,%3Csvg viewBox='0 0 64 64'%3E"
-        "%3Crect width='64' height='64' fill='%2314201C'/%3E"
-        "%3Ctext x='32' y='42' font-family='Georgia,serif' font-size='28' "
+        "%3Crect width='64' height='64' fill='%23111113'/%3E"
+        "%3Ctext x='32' y='42' font-family='system-ui,sans-serif' font-size='28' "
         f"fill='%23E8A33D' text-anchor='middle'%3E{(BRAND[:1] or 'N')}%3C/text%3E%3C/svg%3E"
     )
     return (
@@ -1438,6 +1449,16 @@ def _host_name(value: str) -> str:
     return raw.split(":", 1)[0]
 
 
+def _create_whatsapp_channel(broker: ApprovalBroker) -> WhatsAppChannel:
+    """En live, el canal nace con el vault: webhook verificable desde el arranque."""
+    if os.environ.get("DEMO", "replay") == "live":
+        try:
+            return WhatsAppChannel(broker, vault=get_vault())
+        except Exception:
+            pass
+    return WhatsAppChannel(broker)
+
+
 def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) -> FastAPI:
     demo = state or build_replay_state()
     local = _panel_local_or_sandbox()
@@ -1450,7 +1471,7 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
     )
     app.state.demo = demo
     app.state.live_chain = live_chain
-    channel = WhatsAppChannel(demo.broker)
+    channel = _create_whatsapp_channel(demo.broker)
     channel.live_chain_getter = lambda: getattr(app.state, "live_chain", None)
     app.state.whatsapp = channel
     app.include_router(whatsapp_router(channel))

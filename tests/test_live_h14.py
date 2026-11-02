@@ -863,6 +863,37 @@ def test_live_page_h14_3_polish_strings():
     assert "id='bigClock'>--:--<" in text
 
 
+def test_live_page_dark_hero_sphere_and_whatsapp_bubble():
+    from web.live_page import render_live_page
+
+    for lang, subtitle in (
+        ("en", "Particle sphere reacting to the chain state"),
+        ("es", "Esfera de partículas que reacciona al estado de la cadena"),
+    ):
+        text = render_live_page(lang)
+        assert "id='sphereCanvas'" in text
+        assert "hero-fill" in text and "hero-outline" in text
+        assert "<span class='hero-fill'>No</span>" in text
+        assert "<span class='hero-outline'>Key</span>" in text
+        assert "hero-brand" in text and subtitle in text
+        assert "id='whatsappBubble'" in text
+        assert "id='whatsappApprovedLine'" in text
+        assert "requestAnimationFrame" in text
+        assert "prefers-reduced-motion" in text
+        assert "visibilitychange" in text
+        assert "setSphereMode" in text
+        assert 'data-state=' in text
+        assert "innerHTML" not in text
+        assert "<script src" not in text
+        assert "http://" not in text and "https://" not in text
+    en = render_live_page("en")
+    assert "approved via WhatsApp voice note" in en
+    assert "WhatsApp voice note" in en
+    es = render_live_page("es")
+    assert "aprobado por nota de voz de WhatsApp" in es
+    assert "Nota de voz de WhatsApp" in es
+
+
 def test_guardian_error_mentions_10_turns():
     chain, _h = make_chain(mode="guardian_noplan")
     try:

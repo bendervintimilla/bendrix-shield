@@ -342,6 +342,71 @@ def test_live_chain_state_voice_channel():
     assert state["results"]["voice"]["channel"] == "whatsapp"
 
 
+def test_live_startup_whatsapp_channel_uses_fake_vault(monkeypatch):
+    from shield.vault import MemoryVault
+    from web.app import build_replay_state, create_panel_app
+
+    fake = MemoryVault(
+        {
+            "whatsapp-test-verify-token": "verify-falso",
+            "whatsapp-app-secret": "secret-falso",
+            "whatsapp-test-phone": OWNER,
+            "whatsapp-test-token": "tok-falso",
+            "whatsapp-test-phone-id": "123",
+        }
+    )
+    monkeypatch.setenv("DEMO", "live")
+    monkeypatch.setattr("web.app.get_vault", lambda *a, **k: fake, raising=False)
+    monkeypatch.setattr(
+        "shield.vault.vault.get_vault", lambda *a, **k: fake, raising=False
+    )
+    app = create_panel_app(build_replay_state())
+    client = TestClient(app, raise_server_exceptions=False)
+    # Sin abrir /live: la verificación GET ya responde con el vault.
+    ok = client.get(
+        "/webhook/whatsapp",
+        params={
+            "hub.mode": "subscribe",
+            "hub.verify_token": "verify-falso",
+            "hub.challenge": "12345",
+        },
+    )
+    assert ok.status_code == 200 and ok.text == "12345"
+    # Y la firma POST se valida con el secreto falso del vault.
+    raw = b"{}"
+    sig = "sha256=" + hmac.new(b"secret-falso", raw, hashlib.sha256).hexdigest()
+    signed = client.post(
+        "/webhook/whatsapp", content=raw, headers={"x-hub-signature-256": sig}
+    )
+    assert signed.status_code == 200
+    bad = client.post(
+        "/webhook/whatsapp", content=raw, headers={"x-hub-signature-256": "sha256=00"}
+    )
+    assert bad.status_code == 403
+
+
+def test_live_startup_whatsapp_falls_back_when_vault_fails(monkeypatch):
+    from web.app import build_replay_state, create_panel_app
+
+    def boom(*a, **k):
+        raise RuntimeError("vault no disponible")
+
+    monkeypatch.setenv("DEMO", "live")
+    monkeypatch.setattr("web.app.get_vault", boom, raising=False)
+    monkeypatch.setattr("shield.vault.vault.get_vault", boom, raising=False)
+    for name in (
+        "WHATSAPP_TEST_PHONE",
+        "WHATSAPP_TEST_TOKEN",
+        "WHATSAPP_VERIFY_TOKEN",
+        "WHATSAPP_APP_SECRET",
+        "WHATSAPP_PHONE_NUMBER_ID",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    app = create_panel_app(build_replay_state())
+    assert app.state.whatsapp.config.verify_token is None
+    assert app.state.whatsapp.config.app_secret is None
+
+
 def test_new_run_reloads_page():
     html = render_live_page("en")
     assert "newRunBtn" in html

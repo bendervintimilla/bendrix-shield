@@ -21,6 +21,12 @@ __all__ = [
 T: dict[str, dict[str, str]] = {
     "en": {
         "lang_code": "en",
+        "hero_subtitle": "Real models, a stolen token, and your decision: attack to containment on one screen.",
+        "sphere_label": "Particle sphere reacting to the chain state",
+        "step_pending": "pending",
+        "step_blocked": "blocked",
+        "whatsapp_note_title": "WhatsApp voice note",
+        "approved_via_whatsapp": "approved via WhatsApp voice note",
         "verdict_no_bait": "Spark did not take the bait in either run. The gate still blocked the purchase, because the document carries a hidden order.",
         "verdict_tried": "The misconfigured agent tried to change the IBAN. The gate blocked it.",
         "supplier_unchanged": "Supplier account: unchanged",
@@ -143,6 +149,12 @@ T: dict[str, dict[str, str]] = {
     },
     "es": {
         "lang_code": "es",
+        "hero_subtitle": "Modelos reales, un token robado y tu decisión: del ataque a la contención en una pantalla.",
+        "sphere_label": "Esfera de partículas que reacciona al estado de la cadena",
+        "step_pending": "pendiente",
+        "step_blocked": "bloqueado",
+        "whatsapp_note_title": "Nota de voz de WhatsApp",
+        "approved_via_whatsapp": "aprobado por nota de voz de WhatsApp",
         "verdict_no_bait": "Spark no mordió el anzuelo en ninguna de las dos corridas. La puerta igual bloqueó la compra, porque el documento trae una orden escondida.",
         "verdict_tried": "El agente mal configurado intentó cambiar el IBAN. La puerta lo bloqueó.",
         "supplier_unchanged": "Cuenta del proveedor: sin cambios",
@@ -317,80 +329,122 @@ def spark_review_row(review: dict[str, Any], lang: str = "en") -> str:
 
 
 _CSS = """
-:root{--col:1140px}
+:root{--col:1140px;--bg:#111113;--panel:#17191f;--panel2:#1e2129;--line:#2c303a;--text:#f4f6f9;--muted:#c3cad4;--blue:#2563eb;--amber:#f5a623;--red:#e5484d;--green:#2ea36b}
 @media (min-width:1600px){:root{--col:1320px}}
 *{box-sizing:border-box}
 html,body{max-width:100%;overflow-x:hidden}
 img{max-width:100%}
-body{margin:0;background:#EEF0EA;color:#1C2420;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45}
-h1,h2,h3{font-family:Georgia,"Times New Roman",serif;line-height:1.1;font-weight:400}
-a{color:#1F7A4D}
-:focus-visible{outline:3px solid #E8A33D;outline-offset:2px}
-.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 18px;border:2px solid #14201C;background:#EEF0EA;color:#14201C;font:inherit;cursor:pointer;text-decoration:none}
-.btn.primary{background:#1F7A4D;border-color:#1F7A4D;color:#fff}
-.btn.secondary{background:#fff}
-.btn.ghost{background:#14201C;border-color:#EEF0EA;color:#EEF0EA}
-.btn.alert-btn{background:#B42318;border-color:#B42318;color:#fff}
-.band{background:#14201C;color:#EEF0EA}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:17px;line-height:1.5}
+h1,h2,h3{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.12;font-weight:750;letter-spacing:-.02em}
+a{color:#8ab8ff}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 20px;border:1px solid var(--line);border-radius:999px;background:#23262f;color:var(--text);font:inherit;font-weight:650;cursor:pointer;text-decoration:none;max-width:100%;white-space:normal;text-align:center;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.secondary{background:#23262f}
+.btn.ghost{background:rgba(35,38,47,.72);color:var(--text)}
+.btn.alert-btn{background:var(--red);border-color:var(--red);color:#fff}
+.band{background:var(--bg);color:var(--text);border-bottom:1px solid var(--line)}
 .band .inner,.wrap{width:min(var(--col),calc(100% - 40px));max-width:var(--col);margin:0 auto}
-.verdict{font-size:20px;font-weight:700;background:#fff;border-left:6px solid #B42318;padding:12px 14px}
-.forced-row{background:#fff;border:2px solid #B42318;padding:12px 14px;margin:14px 0}
+.band .inner{padding:14px 0 8px}
+.band-top{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between}
+.brandline{margin:0;font-size:16px;color:var(--text)}
+.brandline strong{font-size:18px;letter-spacing:-.01em}
+.live-label{border:1px solid rgba(245,166,35,.55);border-radius:999px;color:#ffc95e;background:rgba(245,166,35,.08);padding:6px 11px;font-size:13px;font-weight:650}
+.band-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--muted);font-size:15px}
+.band-tools .mono,.band-tools>span{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.mode-switch,.lang{display:inline-flex;gap:4px}
+.mode-switch a,.lang a{display:inline-flex;align-items:center;min-height:40px;padding:7px 13px;color:var(--muted);border:1px solid var(--line);border-radius:999px;background:rgba(35,38,47,.72);text-decoration:none}
+.mode-switch a[aria-current="true"],.lang a[aria-current="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+.hero{position:relative;display:flex;align-items:center;gap:36px;min-height:348px;padding:26px 0 30px;overflow:hidden}
+#sphereCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+.hero-copy{position:relative;z-index:1;flex:1 1 auto;text-align:center;min-width:0}
+.hero-brand{margin:0;font-size:clamp(76px,10.5vw,148px);line-height:.92;font-weight:850;letter-spacing:-.055em}
+.hero-fill{color:#fff}
+.hero-outline{color:transparent;-webkit-text-stroke:2px rgba(255,255,255,.92)}
+.hero-subtitle{margin:14px auto 0;max-width:640px;color:var(--muted);font-size:18px;line-height:1.45}
+.band h1,.hero-copy h1{font-size:clamp(26px,2.6vw,38px);margin:18px auto 0;max-width:760px;font-weight:750}
+.hero .attempts{justify-content:center}
+.hero .run-until{margin:18px auto 0;font-size:17px;padding:12px 24px}
+.clockbox{position:relative;z-index:1;text-align:right;min-width:250px;flex:0 0 auto}
+#clockLabel{margin:0;color:var(--muted);font-size:15px;font-weight:650}
+#bigClock{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(52px,5.2vw,84px);font-weight:750;margin:2px 0 0;line-height:1;color:#fff;transition:color .3s ease}
+#bigClock[data-state="attack"]{color:#ff9a86}
+#bigClock[data-state="contained"]{color:#7ce7b2}
+.clock-note{margin:6px 0 0;font-size:15px;color:var(--muted)}
+#chainDuration{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.attempts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.code-block{display:inline-flex;align-items:center;justify-content:center;min-width:72px;min-height:58px;padding:8px 14px;border-radius:12px;font-size:25px;font-weight:750;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#262a33;color:var(--text)}
+.code-200{background:var(--amber);color:#211603}
+.code-401{background:#1f9d63;color:#fff}
+.code-none,.code-0{background:#262a33;color:var(--muted)}
+.code-pop{animation:codePop .45s ease}
+@keyframes codePop{0%{transform:scale(.82);opacity:.4}60%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+.wrap{padding:24px 0 30px}
+#noKeyBox{background:rgba(229,72,77,.13);border:1px solid rgba(229,72,77,.6);border-radius:14px;color:#ffd7d5;padding:14px 16px;font-weight:650}
+.run-until{margin:18px 0}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr;gap:16px}
+@media (min-width:820px){.steps{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:1280px){.steps{grid-template-columns:repeat(3,1fr)}}
+.step{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;transition:border-color .25s ease,background .25s ease}
+.step[data-state="running"]{border-color:rgba(245,166,35,.75)}
+.step[data-state="ok"]{border-color:rgba(46,163,107,.7)}
+.step[data-state="error"]{border-color:rgba(229,72,77,.75)}
+.step-num{position:absolute;left:18px;top:18px;width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:750;font-size:16px}
+.step-head{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;justify-content:space-between;padding-left:46px;min-height:38px}
+.step h2{font-size:21px;margin:2px 0 0}
+.step-status{font-size:13.5px;font-weight:750;border:1px solid var(--line);border-radius:999px;padding:5px 11px;background:#22252e;color:var(--muted);white-space:nowrap}
+.step-status[data-state="running"]{color:#ffd28a;border-color:rgba(245,166,35,.8);background:rgba(245,166,35,.1);animation:statusPulse 1.1s ease-in-out infinite}
+.step-status[data-state="ok"]{color:#8ef0c0;border-color:rgba(46,163,107,.8);background:rgba(46,163,107,.12)}
+.step-status[data-state="error"],.step-status[data-state="blocked"]{color:#ffb1a6;border-color:rgba(229,72,77,.8);background:rgba(229,72,77,.12)}
+@keyframes statusPulse{0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,0)}50%{box-shadow:0 0 0 5px rgba(245,166,35,.14)}}
+.step-head .btn{flex:1 1 100%}
+.result{margin-top:14px;color:var(--text)}
+.result p,.result li{overflow-wrap:anywhere}
+.columns{display:grid;grid-template-columns:1fr;gap:18px}
+.verdict{font-size:19px;font-weight:750;background:rgba(229,72,77,.12);border:1px solid rgba(229,72,77,.55);border-radius:14px;color:#ffe3e1;padding:12px 14px}
+.forced-row{background:rgba(229,72,77,.08);border:1px solid rgba(229,72,77,.65);border-radius:14px;padding:12px 14px;margin:14px 0}
 .invoice-media{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;max-width:100%}
 [hidden]{display:none!important}
-.fineprint-wrap{flex:1 1 300px;max-width:1000px;height:90px;overflow:hidden;border:1px solid #14201C;background:#fff}
+.fineprint-wrap{flex:1 1 260px;max-width:1000px;height:90px;overflow:hidden;border:1px solid var(--line);border-radius:10px;background:#fff}
 .fineprint{width:108%;max-width:none;display:block;transform:translate(-4%,-64%)}
-.hidden-note{font-size:17px;background:#fff;padding:10px 12px;overflow-wrap:anywhere}
-.band .inner{padding:18px 0 22px}
-.band-top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
-.brandline{margin:0;font-size:15px}
-.live-label{border:1px solid #E8A33D;color:#E8A33D;padding:8px 10px;font-size:13px}
-.band-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.mode-switch,.lang{display:inline-flex}
-.mode-switch a,.lang a{display:inline-flex;align-items:center;min-height:44px;padding:8px 12px;color:#EEF0EA;border:1px solid #EEF0EA;text-decoration:none}
-.mode-switch a[aria-current="true"],.lang a[aria-current="true"]{background:#E8A33D;color:#14201C}
-.band-main{display:flex;gap:28px;align-items:flex-start;justify-content:space-between}
-.band h1{font-size:clamp(36px,5vw,60px);margin:20px 0 10px}
-.clockbox{text-align:right;min-width:210px;padding-top:26px}
-#bigClock{font-family:Georgia,serif;font-size:clamp(34px,4vw,54px);margin:0;line-height:1.1}
-.clock-note{margin:6px 0 0;font-size:15px}
-.attempts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.code-block{display:inline-flex;align-items:center;justify-content:center;min-width:64px;min-height:52px;padding:8px 12px;font-size:22px;font-family:ui-monospace,Menlo,Consolas,monospace;background:#EEF0EA;color:#14201C}
-.code-200{background:#E8A33D;color:#14201C}
-.code-401{background:#B42318;color:#fff}
-.wrap{padding:22px 0}
-.run-until{margin:18px 0}
-.steps{list-style:none;margin:0;padding:0;border-left:3px solid #14201C}
-.step{position:relative;padding:18px 0 18px 28px;border-bottom:1px solid #c9cec2}
-.step-num{position:absolute;left:-17px;top:16px;width:32px;height:32px;background:#14201C;color:#EEF0EA;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif}
-.step-head{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
-.step h2{font-size:24px;margin:0}
-.step-status{font-size:14px}
-.result{margin-top:12px}
-.columns{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-.decision-block{padding:10px 12px;margin:8px 0;font-weight:700}
-.decision-block.block{background:#B42318;color:#fff}
-.decision-block.ask{color:#14201C}
-.decision-block.ask-ask_owner{background:#E8A33D;color:#14201C}
-.decision-block.ask-block{background:#B42318;color:#fff}
-.decision-block.allow{background:#1F7A4D;color:#fff}
-.decision-block.ask_owner{background:#E8A33D;color:#14201C}
-.thumb{max-width:220px;width:100%;height:auto;border:1px solid #14201C}
+.hidden-note{font-size:16.5px;background:var(--panel2);border-radius:10px;padding:10px 12px;overflow-wrap:anywhere}
+.decision-block{padding:11px 13px;margin:8px 0;font-weight:800;border-radius:10px;letter-spacing:.04em}
+.decision-block.block{background:var(--red);color:#fff}
+.decision-block.ask{color:var(--text)}
+.decision-block.ask-ask_owner{background:var(--amber);color:#211603}
+.decision-block.ask-block{background:var(--red);color:#fff}
+.decision-block.allow{background:#1f9d63;color:#fff}
+.decision-block.ask_owner{background:var(--amber);color:#211603}
+.thumb{max-width:220px;width:100%;height:auto;border:1px solid var(--line);border-radius:12px}
 .shelf-wrap{position:relative;max-width:560px}
-.shelf-wrap img{width:100%;height:auto;display:block}
-.box-overlay{position:absolute;border:3px solid #B42318}
-.bigcount{font-family:Georgia,serif;font-size:44px}
-.mono{font-family:ui-monospace,Menlo,Consolas,monospace;overflow-wrap:anywhere;word-break:break-word}
+.shelf-wrap img{width:100%;height:auto;display:block;border-radius:12px}
+.box-overlay{position:absolute;border:3px solid var(--red);border-radius:4px}
+.bigcount{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:46px;font-weight:750;margin:10px 0 0}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-wrap:anywhere;word-break:break-word}
+.chat-bubble{background:var(--panel2);border:1px solid var(--line);border-radius:18px;padding:14px 16px;margin-top:14px;transition:border-color .25s ease,background .25s ease}
+.chat-bubble.is-whatsapp{background:#122019;border-color:rgba(46,163,107,.75)}
+.chat-bubble.is-approved{border-color:#2ea36b}
+.chat-head{margin:0 0 6px}
+.chat-badge{display:inline-flex;border-radius:999px;padding:4px 11px;background:rgba(46,163,107,.16);border:1px solid rgba(46,163,107,.65);color:#8ef0c0;font-size:13.5px;font-weight:750}
+.chat-bubble h3{font-size:16px;margin:12px 0 4px;color:var(--muted);letter-spacing:0}
+.chat-text{font-size:19px;margin:2px 0;overflow-wrap:anywhere}
+#voiceChannel{font-weight:700;color:#c9f5dc;margin:2px 0}
+.chat-approved{color:#8ef0c0;font-weight:800;margin:8px 0 0}
+.chat-approved:empty{display:none}
 .tablewrap{overflow-x:auto;max-width:100%;width:100%}
-table{border-collapse:collapse;width:100%;min-width:640px;background:#fff}
-td,th{border-bottom:1px solid #c9cec2;padding:9px 8px;text-align:left;vertical-align:top}
-.footer{border-top:2px solid #14201C;font-size:14px}
-input[type="text"]{width:100%;min-height:44px;padding:10px;font:inherit}
-input[type="file"]{min-height:44px;padding:10px;font:inherit;width:100%;max-width:100%}
+table{border-collapse:collapse;width:100%;min-width:640px;background:#14161b;border:1px solid var(--line)}
+td,th{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-size:14px}
+.footer{border-top:1px solid var(--line);font-size:14.5px;color:var(--muted)}
+input[type="text"]{width:100%;min-height:46px;padding:10px 12px;font:inherit;background:#101216;border:1px solid var(--line);border-radius:10px;color:var(--text)}
+input[type="file"]{min-height:44px;padding:10px;font:inherit;width:100%;max-width:100%;color:var(--muted)}
 label{display:block;font-weight:700;margin:10px 0 6px}
-pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-width:100%;background:#fff;padding:12px}
-.btn{max-width:100%;white-space:normal;text-align:center}
-@media (max-width:760px){.band-main{display:block}.clockbox{text-align:left;padding-top:0;min-width:0}.columns{grid-template-columns:1fr}.band-tools,.band-top{max-width:100%}.step{padding-left:20px}.code-block{min-width:48px;font-size:18px}}
-@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto;animation:none;transition:none}}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-width:100%;background:#101216;border:1px solid var(--line);border-radius:10px;padding:12px}
+details summary{cursor:pointer;font-weight:650}
+section h2{font-size:26px}
+@media (max-width:900px){.hero{display:block;min-height:0;padding:22px 0 26px}.clockbox{text-align:center;padding-top:18px;min-width:0}.hero .attempts{justify-content:center}}
+@media (max-width:760px){.columns{grid-template-columns:1fr}.band-tools,.band-top{max-width:100%}.code-block{min-width:54px;min-height:48px;font-size:20px}.hero-brand{font-size:clamp(64px,22vw,96px)}#bigClock{font-size:56px}.step-head{padding-left:44px}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto;animation:none!important;transition:none!important}}
 """
 
 _JS = r"""
@@ -408,9 +462,18 @@ function fmtClock(total) {
   return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
 }
 const stepTimers = {};
+function statusStateOf(text) {
+  const raw = String(text || "");
+  if (raw.indexOf(TEXT.running) === 0) return "running";
+  if (raw.indexOf(TEXT.ok) === 0) return "ok";
+  if (raw.indexOf(TEXT.error) === 0) return "error";
+  return "pending";
+}
 function setStatus(step, text) {
   const node = document.querySelector("[data-status-for='" + step + "']");
-  if (node) node.textContent = text;
+  if (node) { node.textContent = text; node.dataset.state = statusStateOf(text); }
+  const card = document.querySelector("[data-step='" + step + "']");
+  if (card) card.dataset.state = statusStateOf(text);
 }
 function startStatus(step) {
   const started = Date.now();
@@ -430,7 +493,7 @@ function decisionBlock(value) {
 function statusBlocks(container, statuses) {
   clear(container);
   (statuses || []).forEach((s) => {
-    container.appendChild(el("span", s, "code-block code-" + s));
+    container.appendChild(el("span", s, "code-block code-pop code-" + s));
   });
 }
 function anomalyText(a) {
@@ -610,6 +673,14 @@ function renderVoice(r) {
     else if (r.channel === "browser") channelNode.textContent = TEXT.voice_via_browser;
     else channelNode.textContent = "";
   }
+  const bubble = byId("whatsappBubble");
+  if (bubble) {
+    bubble.classList.toggle("is-whatsapp", r.channel === "whatsapp");
+    bubble.classList.toggle("is-approved", r.channel === "whatsapp" && r.status === "approved");
+    bubble.dataset.channel = r.channel || "";
+  }
+  const approvedLine = byId("whatsappApprovedLine");
+  if (approvedLine) approvedLine.textContent = (r.channel === "whatsapp" && r.status === "approved") ? TEXT.approved_via_whatsapp : "";
   const intent = r.intent || {};
   byId("voiceIntent").textContent = intentPlain(intent);
   const showConfirm = r.status === "confirmation_required";
@@ -647,6 +718,115 @@ function renderResult(step, r, state) {
   }
   if (step === "contain") renderContain(r, state);
 }
+/* Esfera de partículas: reacciona al estado que llega de /live/state. */
+let sphereMode = "calm";
+let sphereWaveAt = 0;
+function setSphereMode(mode) {
+  if (mode === sphereMode) return;
+  sphereMode = mode;
+  if (mode === "approved") sphereWaveAt = performance.now();
+  if (sphereReduced) drawSphere(0);
+}
+let sphereReduced = false;
+let drawSphere = function () {};
+(function initSphere() {
+  const canvas = document.getElementById("sphereCanvas");
+  if (!canvas || !canvas.getContext) return;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  sphereReduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const COUNT = 380;
+  const parts = [];
+  for (let i = 0; i < COUNT; i++) {
+    const frac = 0.16 + 0.84 * Math.pow(Math.random(), 0.55);
+    parts.push({
+      angle: Math.random() * Math.PI * 2,
+      frac: frac,
+      size: 0.7 + Math.random() * 1.7,
+      len: 4 + Math.random() * 11,
+      stroke: Math.random() < 0.42,
+      phase: Math.random() * Math.PI * 2,
+      alt: Math.random() < 0.5,
+      rgb: [232, 236, 244]
+    });
+  }
+  let W = 0, H = 0, raf = 0, visible = true;
+  function resize() {
+    const host = canvas.parentElement;
+    if (!host) return;
+    const rect = host.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    W = Math.max(1, rect.width); H = Math.max(1, rect.height);
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (sphereReduced) drawSphere(0);
+  }
+  function targetFor(p, waveDist) {
+    if (sphereMode === "attack") return p.alt ? [248, 113, 113] : [251, 191, 36];
+    if (sphereMode === "approved") return waveDist < 0.09 ? [147, 197, 253] : [96, 165, 250];
+    if (sphereMode === "contained") return p.alt ? [110, 231, 183] : [125, 211, 252];
+    return [232, 236, 244];
+  }
+  const copyEl = canvas.parentElement ? canvas.parentElement.querySelector(".hero-copy") : null;
+  drawSphere = function (now) {
+    if (!W || !H) return;
+    ctx.clearRect(0, 0, W, H);
+    let cx = W / 2, cy = H / 2;
+    if (copyEl) {
+      const cr = canvas.getBoundingClientRect();
+      const hr = copyEl.getBoundingClientRect();
+      if (hr.width) { cx = hr.left - cr.left + hr.width / 2; cy = hr.top - cr.top + hr.height / 2; }
+    }
+    const R = Math.min(W, H) * 0.46;
+    const t = sphereReduced ? 0 : now;
+    const rot = t * 0.000045 * (sphereMode === "attack" ? 2.4 : 1);
+    const amp = sphereMode === "attack" ? 4.6 : (sphereMode === "approved" ? 1.6 : 0.6);
+    let wave = -1;
+    if (sphereMode === "approved" && !sphereReduced) wave = ((now - sphereWaveAt) % 2400) / 2400;
+    for (const p of parts) {
+      const waveDist = wave >= 0 ? Math.abs(p.frac - wave) : 1;
+      const target = targetFor(p, waveDist);
+      for (let c = 0; c < 3; c++) p.rgb[c] += (target[c] - p.rgb[c]) * 0.07;
+      const ang = p.angle + rot * (0.55 + p.frac * 0.6);
+      let r = p.frac * R + Math.sin(t * 0.0016 + p.phase) * amp;
+      if (waveDist < 0.09) r += (0.09 - waveDist) * 90;
+      const x = cx + Math.cos(ang) * r, y = cy + Math.sin(ang) * r * 0.98;
+      const alpha = 0.22 + p.frac * 0.68;
+      ctx.strokeStyle = "rgba(" + Math.round(p.rgb[0]) + "," + Math.round(p.rgb[1]) + "," + Math.round(p.rgb[2]) + "," + alpha.toFixed(3) + ")";
+      ctx.fillStyle = ctx.strokeStyle;
+      if (p.stroke) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(ang) * p.len, y + Math.sin(ang) * p.len);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(x, y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  };
+  function frame(now) {
+    drawSphere(now);
+    raf = requestAnimationFrame(frame);
+  }
+  function start() {
+    if (sphereReduced || raf || document.hidden || !visible) return;
+    raf = requestAnimationFrame(frame);
+  }
+  function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; }
+  document.addEventListener("visibilitychange", () => { if (document.hidden) stop(); else start(); });
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver((entries) => {
+      visible = !entries.length || entries[0].isIntersecting;
+      if (visible) start(); else stop();
+    }).observe(canvas);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+  if (sphereReduced) drawSphere(0); else start();
+})();
 let lastState = null;
 let clockTimer = null;
 function updateBand(state) {
@@ -657,6 +837,11 @@ function updateBand(state) {
   byId("costLabel").textContent = "USD " + total.toFixed(4) + " " + TEXT.cost_of_cap.replace("{cap}", cap.toFixed(2));
   const results = state.results || {};
   const contained = results.contain && (results.contain.attacker_after || []).includes(401);
+  const voice = results.voice || state.voice || {};
+  if (contained) setSphereMode("contained");
+  else if (voice.status === "approved") setSphereMode("approved");
+  else if (results.attack) setSphereMode("attack");
+  else setSphereMode("calm");
   let headline = TEXT.headline_start;
   if (contained) headline = TEXT.headline_contained;
   else if (results.guardian) headline = TEXT.headline_waiting;
@@ -690,6 +875,7 @@ function updateBand(state) {
   const snapshot = {receivedAt: Date.now(), duration_s: Number(state.duration_s || 0), contained_in_s: state.contained_in_s};
   const tickClock = () => {
     const contained = snapshot.contained_in_s != null;
+    byId("bigClock").dataset.state = contained ? "contained" : (results.attack ? "attack" : "calm");
     const elapsed = (Date.now() - snapshot.receivedAt) / 1000;
     byId("chainDuration").textContent = fmtClock(contained ? snapshot.duration_s : snapshot.duration_s + elapsed);
     const label = byId("clockLabel");
@@ -889,9 +1075,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 def _step_html(number: int, step: str, title: str, lang: str, inner: str) -> str:
     return (
-        f"<li class='step' data-step='{step}'><span class='step-num'>{number}</span>"
+        f"<li class='step' data-step='{step}' data-state='pending'><span class='step-num'>{number}</span>"
         f"<div class='step-head'><h2>{_e(title)}</h2>"
-        f"<span class='step-status' data-status-for='{step}' aria-live='polite'>"
+        f"<span class='step-status' data-status-for='{step}' data-state='pending' aria-live='polite'>"
         f"{_e(_t(lang, 'not_run'))}</span>"
         f"<button class='btn secondary' type='button' data-run-step='{step}'>"
         f"{_e(_t(lang, 'run_step'))}</button></div>"
@@ -942,8 +1128,12 @@ def render_live_page(
         "<input id='typedText' type='text'>"
         f"<p>{html.escape(_t(lang, 'voice_hint'), quote=False)}</p>"
         f"<button class='btn secondary' id='sendTypedBtn' type='button'>{_e(_t(lang, 'send_typed'))}</button>"
-        f"<h3>{_e(_t(lang, 'transcript'))}</h3><p id='voiceChannel' aria-live='polite'></p><p id='voiceTranscript'></p>"
+        "<div id='whatsappBubble' class='chat-bubble'>"
+        f"<p class='chat-head'><span class='chat-badge'>{_e(_t(lang, 'whatsapp_note_title'))}</span></p>"
+        f"<h3>{_e(_t(lang, 'transcript'))}</h3><p id='voiceChannel' aria-live='polite'></p>"
+        "<p id='voiceTranscript' class='chat-text'></p>"
         f"<h3>{_e(_t(lang, 'spark_intent'))}</h3><p id='voiceIntent' class='mono'></p>"
+        "<p id='whatsappApprovedLine' class='chat-approved' aria-live='polite'></p></div>"
         "<p id='disagreeLine'></p><p id='voiceStatusLine' aria-live='polite'></p>"
         f"<button class='btn primary' id='voiceConfirm' type='button' hidden>{_e(_t(lang, 'confirm'))}</button>"
         f" <button class='btn secondary' id='voiceCancel' type='button' hidden>{_e(_t(lang, 'cancel'))}</button>"
@@ -985,9 +1175,16 @@ def render_live_page(
         f"<span>{_e(_t(lang, 'chain_duration'))}: <span id='chainDuration'>00:00</span></span>"
         f"<button class='btn ghost' id='newRunBtn' type='button'>{_e(_t(lang, 'new_run'))}</button>"
         "</div></div>"
-        "<div class='band-main'><div>"
+        "<div class='hero'>"
+        f"<canvas id='sphereCanvas' role='img' aria-label='{_e(_t(lang, 'sphere_label'))}'></canvas>"
+        "<div class='hero-copy'>"
+        f"<p class='hero-brand' aria-hidden='true'><span class='hero-fill'>{_e(BRAND[:2])}</span>"
+        f"<span class='hero-outline'>{_e(BRAND[2:])}</span></p>"
+        f"<p class='hero-subtitle'>{_e(_t(lang, 'hero_subtitle'))}</p>"
         f"<h1 id='headline' aria-live='polite'>{_e(_t(lang, 'headline_start'))}</h1>"
         "<div id='attackerStrip' class='attempts'></div>"
+        f"<button class='btn primary run-until' id='runUntilBtn' type='button'>"
+        f"{_e(_t(lang, 'run_until'))}</button>"
         "</div>"
         f"<div class='clockbox'><p id='clockLabel'>{_e(_t(lang, 'time_to_401'))}</p>"
         "<p id='bigClock'>--:--</p>"
@@ -995,8 +1192,6 @@ def render_live_page(
         "</div></div></header>"
         "<main class='wrap'>"
         f"<p id='noKeyBox'{no_key_hidden}>{_e(_t(lang, 'no_key'))}: {_e(_t(lang, 'no_key_body'))}</p>"
-        f"<button class='btn primary run-until' id='runUntilBtn' type='button'>"
-        f"{_e(_t(lang, 'run_until'))}</button>"
         f"<ol class='steps'>{steps}</ol>"
         f"<p id='sparkOpenRow'>{_e(spark_row)}</p>"
         f"<section><h2>{_e(_t(lang, 'provenance'))}</h2>"
