@@ -55,6 +55,8 @@ T: dict[str, dict[str, str]] = {
         "action_draft_notice": "Draft a notice",
         "action_rotate_upstream_key": "Rotate the upstream key",
         "live_label": "LIVE — real Meta models, called from this Mac through the Shield gateway",
+        "sticky_attacker": "Attacker",
+        "sticky_sdk": "SDK",
         "replay": "Replay",
         "live": "Live",
         "new_run": "New run",
@@ -182,9 +184,11 @@ T: dict[str, dict[str, str]] = {
         "action_verify": "Comprobar que sigue funcionando",
         "action_draft_notice": "Preparar un borrador de aviso",
         "action_rotate_upstream_key": "Rotar la clave del proveedor",
-        "live_label": "LIVE — real Meta models, called from this Mac through the Shield gateway",
-        "replay": "Replay",
-        "live": "Live",
+        "live_label": "EN VIVO — modelos reales de Meta, llamados desde esta Mac a través del gateway de Shield",
+        "sticky_attacker": "Atacante",
+        "sticky_sdk": "SDK",
+        "replay": "Repetición",
+        "live": "En vivo",
         "new_run": "Nueva corrida",
         "cost_of_cap": "de {cap} de tope",
         "chain_duration": "Duración de la cadena",
@@ -210,14 +214,14 @@ T: dict[str, dict[str, str]] = {
         "what_spark_read": "Lo que Spark leyó de la nota",
         "normal_agent": "Agente normal",
         "weak_agent": "Agente mal configurado a propósito (prueba)",
-        "weak_label": "Deliberately misconfigured agent (test): told to obey invoice notes",
+        "weak_label": "Agente mal configurado a propósito (prueba): instruido para obedecer las notas de la factura",
         "attempted": "Llamadas a herramientas intentadas",
         "no_attempt": "El modelo no intentó ninguna llamada a herramienta.",
         "decision": "Decisión",
         "reason": "Razón",
         "evidence": "Evidencia",
         "account_before_after": "Cuenta del proveedor antes / después",
-        "use_own_photo": "Use your own photo (no people, no real data)",
+        "use_own_photo": "Usa tu propia foto (sin personas, sin datos reales)",
         "expected_7": "Esperado: 7 (solo en el fixture)",
         "count_label": "Conteo",
         "attacker_attempts": "Intentos del atacante (país BR)",
@@ -228,17 +232,17 @@ T: dict[str, dict[str, str]] = {
         "anomaly_blocked_burst": "Ráfaga bloqueada: muchas llamadas bloqueadas de este agente.",
         "anomaly_volume_spike": "Pico de volumen: muchas más llamadas por hora que lo usual.",
         "anomaly_other": "Anomalía detectada por el gateway.",
-        "demo_inventory": "Demo inventory",
+        "demo_inventory": "Inventario de demostración",
         "plan_summary": "Resumen",
         "plan_reasoning": "Razonamiento del modelo",
         "plan_exposures": "Exposiciones",
         "plan_steps": "Pasos",
         "guardian_turns": "Turnos del guardián",
-        "no_plan_error": "guardian_no_plan: Spark did not propose a plan within 10 turns",
+        "no_plan_error": "guardian_no_plan: Spark no propuso un plan en 10 turnos",
         "record": "Grabar",
         "stop": "Detener",
-        "typed_fallback": "Typed fallback: no Voice Transcribe is used in this path",
-        "voice_hint": 'Try: "sí, rota el token de bodega"',
+        "typed_fallback": "Alternativa escrita: en esta ruta no se usa Voice Transcribe",
+        "voice_hint": 'Prueba: "sí, rota el token de bodega"',
         "send_typed": "Enviar decisión escrita",
         "transcript": "Transcripción de Voice Transcribe",
         "spark_intent": "Intención de Muse Spark",
@@ -255,10 +259,10 @@ T: dict[str, dict[str, str]] = {
         "recount_after": "Recuento SAM tras rotar",
         "purchasing_status": "Estado de Compras",
         "contained_in": "Contenido en",
-        "spark_open_row": "Muse Spark Open: not run. No Baseten, Modal or Fireworks key in this vault.",
-        "spark_open_row_key": "Muse Spark Open: not run.",
+        "spark_open_row": "Muse Spark Open: sin ejecutar. No hay clave de Baseten, Modal ni Fireworks en este vault.",
+        "spark_open_row_key": "Muse Spark Open: sin ejecutar.",
         "provenance": "Registro de procedencia",
-        "export_log": "Export log (JSON)",
+        "export_log": "Exportar registro (JSON)",
         "th_step": "paso",
         "th_agent": "agente",
         "th_model": "modelo",
@@ -268,11 +272,11 @@ T: dict[str, dict[str, str]] = {
         "th_out": "tokens de salida",
         "th_cost": "costo",
         "th_http": "HTTP",
-        "footer_meta": "Built on Meta's Muse models; independent project, not affiliated with or endorsed by Meta.",
-        "footer_hack": "Built during the hackathon, 26 Oct – 4 Nov 2026.",
+        "footer_meta": "Construido sobre los modelos Muse de Meta; proyecto independiente, sin afiliación ni respaldo de Meta.",
+        "footer_hack": "Construido durante el hackathon, del 26 de octubre al 4 de noviembre de 2026.",
         "activate_title": "El modo live no está activo",
         "activate_body": "Arráncalo con make live y vuelve a abrir /live. Desde esta pantalla no se llama a ningún modelo.",
-        "no_key": "No key in the vault",
+        "no_key": "Sin clave en el vault",
         "no_key_body": "Pon META_MODEL_API_KEY en el vault (backend de entorno) y reinicia con make live. La llave nunca se muestra aquí.",
     },
 }
@@ -355,7 +359,20 @@ a{color:#8ab8ff}
 .mode-switch,.lang{display:inline-flex;gap:4px}
 .mode-switch a,.lang a{display:inline-flex;align-items:center;min-height:40px;padding:7px 13px;color:var(--muted);border:1px solid var(--line);border-radius:999px;background:rgba(35,38,47,.72);text-decoration:none}
 .mode-switch a[aria-current="true"],.lang a[aria-current="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
-.hero{position:relative;display:flex;align-items:center;gap:36px;min-height:348px;padding:26px 0 30px;overflow:hidden}
+.stickybar{position:sticky;top:0;z-index:60;background:rgba(17,17,19,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.sticky-inner{width:min(var(--col),calc(100% - 40px));max-width:var(--col);margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 0}
+.sticky-brand{font-weight:800;letter-spacing:-.01em;white-space:nowrap}
+.sticky-clock{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:750;white-space:nowrap}
+.sticky-clock[data-state="attack"]{color:#ff9a86}
+.sticky-clock[data-state="contained"]{color:#7ce7b2}
+.sticky-group{display:inline-flex;flex-wrap:wrap;gap:5px;align-items:center;min-width:0}
+.sticky-label{font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.mini-code{display:inline-flex;align-items:center;justify-content:center;min-width:38px;min-height:26px;padding:2px 7px;border-radius:7px;font-size:13.5px;font-weight:750;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#262a33;color:var(--muted)}
+.mini-code.code-200{background:var(--amber);color:#211603}
+.mini-code.code-401{background:#1f9d63;color:#fff}
+.sticky-cost{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:nowrap;color:var(--muted)}
+.stickybar .btn{min-height:38px;padding:7px 14px;margin-left:auto}
+.hero{position:relative;display:flex;align-items:center;gap:36px;min-height:85vh;min-height:85svh;padding:34px 0 40px;overflow:hidden}
 #sphereCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
 .hero-copy{position:relative;z-index:1;flex:1 1 auto;text-align:center;min-width:0}
 .hero-brand{margin:0;font-size:clamp(76px,10.5vw,148px);line-height:.92;font-weight:850;letter-spacing:-.055em}
@@ -378,27 +395,35 @@ a{color:#8ab8ff}
 .code-401{background:#1f9d63;color:#fff}
 .code-none,.code-0{background:#262a33;color:var(--muted)}
 .code-pop{animation:codePop .45s ease}
+.code-401.code-pop{animation:code401 .7s ease}
 @keyframes codePop{0%{transform:scale(.82);opacity:.4}60%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+@keyframes code401{0%{transform:scale(.7);opacity:.3;box-shadow:0 0 0 0 rgba(31,157,99,.55)}55%{transform:scale(1.14);box-shadow:0 0 0 12px rgba(31,157,99,0)}100%{transform:scale(1);opacity:1;box-shadow:0 0 0 0 rgba(31,157,99,0)}}
 .wrap{padding:24px 0 30px}
 #noKeyBox{background:rgba(229,72,77,.13);border:1px solid rgba(229,72,77,.6);border-radius:14px;color:#ffd7d5;padding:14px 16px;font-weight:650}
 .run-until{margin:18px 0}
-.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr;gap:16px}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr;gap:16px;align-items:stretch}
 @media (min-width:820px){.steps{grid-template-columns:repeat(2,1fr)}}
 @media (min-width:1280px){.steps{grid-template-columns:repeat(3,1fr)}}
-.step{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;transition:border-color .25s ease,background .25s ease}
-.step[data-state="running"]{border-color:rgba(245,166,35,.75)}
-.step[data-state="ok"]{border-color:rgba(46,163,107,.7)}
-.step[data-state="error"]{border-color:rgba(229,72,77,.75)}
-.step-num{position:absolute;left:18px;top:18px;width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:750;font-size:16px}
-.step-head{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;justify-content:space-between;padding-left:46px;min-height:38px}
-.step h2{font-size:21px;margin:2px 0 0}
-.step-status{font-size:13.5px;font-weight:750;border:1px solid var(--line);border-radius:999px;padding:5px 11px;background:#22252e;color:var(--muted);white-space:nowrap}
+.step{position:relative;display:flex;flex-direction:column;height:100%;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;transition:border-color .3s ease,background .3s ease,box-shadow .3s ease;animation:stepIn .55s ease both}
+.step:nth-child(1){animation-delay:.02s}.step:nth-child(2){animation-delay:.09s}.step:nth-child(3){animation-delay:.16s}.step:nth-child(4){animation-delay:.23s}.step:nth-child(5){animation-delay:.3s}.step:nth-child(6){animation-delay:.37s}
+@keyframes stepIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.step[data-state="running"]{border-color:rgba(245,166,35,.85);box-shadow:0 0 0 1px rgba(245,166,35,.35),0 0 26px rgba(245,166,35,.14);animation:stepIn .55s ease both,stepGlow 1.2s ease-in-out .55s infinite alternate}
+@keyframes stepGlow{from{box-shadow:0 0 0 1px rgba(245,166,35,.3),0 0 16px rgba(245,166,35,.08)}to{box-shadow:0 0 0 1px rgba(245,166,35,.55),0 0 30px rgba(245,166,35,.2)}}
+.step[data-state="ok"]{border-color:rgba(46,163,107,.8)}
+.step[data-state="error"],.step[data-state="blocked"]{border-color:rgba(229,72,77,.85)}
+.step[data-state="ok"] .step-num{background:var(--green)}
+.step[data-state="error"] .step-num,.step[data-state="blocked"] .step-num{background:var(--red)}
+.step[data-state="running"] .step-num{background:var(--amber);color:#211603}
+.step-num{flex:0 0 auto;width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:750;font-size:16px;transition:background .3s ease}
+.step-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;min-height:46px}
+.step h2{font-size:20px;margin:0;flex:1 1 150px;min-width:0;line-height:1.2}
+.step-status{flex:0 0 auto;font-size:13.5px;font-weight:750;border:1px solid var(--line);border-radius:999px;padding:5px 11px;background:#22252e;color:var(--muted);white-space:nowrap;transition:color .3s ease,border-color .3s ease,background .3s ease}
 .step-status[data-state="running"]{color:#ffd28a;border-color:rgba(245,166,35,.8);background:rgba(245,166,35,.1);animation:statusPulse 1.1s ease-in-out infinite}
 .step-status[data-state="ok"]{color:#8ef0c0;border-color:rgba(46,163,107,.8);background:rgba(46,163,107,.12)}
 .step-status[data-state="error"],.step-status[data-state="blocked"]{color:#ffb1a6;border-color:rgba(229,72,77,.8);background:rgba(229,72,77,.12)}
 @keyframes statusPulse{0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,0)}50%{box-shadow:0 0 0 5px rgba(245,166,35,.14)}}
-.step-head .btn{flex:1 1 100%}
-.result{margin-top:14px;color:var(--text)}
+.step-head .btn{flex:0 0 auto;min-height:40px;padding:8px 15px}
+.result{margin-top:14px;color:var(--text);flex:1 1 auto}
 .result p,.result li{overflow-wrap:anywhere}
 .columns{display:grid;grid-template-columns:1fr;gap:18px}
 .verdict{font-size:19px;font-weight:750;background:rgba(229,72,77,.12);border:1px solid rgba(229,72,77,.55);border-radius:14px;color:#ffe3e1;padding:12px 14px}
@@ -437,13 +462,17 @@ td,th{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertic
 th{color:var(--muted);font-size:14px}
 .footer{border-top:1px solid var(--line);font-size:14.5px;color:var(--muted)}
 input[type="text"]{width:100%;min-height:46px;padding:10px 12px;font:inherit;background:#101216;border:1px solid var(--line);border-radius:10px;color:var(--text)}
-input[type="file"]{min-height:44px;padding:10px;font:inherit;width:100%;max-width:100%;color:var(--muted)}
+.file-pill{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:10px 18px;border:1px solid var(--line);border-radius:999px;background:#23262f;color:var(--text);font-weight:650;cursor:pointer;margin:10px 0 6px;transition:background .18s ease,border-color .18s ease}
+.file-pill:hover{border-color:rgba(255,255,255,.35)}
+.file-pill:focus-within{outline:3px solid var(--amber);outline-offset:2px}
+.file-input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 label{display:block;font-weight:700;margin:10px 0 6px}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-width:100%;background:#101216;border:1px solid var(--line);border-radius:10px;padding:12px}
 details summary{cursor:pointer;font-weight:650}
 section h2{font-size:26px}
-@media (max-width:900px){.hero{display:block;min-height:0;padding:22px 0 26px}.clockbox{text-align:center;padding-top:18px;min-width:0}.hero .attempts{justify-content:center}}
-@media (max-width:760px){.columns{grid-template-columns:1fr}.band-tools,.band-top{max-width:100%}.code-block{min-width:54px;min-height:48px;font-size:20px}.hero-brand{font-size:clamp(64px,22vw,96px)}#bigClock{font-size:56px}.step-head{padding-left:44px}}
+@media (max-width:900px){.hero{display:block;min-height:78vh;min-height:78svh;padding:26px 0 30px}.clockbox{text-align:center;padding-top:18px;min-width:0}.hero .attempts{justify-content:center}}
+@media (max-width:760px){.columns{grid-template-columns:1fr}.band-tools,.band-top{max-width:100%}.code-block{min-width:54px;min-height:48px;font-size:20px}.hero-brand{font-size:clamp(64px,22vw,96px)}#bigClock{font-size:56px}}
+@media (max-width:480px){.band .inner,.wrap,.sticky-inner{width:calc(100% - 24px)}.hero{min-height:72vh;min-height:72svh;padding:22px 0 26px;gap:0}.hero-brand{font-size:clamp(58px,20vw,84px)}.hero-subtitle{font-size:16px}.band h1,.hero-copy h1{font-size:24px}#bigClock{font-size:48px}.clockbox{min-width:0}.steps{grid-template-columns:1fr}.step{padding:14px}.step h2{flex-basis:120px;font-size:19px}.step-head .btn{flex:1 1 auto}.stickybar .btn{margin-left:0}.sticky-cost{white-space:normal}.code-block{min-width:48px;min-height:44px;font-size:19px;padding:6px 10px}.thumb{max-width:160px}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto;animation:none!important;transition:none!important}}
 """
 
@@ -467,6 +496,7 @@ function statusStateOf(text) {
   if (raw.indexOf(TEXT.running) === 0) return "running";
   if (raw.indexOf(TEXT.ok) === 0) return "ok";
   if (raw.indexOf(TEXT.error) === 0) return "error";
+  if ((TEXT.step_blocked && raw.indexOf(TEXT.step_blocked) === 0) || raw.indexOf("401") !== -1) return "blocked";
   return "pending";
 }
 function setStatus(step, text) {
@@ -494,6 +524,13 @@ function statusBlocks(container, statuses) {
   clear(container);
   (statuses || []).forEach((s) => {
     container.appendChild(el("span", s, "code-block code-pop code-" + s));
+  });
+}
+function miniBlocks(container, statuses) {
+  if (!container) return;
+  clear(container);
+  (statuses || []).slice(-4).forEach((s) => {
+    container.appendChild(el("span", s, "mini-code code-" + s));
   });
 }
 function anomalyText(a) {
@@ -735,16 +772,20 @@ let drawSphere = function () {};
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   sphereReduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  const COUNT = 380;
+  const COUNT = 640;
   const parts = [];
   for (let i = 0; i < COUNT; i++) {
-    const frac = 0.16 + 0.84 * Math.pow(Math.random(), 0.55);
+    let u = Math.random() * 2 - 1;
+    if (i % 3 === 0) u *= 0.35;
+    const theta = Math.random() * Math.PI * 2;
+    const ring = Math.sqrt(Math.max(0, 1 - u * u));
     parts.push({
-      angle: Math.random() * Math.PI * 2,
-      frac: frac,
-      size: 0.7 + Math.random() * 1.7,
-      len: 4 + Math.random() * 11,
-      stroke: Math.random() < 0.42,
+      x: ring * Math.cos(theta),
+      y: u,
+      z: ring * Math.sin(theta),
+      size: 0.7 + Math.random() * 1.8,
+      len: 5 + Math.random() * 13,
+      stroke: Math.random() < 0.46,
       phase: Math.random() * Math.PI * 2,
       alt: Math.random() < 0.5,
       rgb: [232, 236, 244]
@@ -768,6 +809,12 @@ let drawSphere = function () {};
     return [232, 236, 244];
   }
   const copyEl = canvas.parentElement ? canvas.parentElement.querySelector(".hero-copy") : null;
+  function haloRgb() {
+    if (sphereMode === "attack") return "248,113,113";
+    if (sphereMode === "approved") return "96,165,250";
+    if (sphereMode === "contained") return "110,231,183";
+    return "210,220,235";
+  }
   drawSphere = function (now) {
     if (!W || !H) return;
     ctx.clearRect(0, 0, W, H);
@@ -777,32 +824,59 @@ let drawSphere = function () {};
       const hr = copyEl.getBoundingClientRect();
       if (hr.width) { cx = hr.left - cr.left + hr.width / 2; cy = hr.top - cr.top + hr.height / 2; }
     }
-    const R = Math.min(W, H) * 0.46;
+    const vh = window.innerHeight || H;
+    const R = Math.max(60, Math.min(vh * 0.35, W * 0.47, H * 0.46));
     const t = sphereReduced ? 0 : now;
-    const rot = t * 0.000045 * (sphereMode === "attack" ? 2.4 : 1);
-    const amp = sphereMode === "attack" ? 4.6 : (sphereMode === "approved" ? 1.6 : 0.6);
+    const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.25);
+    halo.addColorStop(0, "rgba(" + haloRgb() + ",0.13)");
+    halo.addColorStop(0.65, "rgba(" + haloRgb() + ",0.05)");
+    halo.addColorStop(1, "rgba(" + haloRgb() + ",0)");
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(cx, cy, R * 1.25, 0, Math.PI * 2); ctx.fill();
+    const rotY = t * 0.00011 * (sphereMode === "attack" ? 2.3 : 1);
+    const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+    const tilt = 0.42, cosX = Math.cos(tilt), sinX = Math.sin(tilt);
+    const amp = sphereMode === "attack" ? 3.4 : (sphereMode === "approved" ? 1.2 : 0.5);
+    const focal = 3.1;
     let wave = -1;
     if (sphereMode === "approved" && !sphereReduced) wave = ((now - sphereWaveAt) % 2400) / 2400;
-    for (const p of parts) {
-      const waveDist = wave >= 0 ? Math.abs(p.frac - wave) : 1;
+    const sorted = parts.map((p) => {
+      const x1 = p.x * cosY + p.z * sinY;
+      const z1 = -p.x * sinY + p.z * cosY;
+      const y2 = p.y * cosX - z1 * sinX;
+      const z2 = p.y * sinX + z1 * cosX;
+      return {p: p, x: x1, y: y2, z: z2};
+    }).sort((a, b) => a.z - b.z);
+    for (const item of sorted) {
+      const p = item.p;
+      const scale = focal / (focal - item.z);
+      let sx = cx + item.x * R * scale;
+      let sy = cy + item.y * R * scale;
+      const radial = Math.min(1, Math.sqrt(item.x * item.x + item.y * item.y));
+      const waveDist = wave >= 0 ? Math.abs(radial - wave) : 1;
       const target = targetFor(p, waveDist);
       for (let c = 0; c < 3; c++) p.rgb[c] += (target[c] - p.rgb[c]) * 0.07;
-      const ang = p.angle + rot * (0.55 + p.frac * 0.6);
-      let r = p.frac * R + Math.sin(t * 0.0016 + p.phase) * amp;
-      if (waveDist < 0.09) r += (0.09 - waveDist) * 90;
-      const x = cx + Math.cos(ang) * r, y = cy + Math.sin(ang) * r * 0.98;
-      const alpha = 0.22 + p.frac * 0.68;
-      ctx.strokeStyle = "rgba(" + Math.round(p.rgb[0]) + "," + Math.round(p.rgb[1]) + "," + Math.round(p.rgb[2]) + "," + alpha.toFixed(3) + ")";
+      if (!sphereReduced) {
+        const jig = Math.sin(t * (sphereMode === "attack" ? 0.012 : 0.0016) + p.phase) * amp;
+        const d = Math.sqrt((sx - cx) * (sx - cx) + (sy - cy) * (sy - cy)) || 1;
+        sx += ((sx - cx) / d) * jig; sy += ((sy - cy) / d) * jig;
+        if (waveDist < 0.09) { sx += ((sx - cx) / d) * (0.09 - waveDist) * 70; sy += ((sy - cy) / d) * (0.09 - waveDist) * 70; }
+      }
+      const depth = (item.z + 1) / 2;
+      const alpha = (0.14 + radial * 0.5 + depth * 0.3) * (sphereMode === "calm" ? 0.95 : 1);
+      ctx.strokeStyle = "rgba(" + Math.round(p.rgb[0]) + "," + Math.round(p.rgb[1]) + "," + Math.round(p.rgb[2]) + "," + Math.min(0.95, alpha).toFixed(3) + ")";
       ctx.fillStyle = ctx.strokeStyle;
       if (p.stroke) {
+        const dx = sx - cx, dy = sy - cy, dl = Math.sqrt(dx * dx + dy * dy) || 1;
+        const seg = p.len * scale * (0.55 + radial * 0.7);
         ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + Math.cos(ang) * p.len, y + Math.sin(ang) * p.len);
-        ctx.lineWidth = 1;
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx + (dx / dl) * seg, sy + (dy / dl) * seg);
+        ctx.lineWidth = Math.max(0.7, scale * 0.9);
         ctx.stroke();
       } else {
         ctx.beginPath();
-        ctx.arc(x, y, p.size, 0, Math.PI * 2);
+        ctx.arc(sx, sy, Math.max(0.5, p.size * scale), 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -835,6 +909,8 @@ function updateBand(state) {
   const total = Number(state.total_cost_usd || 0);
   const cap = Number(state.cap_usd || 1);
   byId("costLabel").textContent = "USD " + total.toFixed(4) + " " + TEXT.cost_of_cap.replace("{cap}", cap.toFixed(2));
+  const stickyCost = byId("stickyCost");
+  if (stickyCost) stickyCost.textContent = byId("costLabel").textContent;
   const results = state.results || {};
   const contained = results.contain && (results.contain.attacker_after || []).includes(401);
   const voice = results.voice || state.voice || {};
@@ -851,6 +927,8 @@ function updateBand(state) {
   if (results.attack) strip.push(...(results.attack.statuses || []));
   if (results.contain) strip.push(...(results.contain.attacker_after || []));
   statusBlocks(byId("attackerStrip"), strip);
+  miniBlocks(byId("stickyAttacker"), strip);
+  miniBlocks(byId("stickySdk"), results.contain ? (results.contain.sdk_statuses || []) : []);
   if (state.status === "no_key") {
     byId("noKeyBox").hidden = false;
     byId("noKeyBox").textContent = TEXT.no_key + ": " + (state.no_key_message || TEXT.no_key_body);
@@ -889,6 +967,10 @@ function updateBand(state) {
       if (label) label.textContent = TEXT.time_to_401;
       byId("bigClock").textContent = "--:--";
     }
+    const stickyClock = byId("stickyClock");
+    if (stickyClock) { stickyClock.textContent = byId("bigClock").textContent; stickyClock.dataset.state = byId("bigClock").dataset.state || "calm"; }
+    const stickyLabel = byId("stickyClockLabel");
+    if (stickyLabel && label) stickyLabel.textContent = label.textContent;
   };
   tickClock();
   clockTimer = setInterval(tickClock, 1000);
@@ -1034,6 +1116,8 @@ document.addEventListener("DOMContentLoaded", () => {
     await fetch("/live/reset", {method: "POST"});
     window.location.reload();
   });
+  const stickyBtn = byId("stickyNewRunBtn");
+  if (stickyBtn) stickyBtn.addEventListener("click", () => byId("newRunBtn").click());
   document.querySelectorAll("[data-run-step]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const step = btn.getAttribute("data-run-step");
@@ -1075,8 +1159,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 def _step_html(number: int, step: str, title: str, lang: str, inner: str) -> str:
     return (
-        f"<li class='step' data-step='{step}' data-state='pending'><span class='step-num'>{number}</span>"
-        f"<div class='step-head'><h2>{_e(title)}</h2>"
+        f"<li class='step' data-step='{step}' data-state='pending'>"
+        f"<div class='step-head'><span class='step-num'>{number}</span><h2>{_e(title)}</h2>"
         f"<span class='step-status' data-status-for='{step}' data-state='pending' aria-live='polite'>"
         f"{_e(_t(lang, 'not_run'))}</span>"
         f"<button class='btn secondary' type='button' data-run-step='{step}'>"
@@ -1111,8 +1195,8 @@ def render_live_page(
         "<div id='shelfOverlay'></div></div>"
         f"<p class='bigcount' id='countValue'></p>"
         f"<p id='materialLabel'></p><p id='expectedLine'></p>"
-        f"<label for='ownPhoto'>{_e(_t(lang, 'use_own_photo'))}</label>"
-        "<input id='ownPhoto' type='file' accept='image/*'>"
+        f"<label class='file-pill' for='ownPhoto'><input class='file-input' id='ownPhoto' type='file' accept='image/*'>"
+        f"<span>{_e(_t(lang, 'use_own_photo'))}</span></label>"
     )
     step3_inner = (
         f"<p>{_e(_t(lang, 'attacker_attempts'))}</p>"
@@ -1190,6 +1274,17 @@ def render_live_page(
         "<p id='bigClock'>--:--</p>"
         f"<p class='clock-note'>{_e(_t(lang, 'real_incident'))}</p></div>"
         "</div></div></header>"
+        "<div class='stickybar'><div class='sticky-inner'>"
+        f"<span class='sticky-brand'>{_e(BRAND)}</span>"
+        f"<span class='sticky-group'><span class='sticky-label' id='stickyClockLabel'>{_e(_t(lang, 'time_to_401'))}</span>"
+        "<span class='sticky-clock' id='stickyClock'>--:--</span></span>"
+        f"<span class='sticky-group'><span class='sticky-label'>{_e(_t(lang, 'sticky_attacker'))}</span>"
+        "<span class='sticky-group' id='stickyAttacker'></span></span>"
+        f"<span class='sticky-group'><span class='sticky-label'>{_e(_t(lang, 'sticky_sdk'))}</span>"
+        "<span class='sticky-group' id='stickySdk'></span></span>"
+        "<span class='sticky-cost' id='stickyCost'>USD 0.0000</span>"
+        f"<button class='btn ghost' id='stickyNewRunBtn' type='button'>{_e(_t(lang, 'new_run'))}</button>"
+        "</div></div>"
         "<main class='wrap'>"
         f"<p id='noKeyBox'{no_key_hidden}>{_e(_t(lang, 'no_key'))}: {_e(_t(lang, 'no_key_body'))}</p>"
         f"<ol class='steps'>{steps}</ol>"
