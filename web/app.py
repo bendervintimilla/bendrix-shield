@@ -1451,6 +1451,7 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
     app.state.demo = demo
     app.state.live_chain = live_chain
     channel = WhatsAppChannel(demo.broker)
+    channel.live_chain_getter = lambda: getattr(app.state, "live_chain", None)
     app.state.whatsapp = channel
     app.include_router(whatsapp_router(channel))
 
@@ -1609,6 +1610,21 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
                     )
         return None
 
+    def _refresh_whatsapp_config(chain: Any) -> None:
+        try:
+            from channels.whatsapp import load_config
+
+            cfg = load_config(getattr(chain, "vault", None))
+            wa = getattr(app.state, "whatsapp", None)
+            if wa is None:
+                return
+            for field in ("phone_number", "token", "verify_token", "app_secret", "phone_number_id"):
+                value = getattr(cfg, field, None)
+                if value:
+                    setattr(wa.config, field, value)
+        except Exception:
+            pass
+
     def _get_chain() -> Any:
         chain = getattr(app.state, "live_chain", None)
         if chain is None:
@@ -1616,6 +1632,7 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
 
             chain = LiveChain.start()
             app.state.live_chain = chain
+        _refresh_whatsapp_config(chain)
         return chain
 
     @app.get("/live", response_class=HTMLResponse)
@@ -1691,7 +1708,30 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         if name == "count":
             image_bytes = file.file.read() if file is not None else None
             return JSONResponse(chain.step_count(image_bytes))
-        return JSONResponse(getattr(chain, f"step_{name}")())
+        result = getattr(chain, f"step_{name}")()
+        if name == "guardian" and isinstance(result, dict) and result.get("plan"):
+            try:
+                wa = getattr(app.state, "whatsapp", None)
+                if wa is not None:
+                    if getattr(wa, "live_chain_getter", None) is None:
+                        wa.live_chain_getter = lambda: getattr(
+                            app.state, "live_chain", None
+                        )
+                    if not wa.config.live:
+                        try:
+                            from channels.whatsapp import load_config
+
+                            cfg = load_config(getattr(chain, "vault", None))
+                            if cfg.live:
+                                wa.config = cfg
+                        except Exception:
+                            pass
+                    wa.notify_guardian_plan(
+                        result["plan"], approval_id=result.get("approval_id")
+                    )
+            except Exception:
+                pass  # WhatsApp nunca bloquea el paso del guardián.
+        return JSONResponse(result)
 
     @app.post("/live/voice")
     def live_voice(

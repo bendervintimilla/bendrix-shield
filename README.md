@@ -94,6 +94,22 @@ Open `/live` in your browser (the replay panel stays on `/`). Warning:
 in the `Makefile`). Live steps call the real Meta API through the Shield
 gateway and cost real credits: see the cost shown on screen.
 
+## WhatsApp voice-note approvals
+
+WhatsApp voice-note approvals: implemented, tested offline; live test pending.
+
+The owner can approve the live containment plan by replying to a
+WhatsApp text with a voice note instead of using the browser
+microphone. To configure it: create an app in Meta for Developers,
+add the WhatsApp product, use the test number, register the owner's
+number as an allowed recipient, point the webhook at
+`https://<tunnel>/webhook/whatsapp` subscribed to the `messages`
+field, and store the vault secrets `whatsapp-test-token`,
+`whatsapp-test-phone-id`, `whatsapp-test-phone`,
+`whatsapp-test-verify-token` and `whatsapp-app-secret` (never in
+git). Without real credentials the outgoing message stays in the
+simulator outbox. Details in `channels/README.md`.
+
 ## Architecture
 
 ```text
@@ -141,10 +157,11 @@ gateway and cost real credits: see the cost shown on screen.
   `patch_plan`) and the guardian agent that runs them. Effects need
   the owner's `approval_id`, except optional automatic containment
   (`auto_contain=True`) on a canary detection, which is audited.
-- `channels/`, `web/` — voice approvals, a WhatsApp webhook in
-  simulator mode (no real WhatsApp credentials; the live chain uses
-  voice), plus the owner's panel (apps, live decisions, incidents,
-  attacker terminal `200 → 401`).
+- `channels/`, `web/` — voice approvals, a WhatsApp webhook
+  (simulator mode without real credentials; WhatsApp voice-note
+  approvals in the live chain, tested offline — see below), plus the
+  owner's panel (apps, live decisions, incidents, attacker terminal
+  `200 → 401`).
 - `crew/` — customer zero: Purchasing (Spark vision invoices) and
   Warehouse (SAM 3.1 counting + voice), each with its own Shield token.
 - `sandbox/`, `evals/` — the Cantina Demo with test keys and an

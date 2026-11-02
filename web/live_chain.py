@@ -491,6 +491,7 @@ class LiveChain:
         self._approval_id: str | None = None
         self._guardian_plan: dict[str, Any] | None = None
         self._guardian_agent: GuardianAgent | None = None
+        self._voice_channel: str | None = None
         self._last_count_image: bytes | None = None
         self._lock = threading.Lock()
         self._server: Any = None
@@ -1690,13 +1691,23 @@ class LiveChain:
 
     # -- paso 5: voz ------------------------------------------------------------
     def step_voice(
-        self, wav_bytes: bytes | None = None, typed: str | None = None
+        self,
+        wav_bytes: bytes | None = None,
+        typed: str | None = None,
+        channel: str = "browser",
     ) -> dict[str, Any]:
         busy = self._busy()
         if busy:
             return busy
         try:
-            return self._redact_output(self._step_voice(wav_bytes, typed))
+            voice_channel = channel if channel in ("whatsapp", "browser") else "browser"
+            self._voice_channel = voice_channel
+            out = self._step_voice(wav_bytes, typed)
+            if isinstance(out, dict):
+                out["channel"] = voice_channel
+                if isinstance(self.results.get("voice"), dict):
+                    self.results["voice"]["channel"] = voice_channel
+            return self._redact_output(out)
         finally:
             self._lock.release()
 
@@ -1842,7 +1853,9 @@ class LiveChain:
         self.results["voice"] = out
         return out
 
-    def step_voice_confirm(self) -> dict[str, Any]:
+    def step_voice_confirm(self, channel: str | None = None) -> dict[str, Any]:
+        if channel in ("whatsapp", "browser"):
+            self._voice_channel = channel
         if not self._approval_id:
             return {"status": "error", "error": "no pending approval"}
         outcome = self.voice_flow.confirm(self._approval_id)
@@ -1850,6 +1863,7 @@ class LiveChain:
             "status": str(outcome.get("status")),
             "approval_id": self._approval_id,
             "outcome": outcome,
+            "channel": self._voice_channel,
         }
         self.results["voice_confirm"] = out
         return out
@@ -2121,6 +2135,29 @@ class LiveChain:
             "plan": self._guardian_plan,
             "contained_in_s": self._contained_in_s,
             "provenance": list(self.provenance),
+            "voice": {
+                "channel": self._voice_channel
+                or (
+                    self.results.get("voice", {}).get("channel")
+                    if isinstance(self.results.get("voice"), dict)
+                    else None
+                ),
+                "transcript": (
+                    self.results.get("voice", {}).get("transcript", "")
+                    if isinstance(self.results.get("voice"), dict)
+                    else ""
+                ),
+                "status": (
+                    self.results.get("voice", {}).get("status")
+                    if isinstance(self.results.get("voice"), dict)
+                    else None
+                ),
+                "intent": (
+                    self.results.get("voice", {}).get("intent")
+                    if isinstance(self.results.get("voice"), dict)
+                    else None
+                ),
+            },
         }
         return self._redact_output(payload)
 

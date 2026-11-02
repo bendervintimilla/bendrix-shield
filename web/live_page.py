@@ -36,6 +36,9 @@ T: dict[str, dict[str, str]] = {
         "intent_except": "except",
         "intent_only": "only",
         "voice_unknown": "Didn't catch a decision. Nothing changed.",
+        "voice_via_whatsapp": "Owner approved via WhatsApp voice note",
+        "voice_via_whatsapp_note": "Owner replied via WhatsApp voice note",
+        "voice_via_browser": "Owner replied via browser microphone",
         "voice_no_speech": "No speech detected. Check the microphone and try again.",
         "mic_silence": "The microphone recorded silence",
         "level_label": "Microphone level (RMS)",
@@ -155,6 +158,9 @@ T: dict[str, dict[str, str]] = {
         "intent_except": "excepto",
         "intent_only": "solo",
         "voice_unknown": "No se entendió una decisión. Nada cambió.",
+        "voice_via_whatsapp": "El dueño aprobó por nota de voz de WhatsApp",
+        "voice_via_whatsapp_note": "El dueño respondió por nota de voz de WhatsApp",
+        "voice_via_browser": "El dueño respondió por el micrófono del navegador",
         "voice_no_speech": "No se detectó voz. Revisa el micrófono y vuelve a intentar.",
         "mic_silence": "El micrófono grabó silencio",
         "level_label": "Nivel del micrófono (RMS)",
@@ -598,6 +604,12 @@ function intentPlain(intent) {
 }
 function renderVoice(r) {
   byId("voiceTranscript").textContent = r.transcript || "";
+  const channelNode = byId("voiceChannel");
+  if (channelNode) {
+    if (r.channel === "whatsapp") channelNode.textContent = r.status === "approved" ? TEXT.voice_via_whatsapp : TEXT.voice_via_whatsapp_note;
+    else if (r.channel === "browser") channelNode.textContent = TEXT.voice_via_browser;
+    else channelNode.textContent = "";
+  }
   const intent = r.intent || {};
   byId("voiceIntent").textContent = intentPlain(intent);
   const showConfirm = r.status === "confirmation_required";
@@ -629,7 +641,10 @@ function renderResult(step, r, state) {
   if (step === "count") renderCount(r);
   if (step === "attack") renderAttack(r);
   if (step === "guardian") renderGuardian(r);
-  if (step === "voice") renderVoice(r);
+  if (step === "voice") {
+    const base = ((state && state.results && state.results.voice) || (state && state.voice) || {});
+    renderVoice({...base, ...r, transcript: r.transcript || base.transcript || "", intent: r.intent || base.intent || {}, channel: r.channel || base.channel || ""});
+  }
   if (step === "contain") renderContain(r, state);
 }
 let lastState = null;
@@ -831,8 +846,7 @@ document.addEventListener("DOMContentLoaded", () => {
   byId("runUntilBtn").addEventListener("click", runUntilOwner);
   byId("newRunBtn").addEventListener("click", async () => {
     await fetch("/live/reset", {method: "POST"});
-    document.querySelectorAll("[data-status-for]").forEach((n) => { n.textContent = TEXT.not_run; });
-    await refreshState();
+    window.location.reload();
   });
   document.querySelectorAll("[data-run-step]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -928,7 +942,7 @@ def render_live_page(
         "<input id='typedText' type='text'>"
         f"<p>{html.escape(_t(lang, 'voice_hint'), quote=False)}</p>"
         f"<button class='btn secondary' id='sendTypedBtn' type='button'>{_e(_t(lang, 'send_typed'))}</button>"
-        f"<h3>{_e(_t(lang, 'transcript'))}</h3><p id='voiceTranscript'></p>"
+        f"<h3>{_e(_t(lang, 'transcript'))}</h3><p id='voiceChannel' aria-live='polite'></p><p id='voiceTranscript'></p>"
         f"<h3>{_e(_t(lang, 'spark_intent'))}</h3><p id='voiceIntent' class='mono'></p>"
         "<p id='disagreeLine'></p><p id='voiceStatusLine' aria-live='polite'></p>"
         f"<button class='btn primary' id='voiceConfirm' type='button' hidden>{_e(_t(lang, 'confirm'))}</button>"

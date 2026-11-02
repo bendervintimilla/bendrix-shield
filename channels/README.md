@@ -18,13 +18,69 @@ la decisión; ninguno inventa su propio id.
 - El número y el token de prueba salen del vault como `whatsapp-test-*`
   (`whatsapp-test-phone`, `whatsapp-test-token`,
   `whatsapp-test-verify-token`, `whatsapp-test-phone-id`) y el secreto de
-  firma como `whatsapp-app-secret`. **Hoy no existen en el vault**, así
-  que el canal corre en modo simulador: los salientes quedan en
-  `outbox`, `simulated_click_payload` genera el payload tal como lo
-  enviaría Meta, y el panel web es el canal operativo. Cuando existan
-  las credenciales, el mismo código envía por Graph API sin cambios en
-  el flujo de aprobación.
+  firma como `whatsapp-app-secret`, o de las variables de entorno
+  equivalentes. Sin credenciales reales el canal corre en modo
+  simulador: los salientes quedan en `outbox`,
+  `simulated_click_payload` genera el payload tal como lo enviaría
+  Meta, y el panel web es el canal operativo.
 - Ningún secreto se loguea: solo ids de aprobación y de mensaje.
+
+## Aprobación por nota de voz de WhatsApp en la cadena live
+
+- Al terminar `step_guardian` con plan en modo live (`make live`,
+  página `/live`), el panel envía al número del dueño
+  (`whatsapp-test-phone`) un texto corto en inglés con el resumen del
+  plan y «Reply with a voice note: “yes, rotate it” / “no”». Sin
+  credenciales reales el mensaje queda en `outbox` (simulador).
+- Una nota de voz entrante (`type: audio` o `voice`) en
+  `/webhook/whatsapp` solo se procesa si `from` es el número del dueño
+  configurado; cualquier otro número queda `ignored` y no se descarga
+  nada. En modo live/con credenciales la firma
+  `X-Hub-Signature-256` es obligatoria: sin `whatsapp-app-secret` el
+  `POST` se rechaza.
+- El media se descarga con Graph API (`GET /{media_id}` y luego la
+  `url` devuelta, con Bearer). El dominio de esa URL debe ser de Meta
+  (`lookaside.fbsbx.com`, `*.whatsapp.net` o `*.fbcdn.net`) y el
+  tamaño máximo es 5 MB. El OGG/Opus se convierte a WAV 16 kHz mono
+  con `ffmpeg` y se entrega a `LiveChain.step_voice(wav_bytes=...)`,
+  que transcribe por el gateway. Es idempotente por `message_id`:
+  los reintentos de Meta no transcriben dos veces.
+- La respuesta por WhatsApp incluye la transcripción y lo entendido.
+  Si la intención es parcial y pide confirmación, se pide responder
+  «confirm»; un texto `confirm` del mismo número llama a
+  `step_voice_confirm`. Si queda aprobado, se corre la contención
+  (`step_contain`, el mismo paso que dispara el panel) y se responde
+  con el resultado (atacante, secuencia SDK y segundos).
+- El webhook responde `200` rápido y procesa en un hilo de fondo
+  (con lock), para que Meta no reintente por lentitud. En el estado
+  de `/live` la voz queda marcada con `voice.channel = "whatsapp"` (o
+  `"browser"` si vino del micrófono) y la página muestra la
+  transcripción en el mismo sitio de siempre.
+- Estado: implementado y probado offline (sin red, con cliente HTTP
+  falso y `ffmpeg` real en `tests/test_whatsapp_live_voice.py`).
+  La prueba en vivo con Meta queda pendiente; no se ha hecho ninguna
+  llamada real a la API de Meta desde este código en las pruebas.
+
+## Cómo configurarlo (Meta for Developers)
+
+1. En [Meta for Developers](https://developers.facebook.com/) crear
+   (o usar) una app y agregarle el producto **WhatsApp**.
+2. En WhatsApp → Configuración de la API, tomar el **número de
+   prueba** y registrar el número del dueño como destinatario
+   permitido del número de prueba.
+3. Exponer el panel con un túnel HTTPS y configurar el webhook con
+   URL `https://<túnel>/webhook/whatsapp`, el verify token elegido y
+   la suscripción al campo **`messages`**.
+4. Guardar en el vault (nunca en git) los secretos:
+   `whatsapp-test-token`, `whatsapp-test-phone-id`,
+   `whatsapp-test-phone` (número del dueño, solo dígitos con código
+   de país), `whatsapp-test-verify-token` y `whatsapp-app-secret`.
+   Como respaldo se leen del entorno `WHATSAPP_TEST_TOKEN`,
+   `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEST_PHONE`,
+   `WHATSAPP_VERIFY_TOKEN` y `WHATSAPP_APP_SECRET`.
+5. Arrancar con `make live` y abrir `/live`. La verificación en vivo
+   la hace el director con sus credenciales; las pruebas del repo
+   son offline.
 
 ## Voz (`voice.py`)
 
