@@ -8,6 +8,12 @@ For SMEs running AI agents — Purchasing reads supplier invoices, Warehouse cou
 - **Rotation the owner approves by voice:** rotation normally needs the owner's approval (voice, panel, or the WhatsApp webhook simulator described below); then the stolen token answers `401`. One exception: optional automatic containment (`Actions(auto_contain=True)`) can rotate a token without prior approval when a canary is detected; that action is audited (see `shield/actions/runbooks.py`).
 - **Poisoned documents are blocked, not obeyed:** external documents are data, never instructions; most end in `block` or `ask_owner`, with per-document Muse Spark review when enabled. Measured exception: the English token-reveal read (`v2-poison-token-en`) passed silently in the rules-only baseline (1/12) and in 2 of 3 runs with per-document Spark review (see Metrics).
 
+## Live demo
+
+**https://bendrix-shield-panel-290240328973.us-central1.run.app/** — open it, no sign-in, nothing to install. Click **Approve** and watch the stolen token go from `200` to `401` while Warehouse keeps working and Purchasing is untouched; **Restart demo** starts over. Each visitor gets their own run.
+
+It is the replay: test tokens and a fake upstream, no real keys, no model calls and no spend. The live mode (real Meta models, which costs money) is off on this URL; run it yourself with `make live` and your own key.
+
 **Try it**
 
 ```bash
@@ -29,9 +35,9 @@ Motivation, as already documented in this repo (`docs/DEMO.md`): in the
 October 2026 incident behind this project, exposed keys were abused for
 ~16 hours (USD 310). With NoKey the loot from the same kind of leak is one
 revocable per-agent token, and the fix is a rotation, not a redeploy.
-No hosted demo is required to try this project: `make demo` runs the
-full story locally in replay, and `make live` runs it against the real
-Meta API with your own key (see below).
+The hosted replay above needs no key; `make demo` runs the same story
+locally in replay, and `make live` runs it against the real Meta API with
+your own key (see below).
 
 ## Connect any app in 2 lines
 

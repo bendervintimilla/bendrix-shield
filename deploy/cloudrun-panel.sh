@@ -25,8 +25,7 @@ gcloud run deploy "$SERVICE" \
   --cpu-boost \
   --ingress=all \
   --allow-unauthenticated \
-  --set-env-vars="SHIELD_SERVICE=panel,DEMO=replay,SHIELD_PANEL_SESSIONS=1,SHIELD_GCP_PROJECT=$PROJECT" \
-  --remove-env-vars=SHIELD_GATEWAY_URL
+  --set-env-vars="SHIELD_SERVICE=panel,DEMO=replay,SHIELD_PANEL_SESSIONS=1,SHIELD_GCP_PROJECT=$PROJECT"
 
 gcloud run services describe "$SERVICE" \
   --project="$PROJECT" --region="$REGION" --format='value(status.url)'
