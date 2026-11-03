@@ -176,6 +176,18 @@ class PolicyEngine:
                 reason="documento no confiable pide revelar un secreto",
                 evidence=[h.evidence() for h in scan.strong],
             )
+        # Orden fuerte que solo aparece tras normalizar o decodificar
+        # (base64, homoglifos, invisibles): esconderla ya es la señal, así
+        # que ni una lectura pasa en silencio.
+        hidden = [h for h in scan.strong if h.obfuscated]
+        if hidden:
+            return PolicyDecision(
+                decision=Decision.BLOCK,
+                reason=(
+                    "instrucción ofuscada (base64/homoglifos/invisibles) en documento no confiable"
+                ),
+                evidence=[h.evidence() for h in hidden],
+            )
         # Lectura que pide revelar un secreto por sus propios argumentos:
         # ninguna lectura pasa en silencio si expone llave/token/credencial.
         _secret_marks = (

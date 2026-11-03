@@ -9,6 +9,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from shield.textnorm import decode_base64_segments, normalize
+
 PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("anthropic_key", re.compile(r"sk-ant-[A-Za-z0-9_\-]{10,}")),
     ("openai_key", re.compile(r"sk-(?:proj-)?[A-Za-z0-9_\-]{10,}")),
@@ -37,6 +39,13 @@ class Redaction:
     count: int
 
 
+def _kind_in(text: str) -> str | None:
+    for kind, pattern in PATTERNS:
+        if pattern.search(text):
+            return kind
+    return None
+
+
 def redact_text(text: str) -> tuple[str, list[Redaction]]:
     findings: dict[str, int] = {}
     out = text
@@ -46,6 +55,16 @@ def redact_text(text: str) -> tuple[str, list[Redaction]]:
         # contar solo sustituciones reales evita dobles conteos.
         if n:
             findings[kind] = findings.get(kind, 0) + n
+    # Después de los patrones en claro: un segmento base64 que decodifica a
+    # una llave/token/PII se redacta entero (``<tipo>_b64``).
+    for encoded, decoded in decode_base64_segments(out):
+        kind = _kind_in(normalize(decoded))
+        if kind is None or encoded not in out:
+            continue
+        label = f"{kind}_b64"
+        n = out.count(encoded)
+        out = out.replace(encoded, f"[REDACTED:{label}]")
+        findings[label] = findings.get(label, 0) + n
     return out, [Redaction(kind=k, count=v) for k, v in sorted(findings.items())]
 
 

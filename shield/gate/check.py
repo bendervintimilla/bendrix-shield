@@ -18,6 +18,7 @@ from shield.gate.canaries import find_canaries
 from shield.gate.classify import Classification, classify
 from shield.gate.open_classifier import BLOCK_LABELS, BLOCK_THRESHOLD
 from shield.gate.redact import Redaction, redact_payload
+from shield.textnorm import views
 
 logger = logging.getLogger("shield.gate")
 
@@ -62,9 +63,19 @@ def _to_text(payload: object) -> str:
         return str(payload)
 
 
+def _find_canaries_all_views(text: str, pool: tuple[str, ...] | None) -> list[str]:
+    """Canarios en el texto y en sus vistas (normalizado, base64 decodificado)."""
+    found = list(find_canaries(text, canaries=pool))
+    for _, view in views(text):
+        for c in find_canaries(view, canaries=pool):
+            if c not in found:
+                found.append(c)
+    return found
+
+
 def check(payload: object, *, canaries: list[str] | tuple[str, ...] | None = None) -> GateResult:
     text = _to_text(payload)
-    found = find_canaries(text, canaries=tuple(canaries) if canaries else None)
+    found = _find_canaries_all_views(text, tuple(canaries) if canaries else None)
     if found:
         _alert(found)
         return GateResult(allowed=False, canaries_found=found, reason="canary_in_payload")

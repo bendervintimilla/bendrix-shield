@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from shield.policy.extract import ExtractedDoc, Segment, VisionFn, extract_any
+from shield.textnorm import views
 
 _STRONG: list[tuple[str, re.Pattern[str]]] = [
     (
@@ -80,6 +81,9 @@ class InjectionHit:
     location: str
     doc_id: str
     strength: str = "strong"  # strong | weak
+    # True si solo apareció tras normalizar (homoglifos, invisibles) o
+    # decodificar base64: la orden venía escondida a propósito.
+    obfuscated: bool = False
 
     def evidence(self) -> str:
         frag = " ".join(self.fragment.split())[:160]
@@ -144,23 +148,42 @@ def _segments_of(source: Any) -> tuple[str, list[Segment]]:
     return extracted.doc_id, extracted.segments
 
 
+def _scan_text(text: str, location: str, doc_id: str, obfuscated: bool) -> list[InjectionHit]:
+    hits: list[InjectionHit] = []
+    for kind, pattern in _STRONG:
+        m = pattern.search(text)
+        if m:
+            start = max(m.start() - 40, 0)
+            hits.append(
+                InjectionHit(
+                    kind, text[start : m.end() + 40], location, doc_id, "strong", obfuscated
+                )
+            )
+    for kind, pattern in _WEAK:
+        m = pattern.search(text)
+        if m:
+            hits.append(InjectionHit(kind, m.group(0), location, doc_id, "weak", obfuscated))
+    return hits
+
+
 def scan_source(source: Any) -> ScanResult:
+    """Escanea cada segmento tal cual y, además, sus vistas normalizadas.
+
+    Las vistas (NFKC + confusables + sin invisibles, y base64 decodificado)
+    solo agregan hallazgos de un tipo que el texto original no dio; esos
+    quedan marcados ``obfuscated=True``.
+    """
     doc_id, segments = _segments_of(source)
     result = ScanResult()
     for seg in segments:
-        for kind, pattern in _STRONG:
-            m = pattern.search(seg.text)
-            if m:
-                start = max(m.start() - 40, 0)
-                result.hits.append(
-                    InjectionHit(
-                        kind, seg.text[start : m.end() + 40], seg.location, doc_id, "strong"
-                    )
-                )
-        for kind, pattern in _WEAK:
-            m = pattern.search(seg.text)
-            if m:
-                result.hits.append(InjectionHit(kind, m.group(0), seg.location, doc_id, "weak"))
+        raw_hits = _scan_text(seg.text, seg.location, doc_id, obfuscated=False)
+        result.hits.extend(raw_hits)
+        seen = {h.kind for h in raw_hits}
+        for view_name, view_text in views(seg.text):
+            for hit in _scan_text(view_text, f"{seg.location}+{view_name}", doc_id, True):
+                if hit.kind not in seen:
+                    seen.add(hit.kind)
+                    result.hits.append(hit)
     return result
 
 
