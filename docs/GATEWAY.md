@@ -61,6 +61,40 @@ Método: `TestClient` contra el gateway con upstream falso instantáneo
 Es el costo agregado de Shield sin red; contra la Meta Model API manda la
 latencia del upstream. Reproduce con `Registry.latency_percentile(50)`.
 
+## Endurecimiento C2489-3
+
+Cuatro controles por token (vacío/None = sin restricción, para no romper
+tokens anteriores). Se crean con `Registry.create_token(...,
+allowed_routes=..., numeric_limits=..., rate_limit_per_minute=...,
+require_nonce=...)` y la rotación los conserva.
+
+1. **Alcance mínimo (verbo + ruta + rangos).** `allowed_routes` acepta
+   `"POST /v1/chat/completions"`, `"POST:/v1/..."`, `"/v1/..."` y prefijo
+   `"POST /v1/*"` (`"*"` = todo). Los scopes con forma de ruta en `scopes`
+   cuentan igual; scopes legados sin `/` (p. ej. `"crew"`) no restringen.
+   Fuera de alcance: `403 route_not_allowed`. `numeric_limits` mapea campo
+   a `[mín, máx]` y se revisa en todo el payload (p. ej.
+   `{"setpoint_c": [-25, 5], "temperature": [0, 1]}`): fuera de rango,
+   `403 value_out_of_range`. Esto frena el caso de la nevera: un token de
+   refrigeración no puede pedir 22 °C ni tocar otra ruta.
+2. **Tasa por token.** `rate_limit_per_minute` del token manda sobre el
+   global del gateway (60/min): `429 rate_limit_exceeded`.
+3. **Anti-repetición.** Con `require_nonce=True` cada pedido exige
+   `X-Shield-Nonce` (único por token) y `X-Shield-Timestamp` (segundos,
+   ventana ±300 s). Sin ellos: `401 nonce_required`; viejo: `401
+   stale_timestamp`; repetido: `409 replay_detected`. Así un setpoint
+   capturado no se puede repetir.
+4. **Auditoría con cadena de hash + revocación de emergencia.** Cada
+   `CallLog` guarda `prev_hash`/`entry_hash` (sha256 encadenado desde
+   génesis `"0"*64`); `Registry.verify_audit_chain()` devuelve
+   `(False, id)` en la primera fila manipulada. `Registry.revoke_all(
+   agent=..., app=...)` revoca en masa y el endpoint
+   `POST /shield/revoke-all` (header `X-Shield-Emergency` igual a la
+   variable `SHIELD_EMERGENCY_TOKEN`; sin variable, `503`) lo expone
+   para apagar todo en segundos.
+
+Pruebas: `tests/test_gateway_hardening_c2489.py` (12 casos, offline).
+
 ## Rotación (demo Black October)
 
 Rotar el token de un agente marca el viejo como `rotated` (401 inmediato) y

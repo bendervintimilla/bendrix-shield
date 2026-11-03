@@ -26,6 +26,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from shield.brand import BRAND
 from shield.gate.check import check as gate_check
 from shield.gateway.geo import country_for_ip
+from shield.gateway.scope import check_numeric_limits, route_allowed
 from shield.meta_client import BASE_URL, compute_cost_usd
 from shield.registry import Registry
 from shield.schemas import AgentToken, AgentTokenStatus, CallLog, Decision
@@ -42,21 +43,25 @@ def _error(status: int, code: str, message: str) -> JSONResponse:
     )
 
 
+NONCE_WINDOW_SECONDS = 300.0
+
+
 class RateLimiter:
-    """Ventana deslizante de 60 s por token_id."""
+    """Ventana deslizante de 60 s por token_id, con límite por token (C2489-3)."""
 
     def __init__(self, limit_per_minute: int = DEFAULT_RATE_LIMIT_PER_MINUTE) -> None:
         self.limit = limit_per_minute
         self._hits: dict[str, deque[float]] = defaultdict(deque)
 
-    def allow(self, token_id: str, now: float | None = None) -> bool:
-        if self.limit <= 0:
+    def allow(self, token_id: str, now: float | None = None, *, limit: int | None = None) -> bool:
+        effective = self.limit if limit is None else limit
+        if effective <= 0:
             return False
         ts = time.monotonic() if now is None else now
         hits = self._hits[token_id]
         while hits and hits[0] <= ts - 60.0:
             hits.popleft()
-        if len(hits) >= self.limit:
+        if len(hits) >= effective:
             return False
         hits.append(ts)
         return True
@@ -104,7 +109,37 @@ def create_app(
             return _error(401, "rotated_token", "Shield token rotated; use the new token")
         return token
 
-    def preflight(request: Request, token: AgentToken, model: str) -> JSONResponse | None:
+    def check_nonce(request: Request, token: AgentToken) -> JSONResponse | None:
+        if not token.require_nonce:
+            return None
+        nonce = request.headers.get("x-shield-nonce", "").strip()
+        raw_ts = request.headers.get("x-shield-timestamp", "").strip()
+        if not nonce or not raw_ts:
+            return _error(401, "nonce_required", "X-Shield-Nonce and X-Shield-Timestamp required")
+        try:
+            ts = float(raw_ts)
+        except ValueError:
+            return _error(401, "stale_timestamp", "Invalid X-Shield-Timestamp")
+        now = time.time()
+        if abs(now - ts) > NONCE_WINDOW_SECONDS:
+            return _error(401, "stale_timestamp", "Request timestamp outside allowed window")
+        if not reg.check_and_record_nonce(token.token_id, nonce, now=now):
+            return _error(409, "replay_detected", "Nonce already used for this token")
+        return None
+
+    def preflight(
+        request: Request, token: AgentToken, model: str, payload: Any = None
+    ) -> JSONResponse | None:
+        path = request.url.path
+        if not route_allowed(token, request.method, path):
+            return _error(403, "route_not_allowed", f"Route {request.method} {path} not allowed")
+        nonce_block = check_nonce(request, token)
+        if nonce_block is not None:
+            return nonce_block
+        if payload is not None:
+            field = check_numeric_limits(token, payload)
+            if field is not None:
+                return _error(403, "value_out_of_range", f"Value out of range for field {field}")
         if token.models and model not in token.models:
             return _error(403, "model_not_allowed", f"Model {model} not allowed for this agent")
         if (
@@ -112,7 +147,7 @@ def create_app(
             and reg.total_spend_usd(token.agent) >= token.spend_cap_usd
         ):
             return _error(403, "spend_cap_exceeded", "Spend cap exceeded for this agent")
-        if not limiter.allow(token.token_id):
+        if not limiter.allow(token.token_id, limit=token.rate_limit_per_minute):
             resp = _error(429, "rate_limit_exceeded", "Rate limit exceeded for this token")
             resp.headers["Retry-After"] = "60"
             return resp
@@ -203,7 +238,7 @@ def create_app(
     ) -> Any:
         started = time.perf_counter()
         model = str(payload.get("model") or "")
-        blocked = preflight(request, token, model)
+        blocked = preflight(request, token, model, payload)
         if blocked is not None:
             log_call(request, token, model, decision=Decision.BLOCK, started=started)
             return blocked
@@ -340,6 +375,22 @@ def create_app(
     @app.get("/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.post("/shield/revoke-all")
+    async def revoke_all(request: Request) -> Any:
+        """Revocación de emergencia (C2489-3). Requiere SHIELD_EMERGENCY_TOKEN."""
+        expected = os.environ.get("SHIELD_EMERGENCY_TOKEN", "")
+        if not expected:
+            return _error(503, "emergency_disabled", "Emergency revocation not configured")
+        if request.headers.get("x-shield-emergency", "") != expected:
+            return _error(401, "invalid_emergency_token", "Invalid emergency token")
+        body: dict[str, Any] = {}
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        count = reg.revoke_all(agent=body.get("agent"), app=body.get("app"))
+        return {"revoked": count}
 
     @app.post("/v1/chat/completions")
     async def chat_completions(request: Request) -> Any:
