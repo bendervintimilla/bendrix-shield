@@ -1913,7 +1913,13 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
             spark_open_no_key = True
         return _with_cookie(
             HTMLResponse(
-                render_live_page(lang, spark_open_no_key=spark_open_no_key, no_key=no_key)
+                render_live_page(
+                    lang,
+                    spark_open_no_key=spark_open_no_key,
+                    no_key=no_key,
+                    remote=remote,
+                    replay_url=os.environ.get("SHIELD_REPLAY_URL", "/") if remote else "/",
+                )
             ),
             request,
             lang,
