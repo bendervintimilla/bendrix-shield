@@ -435,6 +435,17 @@ def test_reset_starts_new_run_with_new_tokens():
         chain.close()
 
 
+def test_reset_while_step_running_keeps_lock():
+    chain, _h = make_chain()
+    try:
+        assert chain._busy() is None  # un paso tiene el candado
+        chain.reset()  # «Nueva corrida» en medio del paso
+        chain._lock.release()  # el paso termina: no debe lanzar
+        assert chain.step_count()["count"] == 7
+    finally:
+        chain.close()
+
+
 def test_no_key_status():
     chain = LiveChain.start(
         vault=MemoryVault({}),

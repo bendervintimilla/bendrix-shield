@@ -833,10 +833,14 @@ class LiveChain:
 
     def reset(self) -> dict[str, Any]:
         vault, transport, cap = self.vault, self.upstream_transport, self.cap_usd
+        # El candado se conserva: un paso en curso lo soltará al terminar y debe
+        # soltar el mismo objeto que tomó (si no, «release unlocked lock» → 500).
+        lock = self._lock
         self.close()
         fresh = LiveChain(vault=vault, upstream_transport=transport, cap_usd=cap)
         fresh._start()
         self.__dict__.update(fresh.__dict__)
+        self._lock = lock
         return self.state()
 
     # -- procedencia / tope -------------------------------------------------
