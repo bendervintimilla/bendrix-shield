@@ -1,4 +1,4 @@
-"""Agente de punto de venta con NoKey: factura sí; anular o cambiar cuenta no.
+"""Agente de punto de venta con Wairrior: factura sí; anular o cambiar cuenta no.
 
 Uso: ``uv run python examples/pos-sdk/run.py`` (sin red, sin llaves, datos de juguete).
 """

@@ -1,4 +1,4 @@
-# Architecture — NoKey
+# Architecture — Wairrior
 
 Shield es la capa de seguridad para agentes y apps de IA de la pyme. Cualquier
 app se conecta en 2 líneas y Shield se pone en medio de sus llamadas a modelos

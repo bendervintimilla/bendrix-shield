@@ -1,5 +1,5 @@
 <!-- H9:summary:start -->
-# Evals de NoKey — reporte completo (H11)
+# Evals de Wairrior — reporte completo (H11)
 
 Las cifras sin red salen de `uv run python evals/run_all.py` (replay/fixtures). Las rondas EN VIVO de H11 (facturas Spark visión, SAM 3.1, Voice) se agregan con `run_invoices_live.py` y `run_stock_live.py` y llevan su costo real. Las tasas de inyección se reportan por separado: la sintética comparte patrones con las reglas, la held-out v1 ajustó reglas en H10 y la held-out v2 es la principal (fresca, congelada, sin ajustar).
 
@@ -440,7 +440,7 @@ Replay sin red ni créditos (USD 0). Escenario en `crew/refrigeracion/scenario.p
 <!-- C2489:redteam:start -->
 ## Red team C2489-4 — batería adversaria (sin red, USD 0)
 
-Batería sintética propia contra NoKey y el guardián, congelada en `evals/redteam/cases.json` (generador `evals/gen_redteam.py`) y ejecutable con `uv run python evals/run_redteam.py`. Cinco vectores: inyección en documentos/facturas, exfiltración del token por el gate, suplantación de la voz del dueño (repetición de la transcripción), confusión de agentes y abuso de tasa. Sin llamadas a modelos: USD 0. Las fallas se cuentan tal cual; ningún caso se retocó tras medir.
+Batería sintética propia contra Wairrior y el guardián, congelada en `evals/redteam/cases.json` (generador `evals/gen_redteam.py`) y ejecutable con `uv run python evals/run_redteam.py`. Cinco vectores: inyección en documentos/facturas, exfiltración del token por el gate, suplantación de la voz del dueño (repetición de la transcripción), confusión de agentes y abuso de tasa. Sin llamadas a modelos: USD 0. Las fallas se cuentan tal cual; ningún caso se retocó tras medir.
 
 - Casos: 37; frenados: 36/37; pasaron en silencio: 1/37.
 - Bypass conocidos de C2489 (`expect: gap`): 9. Cerrados en C2491: 3 (`rt-voice-replay-flow`, `rt-voice-replay-other-plan`, `rt-approval-reuse-cross-plan`); cerrados en C2490: 5 (`rt-inj-base64-read`, `rt-inj-homoglyph-read`, `rt-gate-shield-token-b64`, `rt-gate-canary-split`, `rt-host-store-shared`); siguen abiertos: 1/9.

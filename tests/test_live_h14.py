@@ -884,8 +884,8 @@ def test_live_page_dark_hero_sphere_and_whatsapp_bubble():
         text = render_live_page(lang)
         assert "id='sphereCanvas'" in text
         assert "hero-fill" in text and "hero-outline" in text
-        assert "<span class='hero-fill'>No</span>" in text
-        assert "<span class='hero-outline'>Key</span>" in text
+        assert "<span class='hero-outline'>W</span><span class='hero-fill'>ai</span>" in text
+        assert "<span class='hero-outline'>rrior</span>" in text
         assert "hero-brand" in text and subtitle in text
         assert "id='whatsappBubble'" in text
         assert "id='whatsappApprovedLine'" in text
