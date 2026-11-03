@@ -50,8 +50,12 @@ voice, while Refrigeration, Warehouse and Purchasing keep answering `200`
 gateway also gained per-token route/value scopes (`403`), per-token and
 per-agent rate limits (`429`), opt-in nonce + timestamp anti-replay
 (`401`/`409`), a sha256 hash-chained audit log the owner can verify, and an
-emergency revoke-all. One honest debt: approvals are not yet single-use
-across guardian plans (documented in `docs/threats-2026.md`).
+emergency revoke-all. An adversarial battery of 37 frozen cases in 5 vectors
+(document injection, token exfiltration, owner-voice replay, agent confusion,
+rate abuse) stopped 28 and let 9 pass silently — all 9 published as-is in
+`evals/report.md`, with 0 regressions. One honest debt behind three of those
+bypasses: approvals are not yet single-use across guardian plans (documented
+in `docs/threats-2026.md`).
 
 Motivation, as already documented in this repo (`docs/DEMO.md`): in the
 October 2026 incident behind this project, exposed keys were abused for
