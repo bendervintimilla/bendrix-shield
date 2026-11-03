@@ -31,6 +31,7 @@ RUNNERS = [
     "run_anomaly.py",
     "run_invoices.py",
     "run_stock.py",
+    "run_redteam.py",
 ]
 
 
