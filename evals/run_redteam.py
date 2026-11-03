@@ -7,7 +7,9 @@ transporte falso. Solo afirma lo medido: cada caso adversario se cuenta como
 frenado o como paso en silencio, incluidos los bypass (`expect: gap`).
 
 Escribe su sección en `evals/report.md` y deja las filas en
-`evals/recorded/redteam-c2489.json`. Uso: ``uv run python evals/run_redteam.py``
+`evals/recorded/redteam-c2490.json` (la corrida anterior queda intacta en
+`evals/recorded/redteam-c2489.json`).
+Uso: ``uv run python evals/run_redteam.py``
 """
 
 from __future__ import annotations
@@ -22,8 +24,62 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from evals._sections import write_section  # noqa: E402
 
 CASES = Path(__file__).parent / "redteam" / "cases.json"
-RECORDED = Path(__file__).parent / "recorded" / "redteam-c2489.json"
+RECORDED = Path(__file__).parent / "recorded" / "redteam-c2490.json"
+RECORDED_C2489 = "evals/recorded/redteam-c2489.json"
 START, END = "<!-- C2489:redteam:start -->", "<!-- C2489:redteam:end -->"
+
+# Bypass de C2489 que C2490 cierra. `cases.json` sigue congelado (sus notas
+# describen el estado de C2489); aquí va qué cambió. Solo se cuenta cerrado
+# si la corrida lo mide frenado.
+CIERRES_C2490: dict[str, str] = {
+    "rt-inj-base64-read": (
+        "C2490: el texto no confiable se analiza también normalizado y con los "
+        "segmentos base64 decodificados (`shield/textnorm.py`); una orden fuerte "
+        "que solo aparece ofuscada se bloquea incluso en lectura."
+    ),
+    "rt-inj-homoglyph-read": (
+        "C2490: NFKC, caracteres invisibles fuera y mapa de homoglifos "
+        "cirílicos/griegos a latín antes del motor de inyección."
+    ),
+    "rt-gate-shield-token-b64": (
+        "C2490: el gate decodifica segmentos base64 y redacta el token Shield "
+        "(`shield_token_b64`); los canarios en base64 también bloquean."
+    ),
+    "rt-gate-canary-split": (
+        "C2490: los canarios se buscan además en la concatenación de las cadenas "
+        "del payload y en su forma compacta, sin espacios ni separadores."
+    ),
+    "rt-host-store-shared": (
+        "C2490: un archivo por agente (0600, directorio 0700) y store ligado al "
+        "agente que rechaza abrir el de otro. Agentes con el mismo usuario del "
+        "sistema siguen siendo un solo compromiso de host (fila 2 de "
+        "docs/THREAT_MODEL.md)."
+    ),
+}
+_OFUSCADA = (
+    "C2490: la orden ofuscada ya se detecta tras normalizar o decodificar y se "
+    "bloquea; antes la frenaba solo el campo sensible (ask_owner)."
+)
+NOTAS_C2490: dict[str, str] = {
+    "rt-inj-base64-write": _OFUSCADA,
+    "rt-inj-homoglyph-write": _OFUSCADA,
+    "rt-inj-zerowidth-write": _OFUSCADA,
+}
+# Cerrados antes, en C2491 (aprobaciones de un solo uso); su detalle está en la
+# subsección «C2491» de evals/report.md, fuera de esta sección generada.
+CERRADOS_C2491: frozenset[str] = frozenset(
+    {"rt-voice-replay-flow", "rt-voice-replay-other-plan", "rt-approval-reuse-cross-plan"}
+)
+
+
+def _ronda_cierre(fila: dict) -> str | None:
+    if fila["expect"] != "gap" or not fila["frenado"]:
+        return None
+    if fila["id"] in CIERRES_C2490:
+        return "C2490"
+    if fila["id"] in CERRADOS_C2491:
+        return "C2491"
+    return None
 
 
 def _strings_hoja(node: Any) -> list[str]:
@@ -407,7 +463,14 @@ def run_battery() -> list[dict]:
 def _resumen(filas: list[dict]) -> str:
     total = len(filas)
     frenados = sum(1 for f in filas if f["frenado"])
-    gaps = [f for f in filas if f["expect"] == "gap" and not f["frenado"]]
+    todos_gaps = [f for f in filas if f["expect"] == "gap"]
+    gaps = [f for f in todos_gaps if not f["frenado"]]
+    c2491 = [f for f in todos_gaps if _ronda_cierre(f) == "C2491"]
+    c2490 = [f for f in todos_gaps if _ronda_cierre(f) == "C2490"]
+
+    def _ids(fs: list[dict]) -> str:
+        return ", ".join(f"`{f['id']}`" for f in fs) if fs else "ninguno"
+
     regresiones = [f for f in filas if f["expect"] == "contained" and not f["frenado"]]
     lineas = [
         "## Red team C2489-4 — batería adversaria (sin red, USD 0)",
@@ -422,6 +485,10 @@ def _resumen(filas: list[dict]) -> str:
         "",
         f"- Casos: {total}; frenados: {frenados}/{total}; "
         f"pasaron en silencio: {total - frenados}/{total}.",
+        f"- Bypass conocidos de C2489 (`expect: gap`): {len(todos_gaps)}. "
+        f"Cerrados en C2491: {len(c2491)} ({_ids(c2491)}); "
+        f"cerrados en C2490: {len(c2490)} ({_ids(c2490)}); "
+        f"siguen abiertos: {len(gaps)}/{len(todos_gaps)}.",
         f"- Bypass confirmados (`expect: gap` que pasaron): {len(gaps)}"
         + (": " + ", ".join(f"`{f['id']}`" for f in gaps) if gaps else "."),
         f"- Regresiones (debían frenar y pasaron): {len(regresiones)}"
@@ -433,7 +500,13 @@ def _resumen(filas: list[dict]) -> str:
     for f in filas:
         if f["expect"] == "gap":
             esperado = "gap conocido"
-            resultado = "PASA (gap)" if not f["frenado"] else "frenado (mejora)"
+            ronda = _ronda_cierre(f)
+            if not f["frenado"]:
+                resultado = "PASA (gap)"
+            elif ronda:
+                resultado = f"frenado (cerrado en {ronda})"
+            else:
+                resultado = "frenado (mejora)"
         elif f["expect"] == "clean":
             esperado = "limpio"
             resultado = "ok" if f["frenado"] else "FALLA"
@@ -447,14 +520,23 @@ def _resumen(filas: list[dict]) -> str:
     if notas:
         lineas += ["", "**Notas honestas por caso:**", ""]
         for f in notas:
-            lineas.append(f"- `{f['id']}`: {f['nota']}")
+            linea = f"- `{f['id']}`: {f['nota']}"
+            if _ronda_cierre(f) == "C2490":
+                linea += f" **{CIERRES_C2490[f['id']]}**"
+            elif _ronda_cierre(f) == "C2491":
+                linea += " **C2491: aprobación de un solo uso (ver subsección C2491).**"
+            elif f["id"] in NOTAS_C2490 and f["observado"] == "block":
+                linea += f" **{NOTAS_C2490[f['id']]}**"
+            lineas.append(linea)
     lineas += [
         "",
         "Lectura: donde la escritura sensible igual llega al dueño "
         "(`ask_owner`), el caso se cuenta frenado porque nada pasa en "
         "silencio, y la nota dice si la inyección en sí fue detectada o si "
-        "lo frenó el campo sensible. El detalle por caso queda en "
-        "`evals/recorded/redteam-c2489.json`.",
+        "lo frenó el campo sensible. Las notas de los casos son las de C2489 "
+        "(set congelado); lo que cambió después va en negrita. El detalle por "
+        f"caso queda en `evals/recorded/{RECORDED.name}`; la corrida anterior "
+        f"(C2489, re-medida en C2491), en `{RECORDED_C2489}`.",
     ]
     return "\n".join(lineas) + "\n"
 
@@ -467,7 +549,12 @@ def main() -> int:
     )
     write_section(START, END, _resumen(filas).rstrip())
     frenados = sum(1 for f in filas if f["frenado"])
-    print(f"redteam C2489-4: frenados {frenados}/{len(filas)} (detalle en evals/report.md)")
+    gaps = [f for f in filas if f["expect"] == "gap"]
+    cerrados = sum(1 for f in gaps if _ronda_cierre(f) == "C2490")
+    print(
+        f"redteam: frenados {frenados}/{len(filas)}; bypass cerrados en C2490 "
+        f"{cerrados}/{len(gaps)} (detalle en evals/report.md)"
+    )
     for f in filas:
         if not f["frenado"]:
             print(f"  pasa en silencio: {f['id']} ({f['vector']}, expect={f['expect']})")
