@@ -1110,10 +1110,30 @@ async function toggleRecord() {
     byId("typedText").focus();
   }
 }
+/* «New run» limpia ya la transcripción y los resultados de la corrida anterior
+   (antes quedaban a la vista hasta que la página terminaba de recargar). */
+function clearRun() {
+  Object.keys(stepTimers).forEach((k) => clearInterval(stepTimers[k]));
+  ["voiceTranscript", "voiceIntent", "voiceStatusLine", "voiceChannel", "disagreeLine",
+   "voiceLevel", "micError", "recordTimer", "containedLine", "sdkLine", "recountLine",
+   "comprasLine", "countValue", "expectedLine", "approvedLine"].forEach((id) => {
+    const node = byId(id); if (node) node.textContent = "";
+  });
+  ["attackerBefore", "attackerAfter"].forEach((id) => { const n = byId(id); if (n) n.replaceChildren(); });
+  const typed = byId("typedText"); if (typed) typed.value = "";
+  ["voiceConfirm", "voiceCancel"].forEach((id) => { const n = byId(id); if (n) n.hidden = true; });
+  document.querySelectorAll("[data-status-for]").forEach((n) => {
+    n.textContent = TEXT.not_run; n.dataset.state = "pending";
+  });
+  document.querySelectorAll(".step").forEach((n) => { n.dataset.state = "pending"; });
+  const bubble = byId("whatsappBubble");
+  if (bubble) { bubble.classList.remove("is-whatsapp", "is-approved"); bubble.dataset.channel = ""; }
+}
 document.addEventListener("DOMContentLoaded", () => {
   byId("runUntilBtn").addEventListener("click", runUntilOwner);
   byId("newRunBtn").addEventListener("click", async () => {
     await fetch("/live/reset", {method: "POST"});
+    clearRun();
     window.location.reload();
   });
   const stickyBtn = byId("stickyNewRunBtn");
