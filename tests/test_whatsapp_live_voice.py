@@ -414,3 +414,56 @@ def test_new_run_reloads_page():
     assert "/reset" in handler and "location.reload" in handler
     assert "voiceChannel" in html
     assert "Owner approved via WhatsApp voice note" in html
+
+
+class RecordingChain(FakeChain):
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self.errors: list[tuple[str, str]] = []
+
+    def record_voice_error(self, error, channel="whatsapp"):
+        self.errors.append((error, channel))
+        return {"status": "error", "error": error, "channel": channel}
+
+
+def test_download_failure_is_visible_in_panel_and_owner_gets_reply():
+    class Expired(FakeHTTP):
+        def get(self, url, headers=None):
+            self.gets.append(url)
+            return _Resp(status_code=401)
+
+    chain = RecordingChain()
+    http = Expired()
+    channel = _channel(chain, http)
+    results = channel.handle_payload(_audio_payload(message_id="wamid.e1"))
+    assert results[0]["status"] == "error"
+    assert chain.voice_calls == []
+    assert len(chain.errors) == 1
+    assert "401" in chain.errors[0][0] and chain.errors[0][1] == "whatsapp"
+    bodies = [p["json"]["text"]["body"] for p in http.posts]
+    assert any("could not process the voice note" in b for b in bodies)
+    assert all("tok-prueba" not in b for b in bodies)
+
+
+def test_voice_note_without_pending_plan_is_visible():
+    chain = RecordingChain()
+    chain._approval_id = None
+    http = FakeHTTP()
+    channel = _channel(chain, http)
+    results = channel.handle_payload(_audio_payload(message_id="wamid.e2"))
+    assert results[0]["reason"] == "no pending approval"
+    assert http.gets == []
+    assert chain.errors and "no plan is pending" in chain.errors[0][0]
+    assert any("Guardian" in p["json"]["text"]["body"] for p in http.posts)
+
+
+def test_live_chain_record_voice_error_shows_in_state_and_page():
+    chain = LiveChain(vault=MemoryVault({}))
+    out = chain.record_voice_error("graph media download failed: 401")
+    assert out["status"] == "error" and out["channel"] == "whatsapp"
+    assert chain.state()["results"]["voice"]["error"].endswith("401")
+    # El candado queda libre para el siguiente paso.
+    assert chain._lock.acquire(blocking=False)
+    chain._lock.release()
+    html = render_live_page("en")
+    assert 'r.status === "error" ? TEXT.error' in html

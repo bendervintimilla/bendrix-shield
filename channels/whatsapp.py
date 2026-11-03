@@ -20,6 +20,7 @@ import hmac
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import threading
 from collections.abc import Callable
@@ -393,6 +394,20 @@ class WhatsAppChannel:
             )
         return f"Containment result: {contain.get('status')} ({contain.get('error') or ''})."
 
+    def _voice_failed(self, chain: Any, error: str) -> None:
+        """Hace visible un fallo de la nota de voz: panel, log y respuesta al dueño."""
+        print(f"[whatsapp] voice note not processed: {error}", file=sys.stderr, flush=True)
+        record = getattr(chain, "record_voice_error", None)
+        if callable(record):
+            try:
+                record(error, channel="whatsapp")
+            except Exception as exc:  # el aviso no debe tumbar el webhook
+                print(f"[whatsapp] could not record error: {exc}", file=sys.stderr, flush=True)
+        try:
+            self.send_text(f"NoKey: {error}.")
+        except Exception as exc:
+            print(f"[whatsapp] could not reply: {exc}", file=sys.stderr, flush=True)
+
     def _handle_live_message(self, msg: WhatsAppMessage) -> dict[str, Any] | None:
         chain = self.get_live_chain()
         if chain is None:
@@ -426,12 +441,16 @@ class WhatsAppChannel:
             if not msg.audio_id:
                 return {**base, "status": "ignored", "reason": "sin audio_id"}
             if not getattr(chain, "_approval_id", None):
+                self._voice_failed(
+                    chain, "voice note received but no plan is pending: run the Guardian step first"
+                )
                 return {**base, "status": "ignored", "reason": "no pending approval"}
             try:
                 raw = download_media(msg.audio_id, self.config, self._http)
                 wav = self._audio_converter(raw)
                 voice = chain.step_voice(wav_bytes=wav, channel="whatsapp")
             except Exception as exc:
+                self._voice_failed(chain, f"could not process the voice note: {exc}")
                 return {**base, "status": "error", "error": str(exc)}
             transcript = str(voice.get("transcript") or "")
             intent = voice.get("intent") or {}

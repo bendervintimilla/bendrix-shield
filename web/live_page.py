@@ -738,7 +738,7 @@ function renderVoice(r) {
   byId("voiceConfirm").hidden = !showConfirm;
   byId("voiceCancel").hidden = !showConfirm;
   byId("disagreeLine").textContent = intent.source === "disagreement" ? TEXT.disagreement : "";
-  byId("voiceStatusLine").textContent = r.status === "unknown_command" ? TEXT.voice_unknown : (r.status === "no_speech" ? TEXT.voice_no_speech : (r.status || ""));
+  byId("voiceStatusLine").textContent = r.status === "unknown_command" ? TEXT.voice_unknown : (r.status === "no_speech" ? TEXT.voice_no_speech : (r.status === "error" ? TEXT.error + ": " + (r.error || "") : (r.status || "")));
 }
 function sdkSequenceText(statuses) {
   const parts = [];

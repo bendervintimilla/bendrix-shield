@@ -1715,6 +1715,24 @@ class LiveChain:
         finally:
             self._lock.release()
 
+    def record_voice_error(self, error: str, channel: str = "whatsapp") -> dict[str, Any]:
+        """Deja visible en el panel una nota de voz que no se pudo procesar.
+
+        Sin esto, un fallo antes de transcribir (token vencido al bajar el audio,
+        sin plan pendiente) solo quedaba en el hilo de WhatsApp y el panel no
+        mostraba nada.
+        """
+        voice_channel = channel if channel in ("whatsapp", "browser") else "browser"
+        out = {"status": "error", "error": str(error)[:300], "channel": voice_channel}
+        busy = self._busy()
+        if busy:
+            return busy
+        try:
+            self.results["voice"] = out
+            return self._redact_output(dict(out))
+        finally:
+            self._lock.release()
+
     def _apply_intent(self, intent: Any) -> dict[str, Any]:
         if not self._approval_id:
             return {"status": "error", "error": "no pending approval (run guardian first)"}
