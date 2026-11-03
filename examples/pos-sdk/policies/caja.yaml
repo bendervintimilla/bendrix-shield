@@ -1,0 +1,17 @@
+# Política del agente de caja del ejemplo POS (datos sintéticos).
+# Lo que no está en `tools` (p. ej. anular_factura) queda bloqueado.
+agent: caja
+app: pos
+limits:
+  max_amount_usd: 1000.0
+sensitive_fields:
+  - cuenta_bancaria
+ask_owner_if:
+  - sensitive_change
+  - amount_over_limit
+tools:
+  - name: emitir_factura
+    effect: write
+  - name: cambiar_cuenta_proveedor
+    effect: write
+    sensitive_fields: [cuenta_bancaria]
