@@ -145,7 +145,8 @@ class RunbookGuardianActions:
         runbook = self._actions.revoke()
         plan = runbook.plan(agent=agent)
         try:
-            result = runbook.apply(plan, approval_id=approval_id)
+            # La aprobación del dueño cubre el token_id del paso del plan, no otro.
+            result = runbook.apply(plan, approval_id=approval_id, bind_target=token_id)
         except ApprovalRequired as exc:
             return {"status": "blocked", "reason": str(exc), "token_id": token_id}
         return {"status": result.status, "agent": agent, "token_id": token_id}

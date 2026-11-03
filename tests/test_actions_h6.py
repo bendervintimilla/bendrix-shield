@@ -169,10 +169,13 @@ def test_upstream_key_manual_step_and_sandbox_only(tmp_path):
     runbook = actions_ok.rotate_upstream_key()
     plan = runbook.plan(provider="meta")
     with pytest.raises(ManualStepRequired):
-        runbook.apply(plan, approval_id=approve(actions_ok.approvals, tool="rotate_upstream_key"))
+        runbook.apply(
+            plan,
+            approval_id=approve(actions_ok.approvals, agent="meta", tool="rotate_upstream_key"),
+        )
     result = runbook.apply(
         plan,
-        approval_id=approve(actions_ok.approvals, tool="rotate_upstream_key"),
+        approval_id=approve(actions_ok.approvals, agent="meta", tool="rotate_upstream_key"),
         manual_value="new-key-1111",
     )
     assert result.status == "applied"
@@ -232,7 +235,9 @@ def test_redeploy_verify_and_patch_plan_sandbox_only():
     plan = redeploy.plan(service="cantina-demo")
     with pytest.raises(Exception):  # sin aprobación no despliega
         redeploy.apply(plan)
-    out = redeploy.apply(plan, approval_id=approve(actions.approvals, tool="redeploy"))
+    out = redeploy.apply(
+        plan, approval_id=approve(actions.approvals, agent="cantina-demo", tool="redeploy")
+    )
     assert out.status == "applied" and calls == ["cantina-demo"]
     assert redeploy.verify(service="cantina-demo").ok
     assert redeploy.rollback(out).status == "rolled_back"
@@ -241,7 +246,9 @@ def test_redeploy_verify_and_patch_plan_sandbox_only():
     pplan = patch.plan(service="cantina-demo", package="litellm", fixed_version="1.0.1")
     assert any("rollback" in s for s in pplan.steps)
     assert (
-        patch.apply(pplan, approval_id=approve(actions.approvals, tool="patch_plan")).status
+        patch.apply(
+            pplan, approval_id=approve(actions.approvals, agent="cantina-demo", tool="patch_plan")
+        ).status
         == "applied"
     )
 

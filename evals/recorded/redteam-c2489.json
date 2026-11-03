@@ -157,8 +157,8 @@
       "id": "rt-voice-replay-flow",
       "vector": "voz",
       "expect": "gap",
-      "observado": "approved",
-      "frenado": false,
+      "observado": "nonce_invalid",
+      "frenado": true,
       "detalle": "intent=approve/deterministic",
       "nota": "VoiceApprovalFlow sin cliente cae al parser determinista y aprueba: repetir la transcripción grabada basta en este camino. El modelo de amenaza del repo asume que el canal (WhatsApp/voz) ya autenticó al dueño; el flujo por sí solo no verifica hablante."
     },
@@ -265,8 +265,8 @@
       "id": "rt-voice-replay-other-plan",
       "vector": "voz",
       "expect": "gap",
-      "observado": "approved",
-      "frenado": false,
+      "observado": "nonce_invalid",
+      "frenado": true,
       "detalle": "replay_contra_otro_plan",
       "nota": "P1-3(a): la transcripción aprobada en un plan se reproduce contra otra aprobación distinta y también la aprueba: el approval_id es nuevo, pero la orden de voz no está atada a ningún plan ni tiene un solo uso."
     },
@@ -274,8 +274,8 @@
       "id": "rt-approval-reuse-cross-plan",
       "vector": "voz",
       "expect": "gap",
-      "observado": "rotar_bodega,revocar_compras",
-      "frenado": false,
+      "observado": "rotar_bodega,revocar_compras:frenado:ApprovalRequired",
+      "frenado": true,
       "detalle": "mismo_approval_id_dos_planes",
       "nota": "P1-3(b): check_approval acepta cualquier pending aprobado, sin atarlo al plan ni consumirlo: el mismo approval_id aplica dos planes distintos (rotar bodega y revocar compras)."
     },

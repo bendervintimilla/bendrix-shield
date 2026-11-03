@@ -1719,7 +1719,10 @@ class LiveChain:
         if not self._approval_id:
             return {"status": "error", "error": "no pending approval (run guardian first)"}
         # VoiceApprovalFlow._apply aplica parcial/unknown/reject/approve.
-        return self.voice_flow._apply(self._approval_id, intent, confirmed=False)  # noqa: SLF001
+        req = self.broker.get(self._approval_id)
+        return self.voice_flow._apply(  # noqa: SLF001
+            self._approval_id, intent, confirmed=False, nonce=req.nonce if req else None
+        )
 
     def _step_voice(
         self, wav_bytes: bytes | None = None, typed: str | None = None
@@ -1862,7 +1865,8 @@ class LiveChain:
             self._voice_channel = channel
         if not self._approval_id:
             return {"status": "error", "error": "no pending approval"}
-        outcome = self.voice_flow.confirm(self._approval_id)
+        req = self.broker.get(self._approval_id)
+        outcome = self.voice_flow.confirm(self._approval_id, nonce=req.nonce if req else None)
         out = {
             "status": str(outcome.get("status")),
             "approval_id": self._approval_id,

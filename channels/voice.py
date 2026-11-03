@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from channels.approvals import ApprovalBroker, ChannelApprover
+from channels.approvals import ApprovalBroker, ApprovalRejected, ChannelApprover
 
 _REJECT_WORDS = (
     "rechaza",
@@ -283,24 +283,44 @@ class VoiceApprovalFlow:
         self._awaiting: dict[str, VoiceIntent] = {}
 
     def handle_transcript(
-        self, approval_id: str, transcript: str, *, confirmed: bool = False
+        self,
+        approval_id: str,
+        transcript: str,
+        *,
+        nonce: str | None,
+        confirmed: bool = False,
     ) -> dict[str, Any]:
+        """Aplica la orden de voz a UNA solicitud: exige el nonce de esa solicitud.
+
+        Repetir una transcripción grabada contra otra solicitud (o contra esta sin el
+        nonce que la superficie del dueño recibió al abrirla) no aprueba nada.
+        """
         intent = interpret_with_spark(transcript, self.client)
-        return self._apply(approval_id, intent, confirmed=confirmed)
+        return self._apply(approval_id, intent, confirmed=confirmed, nonce=nonce)
 
     def handle_audio(
-        self, approval_id: str, wav_path: str | Path, *, confirmed: bool = False
+        self,
+        approval_id: str,
+        wav_path: str | Path,
+        *,
+        nonce: str | None,
+        confirmed: bool = False,
     ) -> dict[str, Any]:
         heard = transcribe_audio(wav_path, self.client)
         if heard.get("needs_credits"):
             return {**heard, "approval_id": approval_id, "status": "needs_credits"}
-        return self.handle_transcript(approval_id, heard["transcript"], confirmed=confirmed)
+        return self.handle_transcript(
+            approval_id, heard["transcript"], nonce=nonce, confirmed=confirmed
+        )
 
-    def confirm(self, approval_id: str) -> dict[str, Any]:
-        intent = self._awaiting.pop(approval_id, None)
+    def confirm(self, approval_id: str, *, nonce: str | None) -> dict[str, Any]:
+        intent = self._awaiting.get(approval_id)
         if intent is None:
             return {"status": "nothing_to_confirm", "approval_id": approval_id}
-        return self._apply(approval_id, intent, confirmed=True)
+        out = self._apply(approval_id, intent, confirmed=True, nonce=nonce)
+        if out.get("status") not in ("nonce_invalid", "expired"):
+            self._awaiting.pop(approval_id, None)
+        return out
 
     def cancel(self, approval_id: str) -> dict[str, Any]:
         intent = self._awaiting.pop(approval_id, None)
@@ -318,9 +338,21 @@ class VoiceApprovalFlow:
     def has_awaiting(self) -> bool:
         return bool(self._awaiting)
 
-    def _apply(self, approval_id: str, intent: VoiceIntent, *, confirmed: bool) -> dict[str, Any]:
+    def _apply(
+        self,
+        approval_id: str,
+        intent: VoiceIntent,
+        *,
+        confirmed: bool,
+        nonce: str | None,
+    ) -> dict[str, Any]:
         base = {"approval_id": approval_id, "intent": intent.public()}
         req = self.broker.get(approval_id)
+        if req is not None and req.status == "pending":
+            try:
+                self.broker._check_decision(req, nonce)  # noqa: SLF001
+            except ApprovalRejected as exc:
+                return {**base, "status": exc.code, "reason": str(exc)}
         if intent.is_partial and req is not None:
             base.update(plan_preview(req.plan, intent))
         if intent.action == "unknown":
@@ -333,6 +365,7 @@ class VoiceApprovalFlow:
             return {**base, "status": "confirmation_required"}
         approved_req = self.broker.approve(
             approval_id,
+            nonce=nonce,
             exclude_targets=intent.exclude_targets,
             only_targets=intent.only_targets or None,
         )
@@ -379,6 +412,7 @@ class VoiceApprover(ChannelApprover):
             return None
         self.broker.approve(
             req.approval_id,
+            nonce=req.nonce,
             exclude_targets=intent.exclude_targets,
             only_targets=intent.only_targets or None,
         )
@@ -388,7 +422,8 @@ class VoiceApprover(ChannelApprover):
         """Confirma la aprobación parcial y devuelve el approval_id."""
         if self.pending_approval_id is None or self.pending_intent is None:
             return None
-        outcome = self._flow.confirm(self.pending_approval_id)
+        req = self.broker.get(self.pending_approval_id)
+        outcome = self._flow.confirm(self.pending_approval_id, nonce=req.nonce if req else None)
         if outcome.get("status") != "approved":
             return None
         approval_id = self.pending_approval_id

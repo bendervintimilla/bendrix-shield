@@ -102,7 +102,12 @@ def test_whatsapp_buttons_idempotent_and_reject_blocks():
     app.state.whatsapp = channel
     # Montamos el canal de prueba sobre un broker propio vía handle_payload directo
     # y también por HTTP con firma sobre el broker del panel.
-    payload = simulated_click_payload(approval_id=approval_id, action="approve", message_id="m-1")
+    payload = simulated_click_payload(
+        approval_id=approval_id,
+        action="approve",
+        message_id="m-1",
+        nonce=broker.get(approval_id).nonce,
+    )
     first = channel.handle_payload(payload)
     second = channel.handle_payload(payload)
     assert first[0]["status"] == "approved"
@@ -142,7 +147,12 @@ def test_whatsapp_buttons_idempotent_and_reject_blocks():
     signed_app.include_router(create_router(signed_channel))
     signed_client = TestClient(signed_app, raise_server_exceptions=False)
     raw2 = json.dumps(
-        simulated_click_payload(approval_id=signed_id, action="approve", message_id="m-10")
+        simulated_click_payload(
+            approval_id=signed_id,
+            action="approve",
+            message_id="m-10",
+            nonce=signed_app_broker.get(signed_id).nonce,
+        )
     ).encode()
     assert (
         signed_client.post(
@@ -206,10 +216,11 @@ def test_voice_spark_fallback_and_transcribe_needs_credits():
 def test_voice_partial_requires_confirmation_then_approves_subset():
     broker, approval_id = _broker_with_plan(targets=("bodega", "stripe"))
     flow = VoiceApprovalFlow(broker)
-    first = flow.handle_transcript(approval_id, "sí, rota todo menos Stripe")
+    nonce = broker.get(approval_id).nonce
+    first = flow.handle_transcript(approval_id, "sí, rota todo menos Stripe", nonce=nonce)
     assert first["status"] == "confirmation_required"
     assert not broker.is_approved(approval_id)
-    done = flow.confirm(approval_id)
+    done = flow.confirm(approval_id, nonce=nonce)
     assert done["status"] == "approved"
     assert broker.approved_steps_for(approval_id) == {("rotate_token", "bodega")}
 
@@ -297,12 +308,22 @@ def test_e2e_guardian_whatsapp_runbook_attacker_401():
     assert blocked["status"] == "blocked"
 
     clicked = channel.handle_payload(
-        simulated_click_payload(approval_id=approval_id, action="approve", message_id="wamid-1")
+        simulated_click_payload(
+            approval_id=approval_id,
+            action="approve",
+            message_id="wamid-1",
+            nonce=broker.get(approval_id).nonce,
+        )
     )
     assert clicked[0]["status"] == "approved"
     # Idempotente: repetir el mismo mensaje no re-aprueba ni rompe nada.
     again = channel.handle_payload(
-        simulated_click_payload(approval_id=approval_id, action="approve", message_id="wamid-1")
+        simulated_click_payload(
+            approval_id=approval_id,
+            action="approve",
+            message_id="wamid-1",
+            nonce=broker.get(approval_id).nonce,
+        )
     )
     assert again[0]["status"] == "duplicate"
 
@@ -388,9 +409,12 @@ def test_panel_lang_es_shows_aprobar_and_cookie_keeps_it():
 def test_panel_voice_partial_confirmation_flow():
     broker, approval_id = _broker_with_plan(targets=("bodega", "stripe"))
     flow = VoiceApprovalFlow(broker)
-    outcome = flow.handle_transcript(approval_id, "sí, rota todo menos Stripe", confirmed=False)
+    nonce = broker.get(approval_id).nonce
+    outcome = flow.handle_transcript(
+        approval_id, "sí, rota todo menos Stripe", nonce=nonce, confirmed=False
+    )
     assert outcome["status"] == "confirmation_required"
     assert not broker.is_approved(approval_id)
-    confirmed = flow.confirm(approval_id)
+    confirmed = flow.confirm(approval_id, nonce=nonce)
     assert confirmed["status"] == "approved"
     assert broker.approved_steps_for(approval_id) == {("rotate_token", "bodega")}

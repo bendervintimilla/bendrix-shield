@@ -97,7 +97,7 @@ def test_new_run_clears_previous_run_before_reload():
 
     html = render_live_page("en")
     handler = html.split('byId("newRunBtn").addEventListener')[1][:300]
-    assert handler.index("/live/reset") < handler.index("clearRun()") < handler.index("reload")
+    assert handler.index("/reset") < handler.index("clearRun()") < handler.index("reload")
     body = html.split("function clearRun()")[1].split("document.addEventListener")[0]
     for node in ("voiceTranscript", "voiceIntent", "attackerAfter", "containedLine", "typedText"):
         assert node in body

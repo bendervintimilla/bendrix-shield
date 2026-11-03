@@ -103,7 +103,11 @@ def _run_voice_flow(caso: dict) -> dict:
     broker = ApprovalBroker()
     req = broker.request(_plan(["bodega-token", "compras-token"]))
     flow = VoiceApprovalFlow(broker, client=None)
-    out = flow.handle_transcript(req.approval_id, caso["transcript"])
+    # Los casos `gap` son la repetición de una transcripción grabada: quien la repite no
+    # tiene el nonce de esta solicitud. Los controles (negación, parcial) vienen del dueño
+    # y sí lo llevan, para seguir midiendo el intérprete de voz.
+    nonce = None if caso["expect"] == "gap" else req.nonce
+    out = flow.handle_transcript(req.approval_id, caso["transcript"], nonce=nonce)
     aprobado = out.get("status") == "approved"
     return {
         "observado": str(out.get("status")),
@@ -214,10 +218,12 @@ def _run_voice_flow_other(caso: dict) -> dict:
     from channels.voice import VoiceApprovalFlow
 
     broker = ApprovalBroker()
-    broker.request(_plan(["bodega-token"]))  # plan A: queda pendiente
+    req_a = broker.request(_plan(["bodega-token"]))  # plan A: el dueño lo aprobó antes
     req_b = broker.request(_plan(["compras-token"]))  # plan B: otra aprobación
     flow = VoiceApprovalFlow(broker, client=None)
-    out = flow.handle_transcript(req_b.approval_id, caso["transcript"])
+    # Repite la orden que aprobó el plan A contra el plan B, con el nonce de A (el único
+    # que el atacante vio): no es el de B.
+    out = flow.handle_transcript(req_b.approval_id, caso["transcript"], nonce=req_a.nonce)
     return {
         "observado": str(out.get("status")),
         "frenado": out.get("status") != "approved",
