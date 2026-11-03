@@ -84,7 +84,7 @@ def test_voz_parcial_sin_confirmar_no_ejecuta():
         }
     )
     out = VoiceApprovalFlow(broker, client=None).handle_transcript(
-        req.approval_id, "sí rota todo menos compras"
+        req.approval_id, "sí rota todo menos compras", nonce=req.nonce
     )
     assert out["status"] == "confirmation_required"
     assert broker.get(req.approval_id).status == "pending"

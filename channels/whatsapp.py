@@ -4,7 +4,8 @@ Protocolo según la doc de Meta WhatsApp Business Platform: verificación
 ``GET`` con ``hub.mode``/``hub.verify_token``/``hub.challenge`` y ``POST``
 firmado con ``X-Hub-Signature-256`` (HMAC-SHA256 del cuerpo con el secreto
 de la app). Los botones interactivos usan ids ``approve:<approval_id>``,
-``reject:<approval_id>`` y ``detail:<approval_id>``.
+``reject:<approval_id>`` y ``detail:<approval_id>``; Aprobar lleva además el nonce de
+la solicitud (``approve:<approval_id>:<nonce>``), de un solo uso.
 
 El número de prueba y el token salen del vault como ``whatsapp-test-*``.
 Si no existen, el canal queda en modo simulador: los mensajes salientes se
@@ -167,7 +168,9 @@ def parse_webhook(payload: dict[str, Any]) -> list[WhatsAppMessage]:
     return messages
 
 
-def button_payload(to: str, approval_id: str, summary: str) -> dict[str, Any]:
+def button_payload(
+    to: str, approval_id: str, summary: str, nonce: str = ""
+) -> dict[str, Any]:
     """Mensaje interactivo con Aprobar / Rechazar / Ver detalle."""
     return {
         "messaging_product": "whatsapp",
@@ -180,7 +183,10 @@ def button_payload(to: str, approval_id: str, summary: str) -> dict[str, Any]:
                 "buttons": [
                     {
                         "type": "reply",
-                        "reply": {"id": f"approve:{approval_id}", "title": "Aprobar"},
+                        "reply": {
+                            "id": f"approve:{approval_id}" + (f":{nonce}" if nonce else ""),
+                            "title": "Aprobar",
+                        },
                     },
                     {
                         "type": "reply",
@@ -197,10 +203,18 @@ def button_payload(to: str, approval_id: str, summary: str) -> dict[str, Any]:
 
 
 def simulated_click_payload(
-    *, approval_id: str, action: str, message_id: str, from_number: str = "593990000000"
+    *,
+    approval_id: str,
+    action: str,
+    message_id: str,
+    from_number: str = "593990000000",
+    nonce: str = "",
 ) -> dict[str, Any]:
     """Payload tal como lo enviaría Meta al pulsar un botón (simulador)."""
     titles = {"approve": "Aprobar", "reject": "Rechazar", "detail": "Ver detalle"}
+    button_id = f"{action}:{approval_id}"
+    if nonce and action == "approve":
+        button_id += f":{nonce}"
     return {
         "object": "whatsapp_business_account",
         "entry": [
@@ -216,7 +230,7 @@ def simulated_click_payload(
                                     "interactive": {
                                         "type": "button_reply",
                                         "button_reply": {
-                                            "id": f"{action}:{approval_id}",
+                                            "id": button_id,
                                             "title": titles.get(action, action),
                                         },
                                     },
@@ -303,7 +317,8 @@ class WhatsAppChannel:
 
     def send_approval_request(self, approval_id: str, summary: str) -> dict[str, Any]:
         to = self.config.phone_number or "593990000000"
-        payload = button_payload(to, approval_id, summary)
+        req = self.broker.get(approval_id)
+        payload = button_payload(to, approval_id, summary, req.nonce if req else "")
         if self.simulator_mode:
             self.outbox.append(payload)
             return {"simulated": True, "channel": "whatsapp-simulator", "payload": payload}
@@ -500,7 +515,8 @@ class WhatsAppChannel:
         base = {"message_id": msg.message_id, "from": msg.from_number}
         if msg.kind != "button" or ":" not in msg.button_id:
             return {**base, "status": "ignored", "reason": "no es un botón de aprobación"}
-        action, approval_id = msg.button_id.split(":", 1)
+        action, rest = msg.button_id.split(":", 1)
+        approval_id, _, nonce = rest.partition(":")
         req = self.broker.get(approval_id)
         if req is None:
             return {**base, "status": "not_found", "approval_id": approval_id}
@@ -513,7 +529,12 @@ class WhatsAppChannel:
         if req.status != "pending":
             return {**base, "status": req.status, "approval_id": approval_id, "idempotent": True}
         if action == "approve":
-            self.broker.approve(approval_id)
+            try:
+                self.broker.approve(approval_id, nonce=nonce)
+            except ValueError as exc:
+                code = getattr(exc, "code", "rejected")
+                self.send_text(f"No se aprobó {approval_id}: {code}.")
+                return {**base, "status": code, "approval_id": approval_id}
             self.send_text(f"Aprobado {approval_id}. Shield ejecuta el plan.")
             return {**base, "status": "approved", "approval_id": approval_id}
         if action == "reject":

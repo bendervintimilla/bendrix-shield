@@ -21,7 +21,7 @@ from typing import Any
 
 from shield.registry import Registry
 from shield.schemas import AgentTokenStatus
-from shield.sdk.pending import PendingRegistry
+from shield.sdk.pending import ApprovalDenied, PendingRegistry
 from shield.vault.vault import BaseVault
 
 
@@ -152,16 +152,29 @@ class Actions:
             )
         )
 
-    def check_approval(self, approval_id: str | None, *, auto_reason: str | None = None) -> bool:
-        """True si hay aprobación válida o aplica contención automática."""
+    def check_approval(
+        self,
+        approval_id: str | None,
+        *,
+        action: str,
+        target: str,
+        auto_reason: str | None = None,
+    ) -> bool:
+        """True si hay aprobación válida para (acción, objetivo) o aplica contención automática.
+
+        La aprobación es de un solo uso: ligada a la acción y al objetivo (token/agente),
+        con caducidad. Un ``approval_id`` aprobado para otra acción u otro token, caducado
+        o ya gastado levanta ``ApprovalRequired``.
+        """
         if approval_id:
             gate = self.approvals
             if callable(gate) and not isinstance(gate, PendingRegistry):
                 return bool(gate(approval_id))
-            pending = gate.get(approval_id)  # type: ignore[attr-defined]
-            if pending is not None and pending.status in ("approved", "executed"):
-                return True
-            raise ApprovalRequired(f"approval_id no aprobado: {approval_id}")
+            try:
+                gate.consume(approval_id, action, target)  # type: ignore[attr-defined]
+            except ApprovalDenied as exc:
+                raise ApprovalRequired(str(exc)) from exc
+            return True
         if auto_reason == "canary_detected" and self.auto_contain:
             return True
         raise ApprovalRequired("se requiere approval_id")
@@ -192,9 +205,21 @@ class _BaseRunbook:
         self.ctx = ctx
         self._applied: dict[str, ActionResult] = {}
 
-    def _require(self, plan: Plan, approval_id: str | None, reason: str | None) -> bool:
+    def _require(
+        self,
+        plan: Plan,
+        approval_id: str | None,
+        reason: str | None,
+        *,
+        bind_target: str | None = None,
+    ) -> bool:
         auto = not approval_id and reason == "canary_detected" and self.ctx.auto_contain
-        self.ctx.check_approval(approval_id, auto_reason=reason)
+        self.ctx.check_approval(
+            approval_id,
+            action=plan.action,
+            target=bind_target or plan.target,
+            auto_reason=reason,
+        )
         return auto
 
 
@@ -525,11 +550,19 @@ class RevokeRunbook(_BaseRunbook):
         self.ctx._audit(self.action, agent, "plan", details={"plan_id": plan.plan_id})
         return plan
 
-    def apply(self, plan: Plan, *, approval_id: str | None = None) -> ActionResult:
+    def apply(
+        self,
+        plan: Plan,
+        *,
+        approval_id: str | None = None,
+        bind_target: str | None = None,
+    ) -> ActionResult:
         if plan.plan_id in self._applied:
             return self._applied[plan.plan_id]
         agent = plan.target
-        auto = self._require(plan, approval_id, plan.details.get("reason"))
+        auto = self._require(
+            plan, approval_id, plan.details.get("reason"), bind_target=bind_target
+        )
         revoked = []
         for token in self.ctx._active_tokens(agent):
             self.ctx.registry.revoke(token.token_id)

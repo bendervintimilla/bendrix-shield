@@ -8,6 +8,7 @@ import html
 from typing import Any
 
 from web.brand import BRAND, SUBTITLE
+from web.live_page_replay import REPLAY_T
 
 __all__ = [
     "BRAND",
@@ -282,6 +283,10 @@ T: dict[str, dict[str, str]] = {
 }
 
 
+for _lang, _extra in REPLAY_T.items():
+    T[_lang].update(_extra)
+
+
 def _t(lang: str, key: str) -> str:
     return T.get(lang, T["en"]).get(key, T["en"].get(key, key))
 
@@ -359,6 +364,9 @@ a{color:#8ab8ff}
 .mode-switch,.lang{display:inline-flex;gap:4px}
 .mode-switch a,.lang a{display:inline-flex;align-items:center;min-height:40px;padding:7px 13px;color:var(--muted);border:1px solid var(--line);border-radius:999px;background:rgba(35,38,47,.72);text-decoration:none}
 .mode-switch a[aria-current="true"],.lang a[aria-current="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+.mode-switch .mode-off{display:inline-flex;align-items:center;min-height:40px;padding:7px 13px;color:#6f7685;border:1px dashed var(--line);border-radius:999px;cursor:not-allowed}
+.scene-switch a[aria-current="true"]{background:#1f9d63;border-color:#1f9d63}
+.live-off-note,.replay-note{margin:14px auto 0;max-width:620px;font-size:14.5px;color:var(--muted)}
 .stickybar{position:sticky;top:0;z-index:60;background:rgba(17,17,19,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .sticky-inner{width:min(var(--col),calc(100% - 40px));max-width:var(--col);margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 0}
 .sticky-brand{font-weight:800;letter-spacing:-.01em;white-space:nowrap}
@@ -478,6 +486,9 @@ section h2{font-size:26px}
 
 _JS = r"""
 const TEXT = __TEXTS__;
+const API = "__API__";
+const SCENE = "__SCENE__";
+const REPLAY = __REPLAY__;
 function el(tag, text, cls) {
   const node = document.createElement(tag);
   if (cls) node.className = cls;
@@ -540,6 +551,9 @@ function anomalyText(a) {
   if (kind === "cost_spike") return TEXT.anomaly_cost_spike;
   if (kind === "blocked_burst") return TEXT.anomaly_blocked_burst;
   if (kind === "volume_spike") return TEXT.anomaly_volume_spike;
+  if (kind === "out_of_range") return TEXT.anomaly_out_of_range;
+  if (kind === "off_hours") return TEXT.anomaly_off_hours;
+  if (kind === "unexpected_origin") return TEXT.anomaly_unexpected_origin;
   return TEXT.anomaly_other;
 }
 const REASON_EN = [
@@ -667,7 +681,7 @@ function renderGuardian(r) {
   const box = byId("guardianResult"); clear(box);
   const turns = r.turns || [];
   const toolCount = turns.reduce((n, t) => n + ((t.tool_calls || []).length), 0);
-  box.appendChild(el("p", TEXT.guardian_turns + ": " + turns.length + " " + TEXT.turns_used + " · " + toolCount + " " + TEXT.tools_used));
+  if (turns.length) box.appendChild(el("p", TEXT.guardian_turns + ": " + turns.length + " " + TEXT.turns_used + " · " + toolCount + " " + TEXT.tools_used));
   if (r.status === "error" || !r.plan) {
     box.appendChild(el("p", r.error || TEXT.no_plan_error));
     return;
@@ -685,7 +699,7 @@ function renderGuardian(r) {
   const stepList = el("ol");
   (plan.steps || []).forEach((s) => stepList.appendChild(el("li", actionPlain(s.action) + " — " + (s.target || "") + (s.reason ? " — " + s.reason : ""))));
   box.appendChild(stepList);
-  box.appendChild(el("h3", TEXT.guardian_turns));
+  if (turns.length) box.appendChild(el("h3", TEXT.guardian_turns));
   turns.forEach((turn) => {
     const details = document.createElement("details");
     details.appendChild(el("summary", "Turn " + (turn.turn || "")));
@@ -743,8 +757,50 @@ function renderContain(r, state) {
   byId("comprasLine").textContent = TEXT.purchasing_status + ": " + (r.compras_status ?? "");
   byId("containedLine").textContent = r.contained_in_s != null ? TEXT.contained_in + " " + r.contained_in_s + "s" : "";
 }
+function coldAttempt(att, label) {
+  const row = el("div", null, "forced-row");
+  const eq = (att.equipment || {});
+  const req = (att.request || {});
+  row.appendChild(el("h3", label || (eq.label || req.equipment || "")));
+  row.appendChild(el("p", (eq.label || req.equipment || "") + ": " + (req.setpoint_c !== undefined ? req.setpoint_c + " °C" : "") + (req.hour !== undefined ? " · " + String(req.hour).padStart(2, "0") + ":00" : "") + (req.origin_country ? " · " + req.origin_country : "")));
+  row.appendChild(decisionBlock(att.decision));
+  (att.reasons || []).forEach((reason) => row.appendChild(el("p", reason, "mono")));
+  row.appendChild(el("p", att.applied ? TEXT.cold_applied : TEXT.cold_not_applied));
+  return row;
+}
+function renderColdLegit(r) {
+  const box = byId("invoiceResult"); clear(box);
+  box.appendChild(el("p", TEXT.cold_legit_note, "verdict"));
+  box.appendChild(coldAttempt(r.evaluation || {}));
+  box.appendChild(el("p", "Gateway: " + (r.gateway_status ?? "")));
+}
+function renderColdScope(r) {
+  const box = byId("countResult"); clear(box);
+  box.appendChild(el("p", TEXT.cold_scope_note, "verdict"));
+  box.appendChild(coldAttempt(r.evaluation || {}));
+}
+function renderColdAttack(r) {
+  renderAttack(r);
+  const box = byId("coldAttempts"); clear(box);
+  (r.attacks || []).forEach((att) => box.appendChild(coldAttempt(att)));
+}
+function renderColdContain(r, state) {
+  const before = ((state && state.results && state.results.attack) || {}).statuses || [];
+  statusBlocks(byId("attackerBefore"), before.slice(0, 1));
+  statusBlocks(byId("attackerAfter"), r.attacker_after || []);
+  byId("sdkLine").textContent = TEXT.cold_refrigeration_status + ": " + (r.refrigeracion_status ?? "");
+  byId("recountLine").textContent = TEXT.warehouse_status + ": " + (r.bodega_status ?? "");
+  byId("comprasLine").textContent = TEXT.purchasing_status + ": " + (r.compras_status ?? "");
+  byId("containedLine").textContent = r.contained_in_s != null ? TEXT.contained_in + " " + r.contained_in_s + "s" : "";
+}
 function renderResult(step, r, state) {
   if (!r) return;
+  if (SCENE === "frio") {
+    if (step === "invoice") return renderColdLegit(r);
+    if (step === "count") return renderColdScope(r);
+    if (step === "attack") return renderColdAttack(r);
+    if (step === "contain") return renderColdContain(r, state);
+  }
   if (step === "invoice") renderInvoice(r);
   if (step === "count") renderCount(r);
   if (step === "attack") renderAttack(r);
@@ -908,7 +964,7 @@ function updateBand(state) {
   if (!state) return;
   const total = Number(state.total_cost_usd || 0);
   const cap = Number(state.cap_usd || 1);
-  byId("costLabel").textContent = "USD " + total.toFixed(4) + " " + TEXT.cost_of_cap.replace("{cap}", cap.toFixed(2));
+  byId("costLabel").textContent = REPLAY ? TEXT.replay_cost : "USD " + total.toFixed(4) + " " + TEXT.cost_of_cap.replace("{cap}", cap.toFixed(2));
   const stickyCost = byId("stickyCost");
   if (stickyCost) stickyCost.textContent = byId("costLabel").textContent;
   const results = state.results || {};
@@ -977,11 +1033,11 @@ function updateBand(state) {
   Object.keys(results).forEach((key) => renderResult(key === "voice_confirm" || key === "voice_cancel" ? "voice" : key, results[key], state));
 }
 async function refreshState() {
-  const res = await fetch("/live/state");
+  const res = await fetch(API + "/state");
   if (!res.ok) return null;
   const state = await res.json();
   if (state.status === "not_started") {
-    const started = await fetch("/live/start", {method: "POST"});
+    const started = await fetch(API + "/start", {method: "POST"});
     if (started.ok) { const s2 = await started.json(); updateBand(s2); return s2; }
     return state;
   }
@@ -998,12 +1054,12 @@ async function runStep(step) {
         byId("shelfImg").src = URL.createObjectURL(input.files[0]);
         const form = new FormData();
         form.append("file", input.files[0]);
-        res = await fetch("/live/step/count", {method: "POST", body: form});
+        res = await fetch(API + "/step/count", {method: "POST", body: form});
       } else {
-        res = await fetch("/live/step/count", {method: "POST"});
+        res = await fetch(API + "/step/count", {method: "POST"});
       }
     } else {
-      res = await fetch("/live/step/" + step, {method: "POST"});
+      res = await fetch(API + "/step/" + step, {method: "POST"});
     }
     const data = await res.json();
     if (!res.ok || data.status === "error" || data.status === "cost_cap_reached" || data.status === "not_approved") {
@@ -1077,7 +1133,7 @@ async function toggleRecord() {
     const form = new FormData();
     form.append("file", wav, "voz.wav");
     startStatus("voice");
-    const res = await fetch("/live/voice", {method: "POST", body: form});
+    const res = await fetch(API + "/voice", {method: "POST", body: form});
     const data = await res.json();
     stopStatus("voice", data.status === "error" ? TEXT.error + ": " + (data.error || "") : TEXT.ok + ": " + (data.status || ""));
     renderVoice(data);
@@ -1132,7 +1188,7 @@ function clearRun() {
 document.addEventListener("DOMContentLoaded", () => {
   byId("runUntilBtn").addEventListener("click", runUntilOwner);
   byId("newRunBtn").addEventListener("click", async () => {
-    await fetch("/live/reset", {method: "POST"});
+    await fetch(API + "/reset", {method: "POST"});
     clearRun();
     window.location.reload();
   });
@@ -1141,16 +1197,20 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-run-step]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const step = btn.getAttribute("data-run-step");
-      if (step === "voice") { toggleRecord(); return; }
+      if (step === "voice") { if (REPLAY) { byId("typedText").focus(); } else { toggleRecord(); } return; }
       runStep(step);
     });
   });
   byId("recordBtn").addEventListener("click", toggleRecord);
+  if (REPLAY) {
+    const typed = byId("typedText");
+    if (typed && !typed.value) typed.value = TEXT.replay_phrase;
+  }
   byId("sendTypedBtn").addEventListener("click", async () => {
     const form = new FormData();
     form.append("typed", byId("typedText").value);
     startStatus("voice");
-    const res = await fetch("/live/voice", {method: "POST", body: form});
+    const res = await fetch(API + "/voice", {method: "POST", body: form});
     const data = await res.json();
     stopStatus("voice", data.status === "error" ? TEXT.error + ": " + (data.error || "") : TEXT.ok + ": " + (data.status || ""));
     renderVoice(data);
@@ -1158,14 +1218,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (data.status === "approved") await runStep("contain");
   });
   byId("voiceConfirm").addEventListener("click", async () => {
-    const res = await fetch("/live/voice/confirm", {method: "POST"});
+    const res = await fetch(API + "/voice/confirm", {method: "POST"});
     const data = await res.json();
     byId("voiceStatusLine").textContent = data.status || "";
     await refreshState();
     if (data.status === "approved") await runStep("contain");
   });
   byId("voiceCancel").addEventListener("click", async () => {
-    const res = await fetch("/live/voice/cancel", {method: "POST"});
+    const res = await fetch(API + "/voice/cancel", {method: "POST"});
     const data = await res.json();
     byId("voiceStatusLine").textContent = data.status || "";
     await refreshState();
@@ -1196,78 +1256,135 @@ def render_live_page(
     no_key: bool = False,
     remote: bool = False,
     replay_url: str = "/",
+    replay: bool = False,
+    scene: str = "bodega",
 ) -> str:
     import json as _json
 
     lang = lang if lang in T else "en"
+    scene = scene if scene in ("bodega", "frio") else "bodega"
+    cold = replay and scene == "frio"
+    api = "/replay" if replay else "/live"
     labels = dict(T[lang])
+    if cold:
+        labels["hero_subtitle"] = labels["cold_hero_subtitle"]
+        labels["voice_hint"] = labels["cold_voice_hint"]
+        labels["replay_phrase"] = labels["cold_replay_phrase"]
+        labels["step1_title"] = labels["cold_step1_title"]
+        labels["step2_title"] = labels["cold_step2_title"]
+        labels["step3_title"] = labels["cold_step3_title"]
+    if replay:
+        labels["live_label"] = labels["replay_label"]
     if remote:
         labels["live_label"] = (
             "LIVE — real Meta models through the Shield gateway (hosted, spend capped)"
             if lang == "en"
             else "EN VIVO — modelos reales de Meta a través del gateway de Shield (alojado, gasto con tope)"
         )
+    def _L(key: str) -> str:
+        return labels.get(key) or T["en"].get(key, key)
+
     texts = _json.dumps(labels, ensure_ascii=False)
-    script = _JS.replace("__TEXTS__", texts)
+    script = (
+        _JS.replace("__TEXTS__", texts)
+        .replace("__API__", api)
+        .replace("__SCENE__", scene)
+        .replace("__REPLAY__", "true" if replay else "false")
+    )
     en_current = " aria-current='true'" if lang == "en" else ""
     es_current = " aria-current='true'" if lang == "es" else ""
-    spark_row = _t(lang, "spark_open_row") if spark_open_no_key else _t(lang, "spark_open_row_key")
-    step1_inner = (
-        "<div class='invoice-media'>"
-        "<img class='thumb' src='/live/fixture/invoice' alt='invoice fixture'>"
-        "<div class='fineprint-wrap'><img class='fineprint' src='/live/fixture/invoice' "
-        "alt='invoice fine print'></div></div>"
-        f"<p>{_e(_t(lang, 'hidden_order'))}</p><div id='invoiceResult'></div>"
-    )
-    step2_inner = (
-        "<div class='shelf-wrap'><img id='shelfImg' src='/live/fixture/shelf' alt='shelf fixture'>"
-        "<div id='shelfOverlay'></div></div>"
-        f"<p class='bigcount' id='countValue'></p>"
-        f"<p id='materialLabel'></p><p id='expectedLine'></p>"
-        f"<label class='file-pill' for='ownPhoto'><input class='file-input' id='ownPhoto' type='file' accept='image/*'>"
-        f"<span>{_e(_t(lang, 'use_own_photo'))}</span></label>"
-    )
+    spark_row = _L("spark_open_row") if spark_open_no_key else _L("spark_open_row_key")
+    if cold:
+        step1_inner = "<div id='invoiceResult'></div>"
+        step2_inner = "<div id='countResult'></div>"
+    else:
+        step1_inner = (
+            "<div class='invoice-media'>"
+            f"<img class='thumb' src='{api}/fixture/invoice' alt='invoice fixture'>"
+            f"<div class='fineprint-wrap'><img class='fineprint' src='{api}/fixture/invoice' "
+            "alt='invoice fine print'></div></div>"
+            f"<p>{_e(_L('hidden_order'))}</p><div id='invoiceResult'></div>"
+        )
+        step2_inner = (
+            f"<div class='shelf-wrap'><img id='shelfImg' src='{api}/fixture/shelf' alt='shelf fixture'>"
+            "<div id='shelfOverlay'></div></div>"
+            "<p class='bigcount' id='countValue'></p>"
+            "<p id='materialLabel'></p><p id='expectedLine'></p>"
+            "<label class='file-pill' for='ownPhoto'><input class='file-input' id='ownPhoto' type='file' accept='image/*'>"
+            f"<span>{_e(_L('use_own_photo'))}</span></label>"
+        )
     step3_inner = (
-        f"<p>{_e(_t(lang, 'attacker_attempts'))}</p>"
+        f"<p>{_e(_L('attacker_attempts'))}</p>"
         "<div id='attackStatuses' class='attempts'></div>"
-        f"<h3>{_e(_t(lang, 'anomalies'))}</h3><ul id='anomalyList'></ul>"
+        + ("<div id='coldAttempts'></div>" if cold else "")
+        + f"<h3>{_e(_L('anomalies'))}</h3><ul id='anomalyList'></ul>"
     )
-    step4_inner = f"<p>{_e(_t(lang, 'demo_inventory'))}</p><div id='guardianResult'></div>"
+    step4_inner = f"<p>{_e(_L('demo_inventory'))}</p><div id='guardianResult'></div>"
     step5_inner = (
-        f"<button class='btn primary' id='recordBtn' type='button'>{_e(_t(lang, 'record'))}</button>"
-        " <span id='recordTimer' aria-live='polite'></span>"
-        f"<p id='micError' aria-live='polite'></p><p id='voiceLevel' aria-live='polite'></p>"
-        f"<label for='typedText'>{_e(_t(lang, 'typed_fallback'))}</label>"
+        ""
+        + (
+            f"<p class='replay-note'>{_e(_L('replay_voice_note'))}</p>"
+            "<button class='btn primary' id='recordBtn' type='button' hidden></button>"
+            " <span id='recordTimer' aria-live='polite' hidden></span>"
+            "<p id='micError' aria-live='polite' hidden></p><p id='voiceLevel' aria-live='polite' hidden></p>"
+            if replay
+            else f"<button class='btn primary' id='recordBtn' type='button'>{_e(_L('record'))}</button>"
+            " <span id='recordTimer' aria-live='polite'></span>"
+            "<p id='micError' aria-live='polite'></p><p id='voiceLevel' aria-live='polite'></p>"
+        )
+        + f"<label for='typedText'>{_e(_L('typed_fallback'))}</label>"
         "<input id='typedText' type='text'>"
-        f"<p>{html.escape(_t(lang, 'voice_hint'), quote=False)}</p>"
-        f"<button class='btn secondary' id='sendTypedBtn' type='button'>{_e(_t(lang, 'send_typed'))}</button>"
+        f"<p>{html.escape(_L('voice_hint'), quote=False)}</p>"
+        f"<button class='btn secondary' id='sendTypedBtn' type='button'>{_e(_L('send_typed'))}</button>"
         "<div id='whatsappBubble' class='chat-bubble'>"
-        f"<p class='chat-head'><span class='chat-badge'>{_e(_t(lang, 'whatsapp_note_title'))}</span></p>"
-        f"<h3>{_e(_t(lang, 'transcript'))}</h3><p id='voiceChannel' aria-live='polite'></p>"
+        f"<p class='chat-head'><span class='chat-badge'>{_e(_L('whatsapp_note_title'))}</span></p>"
+        f"<h3>{_e(_L('transcript'))}</h3><p id='voiceChannel' aria-live='polite'></p>"
         "<p id='voiceTranscript' class='chat-text'></p>"
-        f"<h3>{_e(_t(lang, 'spark_intent'))}</h3><p id='voiceIntent' class='mono'></p>"
+        f"<h3>{_e(_L('spark_intent'))}</h3><p id='voiceIntent' class='mono'></p>"
         "<p id='whatsappApprovedLine' class='chat-approved' aria-live='polite'></p></div>"
         "<p id='disagreeLine'></p><p id='voiceStatusLine' aria-live='polite'></p>"
-        f"<button class='btn primary' id='voiceConfirm' type='button' hidden>{_e(_t(lang, 'confirm'))}</button>"
-        f" <button class='btn secondary' id='voiceCancel' type='button' hidden>{_e(_t(lang, 'cancel'))}</button>"
+        f"<button class='btn primary' id='voiceConfirm' type='button' hidden>{_e(_L('confirm'))}</button>"
+        f" <button class='btn secondary' id='voiceCancel' type='button' hidden>{_e(_L('cancel'))}</button>"
     )
     step6_inner = (
-        f"<p>{_e(_t(lang, 'attacker_before'))}</p><div id='attackerBefore' class='attempts'></div>"
-        f"<p>{_e(_t(lang, 'attacker_after'))}</p><div id='attackerAfter' class='attempts'></div>"
+        f"<p>{_e(_L('attacker_before'))}</p><div id='attackerBefore' class='attempts'></div>"
+        f"<p>{_e(_L('attacker_after'))}</p><div id='attackerAfter' class='attempts'></div>"
         "<p id='sdkLine'></p><p id='recountLine'></p><p id='comprasLine'></p>"
         "<p id='containedLine'></p>"
     )
     steps = "".join(
         [
-            _step_html(1, "invoice", _t(lang, "step1_title"), lang, step1_inner),
-            _step_html(2, "count", _t(lang, "step2_title"), lang, step2_inner),
-            _step_html(3, "attack", _t(lang, "step3_title"), lang, step3_inner),
-            _step_html(4, "guardian", _t(lang, "step4_title"), lang, step4_inner),
-            _step_html(5, "voice", _t(lang, "step5_title"), lang, step5_inner),
-            _step_html(6, "contain", _t(lang, "step6_title"), lang, step6_inner),
+            _step_html(1, "invoice", _L("step1_title"), lang, step1_inner),
+            _step_html(2, "count", _L("step2_title"), lang, step2_inner),
+            _step_html(3, "attack", _L("step3_title"), lang, step3_inner),
+            _step_html(4, "guardian", _L("step4_title"), lang, step4_inner),
+            _step_html(5, "voice", _L("step5_title"), lang, step5_inner),
+            _step_html(6, "contain", _L("step6_title"), lang, step6_inner),
         ]
     )
-    no_key_hidden = "" if no_key else " hidden"
+    no_key_hidden = "" if no_key and not replay else " hidden"
+    if replay:
+        mode_switch = (
+            f"<nav class='mode-switch'><a href='/?scene={scene}&lang={lang}' aria-current='true'>{_e(_L('replay'))}</a>"
+            f"<span class='mode-off' aria-disabled='true' title='{_e(_L('live_off_note'))}'>{_e(_L('live_off'))}</span></nav>"
+        )
+        scene_switch = (
+            f"<nav class='mode-switch scene-switch' aria-label='{_e(_L('scene_label'))}'>"
+            f"<a href='/?scene=bodega&lang={lang}'{' aria-current=\'true\'' if scene == 'bodega' else ''}>{_e(_L('scene_bodega'))}</a>"
+            f"<a href='/?scene=frio&lang={lang}'{' aria-current=\'true\'' if scene == 'frio' else ''}>{_e(_L('scene_frio'))}</a></nav>"
+        )
+        lang_base = f"/?scene={scene}&"
+        live_off_block = f"<p class='live-off-note'>{_e(_L('live_off_note'))}</p>"
+        prov_note = _L("replay_cold_provenance_note" if cold else "replay_provenance_note")
+    else:
+        mode_switch = (
+            f"<nav class='mode-switch'><a href='{_e(replay_url)}'>{_e(_L('replay'))}</a>"
+            f"<a href='/live' aria-current='true'>{_e(_L('live'))}</a></nav>"
+        )
+        scene_switch = ""
+        lang_base = "/live?"
+        live_off_block = ""
+        prov_note = ""
     return (
         "<!doctype html>\n"
         f"<html lang='{_e(lang)}'><head><meta charset='utf-8'>"
@@ -1280,56 +1397,58 @@ def render_live_page(
         f"<p class='brandline'><strong>{_e(BRAND)}</strong> · {_e(SUBTITLE)}</p>"
         f"<span class='live-label'>{_e(labels['live_label'])}</span>"
         "<div class='band-tools'>"
-        f"<nav class='mode-switch'><a href='{_e(replay_url)}'>{_e(_t(lang, 'replay'))}</a>"
-        f"<a href='/live' aria-current='true'>{_e(_t(lang, 'live'))}</a></nav>"
-        f"<span class='lang'><a href='/live?lang=en'{en_current}>EN</a>"
-        f"<a href='/live?lang=es'{es_current}>ES</a></span>"
+        f"{mode_switch}"
+        f"{scene_switch}"
+        f"<span class='lang'><a href='{lang_base}lang=en'{en_current}>EN</a>"
+        f"<a href='{lang_base}lang=es'{es_current}>ES</a></span>"
         "<span id='costLabel'>USD 0.0000 of 1.00 cap</span>"
-        f"<span>{_e(_t(lang, 'chain_duration'))}: <span id='chainDuration'>00:00</span></span>"
-        f"<button class='btn ghost' id='newRunBtn' type='button'>{_e(_t(lang, 'new_run'))}</button>"
+        f"<span>{_e(_L('chain_duration'))}: <span id='chainDuration'>00:00</span></span>"
+        f"<button class='btn ghost' id='newRunBtn' type='button'>{_e(_L('new_run'))}</button>"
         "</div></div>"
         "<div class='hero'>"
-        f"<canvas id='sphereCanvas' role='img' aria-label='{_e(_t(lang, 'sphere_label'))}'></canvas>"
+        f"<canvas id='sphereCanvas' role='img' aria-label='{_e(_L('sphere_label'))}'></canvas>"
         "<div class='hero-copy'>"
         f"<p class='hero-brand' aria-hidden='true'><span class='hero-fill'>{_e(BRAND[:2])}</span>"
         f"<span class='hero-outline'>{_e(BRAND[2:])}</span></p>"
-        f"<p class='hero-subtitle'>{_e(_t(lang, 'hero_subtitle'))}</p>"
-        f"<h1 id='headline' aria-live='polite'>{_e(_t(lang, 'headline_start'))}</h1>"
+        f"<p class='hero-subtitle'>{_e(_L('hero_subtitle'))}</p>"
+        f"<h1 id='headline' aria-live='polite'>{_e(_L('headline_start'))}</h1>"
         "<div id='attackerStrip' class='attempts'></div>"
         f"<button class='btn primary run-until' id='runUntilBtn' type='button'>"
-        f"{_e(_t(lang, 'run_until'))}</button>"
+        f"{_e(_L('run_until'))}</button>"
+        f"{live_off_block}"
         "</div>"
-        f"<div class='clockbox'><p id='clockLabel'>{_e(_t(lang, 'time_to_401'))}</p>"
+        f"<div class='clockbox'><p id='clockLabel'>{_e(_L('time_to_401'))}</p>"
         "<p id='bigClock'>--:--</p>"
-        f"<p class='clock-note'>{_e(_t(lang, 'real_incident'))}</p></div>"
+        f"<p class='clock-note'>{_e(_L('real_incident'))}</p></div>"
         "</div></div></header>"
         "<div class='stickybar'><div class='sticky-inner'>"
         f"<span class='sticky-brand'>{_e(BRAND)}</span>"
-        f"<span class='sticky-group'><span class='sticky-label' id='stickyClockLabel'>{_e(_t(lang, 'time_to_401'))}</span>"
+        f"<span class='sticky-group'><span class='sticky-label' id='stickyClockLabel'>{_e(_L('time_to_401'))}</span>"
         "<span class='sticky-clock' id='stickyClock'>--:--</span></span>"
-        f"<span class='sticky-group'><span class='sticky-label'>{_e(_t(lang, 'sticky_attacker'))}</span>"
+        f"<span class='sticky-group'><span class='sticky-label'>{_e(_L('sticky_attacker'))}</span>"
         "<span class='sticky-group' id='stickyAttacker'></span></span>"
-        f"<span class='sticky-group'><span class='sticky-label'>{_e(_t(lang, 'sticky_sdk'))}</span>"
+        f"<span class='sticky-group'><span class='sticky-label'>{_e(_L('sticky_sdk'))}</span>"
         "<span class='sticky-group' id='stickySdk'></span></span>"
         "<span class='sticky-cost' id='stickyCost'>USD 0.0000</span>"
-        f"<button class='btn ghost' id='stickyNewRunBtn' type='button'>{_e(_t(lang, 'new_run'))}</button>"
+        f"<button class='btn ghost' id='stickyNewRunBtn' type='button'>{_e(_L('new_run'))}</button>"
         "</div></div>"
         "<main class='wrap'>"
-        f"<p id='noKeyBox'{no_key_hidden}>{_e(_t(lang, 'no_key'))}: {_e(_t(lang, 'no_key_body'))}</p>"
+        f"<p id='noKeyBox'{no_key_hidden}>{_e(_L('no_key'))}: {_e(_L('no_key_body'))}</p>"
         f"<ol class='steps'>{steps}</ol>"
         f"<p id='sparkOpenRow'>{_e(spark_row)}</p>"
-        f"<section><h2>{_e(_t(lang, 'provenance'))}</h2>"
-        f"<a class='btn secondary' href='/live/provenance.json'>{_e(_t(lang, 'export_log'))}</a>"
+        f"<section><h2>{_e(_L('provenance'))}</h2>"
+        + (f"<p class='replay-note'>{_e(prov_note)}</p>" if replay else "")
+        + f"<a class='btn secondary' href='{api}/provenance.json'>{_e(_L('export_log'))}</a>"
         "<div class='tablewrap'><table><thead><tr>"
-        f"<th>{_e(_t(lang, 'th_step'))}</th><th>{_e(_t(lang, 'th_agent'))}</th>"
-        f"<th>{_e(_t(lang, 'th_model'))}</th><th>{_e(_t(lang, 'th_response'))}</th>"
-        f"<th>{_e(_t(lang, 'th_latency'))}</th><th>{_e(_t(lang, 'th_in'))}</th>"
-        f"<th>{_e(_t(lang, 'th_out'))}</th><th>{_e(_t(lang, 'th_cost'))}</th>"
-        f"<th>{_e(_t(lang, 'th_http'))}</th><th>{_e(_t(lang, 'th_decision'))}</th>"
+        f"<th>{_e(_L('th_step'))}</th><th>{_e(_L('th_agent'))}</th>"
+        f"<th>{_e(_L('th_model'))}</th><th>{_e(_L('th_response'))}</th>"
+        f"<th>{_e(_L('th_latency'))}</th><th>{_e(_L('th_in'))}</th>"
+        f"<th>{_e(_L('th_out'))}</th><th>{_e(_L('th_cost'))}</th>"
+        f"<th>{_e(_L('th_http'))}</th><th>{_e(_L('th_decision'))}</th>"
         "</tr></thead><tbody id='provBody'></tbody></table></div></section>"
         "</main>"
         "<footer class='wrap footer'>"
-        f"<p>{_e(_t(lang, 'footer_meta'))}</p><p>{_e(_t(lang, 'footer_hack'))}</p>"
+        f"<p>{_e(_L('footer_meta'))}</p><p>{_e(_L('footer_hack'))}</p>"
         "</footer>"
         f"<script>{script}</script></body></html>"
     )

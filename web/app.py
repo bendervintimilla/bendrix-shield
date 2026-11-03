@@ -10,6 +10,7 @@ falso: sin red ni créditos.
 
 from __future__ import annotations
 
+import asyncio
 import html
 import json
 import os
@@ -54,6 +55,8 @@ from web.live_access import (
     render_login,
 )
 from web.live_page import render_live_inactive_page, render_live_page
+from web.replay_run import FIXTURES as REPLAY_FIXTURES
+from web.replay_run import ReplayStore
 
 UPSTREAM_KEY = "upstream-demo-key-0000"
 
@@ -626,7 +629,8 @@ class DemoState:
             }
         if req.status == "pending":
             self.start_clock()
-            self.broker.approve(approval_id)
+            # Botón del dueño en su propio panel: lleva el nonce de la solicitud.
+            self.broker.approve(approval_id, nonce=req.nonce)
         elif req.status != "approved":
             raise ValueError(f"aprobación {approval_id} no está pendiente: {req.status}")
         report = self._execute_approved_once(approval_id)
@@ -693,7 +697,9 @@ class DemoState:
             return self._set_voice_notice(
                 {"status": "not_pending", "approval_id": approval_id, "transcript": transcript}
             )
-        outcome = self.voice_flow.handle_transcript(approval_id, transcript, confirmed=confirmed)
+        outcome = self.voice_flow.handle_transcript(
+            approval_id, transcript, nonce=req.nonce, confirmed=confirmed
+        )
         notice = self._notice_from_outcome(approval_id, transcript, outcome)
         self._set_voice_notice(notice)
         if notice["status"] == "approved":
@@ -730,7 +736,7 @@ class DemoState:
                     "transcript": awaiting.transcript,
                 }
             )
-        outcome = self.voice_flow.confirm(approval_id)
+        outcome = self.voice_flow.confirm(approval_id, nonce=req.nonce)
         notice = self._notice_from_outcome(approval_id, awaiting.transcript, outcome)
         self._set_voice_notice(notice)
         if notice["status"] == "approved":
@@ -1479,11 +1485,17 @@ def _create_whatsapp_channel(broker: ApprovalBroker) -> WhatsAppChannel:
 
 _SESSION_COOKIE = "panel_sid"
 _current_demo: ContextVar[DemoState | None] = ContextVar("panel_current_demo", default=None)
+_current_sid: ContextVar[str | None] = ContextVar("panel_current_sid", default=None)
 
 
 def _sessions_enabled() -> bool:
     """Demo pública: cada visitante tiene su propia corrida (``SHIELD_PANEL_SESSIONS=1``)."""
     return os.environ.get("SHIELD_PANEL_SESSIONS", "") == "1"
+
+
+def _replay_home_enabled() -> bool:
+    """Demo pública: `/` abre la pantalla nueva (esfera) corriendo la repetición grabada."""
+    return _sessions_enabled() and os.environ.get("SHIELD_REPLAY_HOME", "") == "1"
 
 
 class SessionStore:
@@ -1557,6 +1569,7 @@ class _SessionMiddleware:
                         sid = val
         sid, demo_state, created = self.store.get_or_create(sid)
         token = _current_demo.set(demo_state)
+        sid_token = _current_sid.set(sid)
 
         async def send_wrapped(message: Any) -> None:
             if created and message["type"] == "http.response.start":
@@ -1570,6 +1583,7 @@ class _SessionMiddleware:
             await self.app(scope, receive, send_wrapped)
         finally:
             _current_demo.reset(token)
+            _current_sid.reset(sid_token)
 
 
 def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) -> FastAPI:
@@ -1594,6 +1608,9 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
     gate = AccessGate(os.environ["LIVE_ACCESS_CODE"]) if remote else None
     ledger = SpendLedger.from_env() if remote else None
     app.state.live_ledger = ledger
+    replay_home = sessions and _replay_home_enabled()
+    replay_store = ReplayStore() if replay_home else None
+    app.state.replay_store = replay_store
     if sessions:
         # Demo pública: sin webhook de WhatsApp (no hay canal que atender) y
         # una corrida de replay por visitante.
@@ -1619,6 +1636,12 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
     async def index(request: Request) -> Any:
         if remote:
             return RedirectResponse("/live", status_code=303)
+        if replay_store is not None:
+            lang = _resolve_lang(request)
+            run = replay_store.get(_current_sid.get(), request.query_params.get("scene"))
+            return _with_cookie(
+                HTMLResponse(render_live_page(lang, replay=True, scene=run.scene)), request, lang
+            )
         demo.start_clock()
         lang = _resolve_lang(request)
         return _with_cookie(HTMLResponse(_page(demo, lang)), request, lang)
@@ -1881,6 +1904,108 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
     def _budget_record(chain: Any, step: str) -> None:
         if ledger is not None:
             ledger.record(chain.run_id, chain.total_cost_usd, step)
+
+    # -- repetición pública: la pantalla de /live sobre grabaciones, una corrida por visitante --
+    def _replay_run(request: Request) -> Any:
+        if replay_store is None:
+            return None
+        return replay_store.get(_current_sid.get())
+
+    def _replay_guard(request: Request) -> JSONResponse | None:
+        if replay_store is None:
+            return JSONResponse({"error": "replay is not enabled"}, status_code=404)
+        if request.method == "POST":
+            origin = request.headers.get("origin")
+            host_header = request.headers.get("host", "")
+            if origin and urlparse(origin).netloc.lower() != host_header.strip().lower():
+                return JSONResponse(
+                    {"error": "cross-origin requests are not allowed"}, status_code=403
+                )
+        return None
+
+    @app.get("/replay/state")
+    def replay_state(request: Request) -> Any:
+        guard = _replay_guard(request)
+        if guard is not None:
+            return guard
+        return JSONResponse(_replay_run(request).state())
+
+    @app.post("/replay/start")
+    def replay_start(request: Request) -> Any:
+        guard = _replay_guard(request)
+        if guard is not None:
+            return guard
+        return JSONResponse(_replay_run(request).state())
+
+    @app.post("/replay/reset")
+    def replay_reset(request: Request) -> Any:
+        guard = _replay_guard(request)
+        if guard is not None:
+            return guard
+        return JSONResponse(_replay_run(request).reset())
+
+    @app.post("/replay/step/{name}")
+    async def replay_step(name: str, request: Request) -> Any:
+        guard = _replay_guard(request)
+        if guard is not None:
+            return guard
+        run = _replay_run(request)
+        await asyncio.sleep(0.6)  # que se vea correr: la grabación no tarda nada
+        with run.lock:
+            out = run.step(name)
+        status = 200
+        if isinstance(out, dict) and out.get("status") == "error":
+            status = 409
+        return JSONResponse(out, status_code=status)
+
+    @app.post("/replay/voice")
+    async def replay_voice(request: Request, typed: str | None = Form(None)) -> Any:
+        guard = _replay_guard(request)
+        if guard is not None:
+            return guard
+        run = _replay_run(request)
+        with run.lock:
+            return JSONResponse(run.voice(typed or ""))
+
+    @app.post("/replay/voice/confirm")
+    async def replay_voice_confirm(request: Request) -> Any:
+        guard = _replay_guard(request)
+        if guard is not None:
+            return guard
+        run = _replay_run(request)
+        with run.lock:
+            return JSONResponse(run.voice_confirm())
+
+    @app.post("/replay/voice/cancel")
+    async def replay_voice_cancel(request: Request) -> Any:
+        guard = _replay_guard(request)
+        if guard is not None:
+            return guard
+        run = _replay_run(request)
+        with run.lock:
+            return JSONResponse(run.voice_cancel())
+
+    @app.get("/replay/fixture/{kind}")
+    def replay_fixture(kind: str, request: Request) -> Any:
+        guard = _replay_guard(request)
+        if guard is not None:
+            return guard
+        filename = REPLAY_FIXTURES.get(kind)
+        if filename is None:
+            return JSONResponse({"error": f"unknown fixture: {kind}"}, status_code=404)
+        path = Path(__file__).resolve().parents[1] / "evals" / "fixtures" / "live" / filename
+        return Response(content=path.read_bytes(), media_type="image/png")
+
+    @app.get("/replay/provenance.json")
+    def replay_provenance(request: Request) -> Any:
+        guard = _replay_guard(request)
+        if guard is not None:
+            return guard
+        return Response(
+            content=_replay_run(request).export(),
+            media_type="application/json",
+            headers={"Content-Disposition": "attachment; filename=provenance-replay.json"},
+        )
 
     @app.get("/live", response_class=HTMLResponse)
     def live_page(request: Request) -> Any:

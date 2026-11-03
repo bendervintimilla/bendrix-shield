@@ -411,6 +411,6 @@ def test_new_run_reloads_page():
     html = render_live_page("en")
     assert "newRunBtn" in html
     handler = html.split('byId("newRunBtn").addEventListener')[1][:300]
-    assert "/live/reset" in handler and "location.reload" in handler
+    assert "/reset" in handler and "location.reload" in handler
     assert "voiceChannel" in html
     assert "Owner approved via WhatsApp voice note" in html

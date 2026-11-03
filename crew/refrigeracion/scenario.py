@@ -167,7 +167,7 @@ def run_scenario() -> dict[str, Any]:
             }
         )
         voice = VoiceApprovalFlow(broker).handle_transcript(
-            req.approval_id, "sí, rota refrigeración"
+            req.approval_id, "sí, rota refrigeración", nonce=req.nonce
         )
         result = actions.rotate_token(grace_s=0).apply(plan, approval_id=req.approval_id)
         steps.append(

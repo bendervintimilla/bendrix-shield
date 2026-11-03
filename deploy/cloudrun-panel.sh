@@ -3,7 +3,8 @@
 # Servicio bendrix-shield-panel: DEMO=replay, público y sin inicio de sesión,
 # 1 instancia siempre encendida (abre al instante) y máximo 1 (las corridas por
 # visitante viven en memoria de esa instancia), SIN secretos (no --set-secrets).
-# El modo en vivo (/live) queda apagado: cuesta dinero y exige DEMO=live.
+# `/` abre la pantalla nueva (esfera) corriendo la repetición grabada, una corrida por
+# visitante (SHIELD_REPLAY_HOME=1; endpoints /replay/*). El modo en vivo (/live) queda apagado: cuesta dinero y exige DEMO=live.
 # Uso: GCP_PROJECT=<tu-proyecto> bash deploy/cloudrun-panel.sh
 set -euo pipefail
 
@@ -25,7 +26,7 @@ gcloud run deploy "$SERVICE" \
   --cpu-boost \
   --ingress=all \
   --allow-unauthenticated \
-  --set-env-vars="SHIELD_SERVICE=panel,DEMO=replay,SHIELD_PANEL_SESSIONS=1,SHIELD_GCP_PROJECT=$PROJECT"
+  --set-env-vars="SHIELD_SERVICE=panel,DEMO=replay,SHIELD_PANEL_SESSIONS=1,SHIELD_REPLAY_HOME=1,SHIELD_GCP_PROJECT=$PROJECT"
 
 gcloud run services describe "$SERVICE" \
   --project="$PROJECT" --region="$REGION" --format='value(status.url)'

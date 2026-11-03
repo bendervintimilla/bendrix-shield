@@ -59,14 +59,12 @@ def test_steps_for_empty_approved_steps_executes_nothing():
     )
     asked = guardian.tool_ask_owner()
     approval_id = asked["pending_approval_id"]
-    broker.approve(approval_id, exclude_targets=["bodega"])
+    broker.approve(approval_id, nonce=broker.get(approval_id).nonce, exclude_targets=["bodega"])
     assert broker.approved_steps_for(approval_id) == set()
     assert guardian._steps_for(approval_id) == set()
     report = guardian.execute_approved(approval_id)
     rotate_entries = [e for e in report.executed if e["action"] == "rotate_token"]
-    assert rotate_entries == [
-        {"action": "rotate_token", "target": "bodega", "status": "skipped"}
-    ]
+    assert rotate_entries == [{"action": "rotate_token", "target": "bodega", "status": "skipped"}]
     assert ("rotate_token", "bodega") not in actions.calls
 
 
@@ -156,9 +154,7 @@ def test_panel_voice_unknown_leaves_notice_and_touches_nothing():
     approval_id = _pending_id(client)
     before = _public(client)
     payload = "<script>alert(1)</script> cuéntame un chiste"
-    resp = client.post(
-        "/panel/voice", data={"approval_id": approval_id, "transcript": payload}
-    )
+    resp = client.post("/panel/voice", data={"approval_id": approval_id, "transcript": payload})
     assert resp.status_code == 200
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in resp.text
     assert "<script>alert(1)</script>" not in resp.text
@@ -175,9 +171,7 @@ def test_panel_voice_unknown_leaves_notice_and_touches_nothing():
 def test_panel_voice_no_rota_does_not_approve():
     state, client = _make()
     approval_id = _pending_id(client)
-    resp = client.post(
-        "/panel/voice", data={"approval_id": approval_id, "transcript": "no rota"}
-    )
+    resp = client.post("/panel/voice", data={"approval_id": approval_id, "transcript": "no rota"})
     assert resp.status_code == 200
     data = _public(client)
     assert data["voice_notice"]["status"] == "unknown_command"
@@ -324,7 +318,10 @@ def test_whatsapp_simulated_approval_executes_once_on_tick():
     approval_id = _pending_id(client)
     original_token_id = state.token_store.get_token_id("bodega")
     payload = simulated_click_payload(
-        approval_id=approval_id, action="approve", message_id="wamid-h13-1"
+        approval_id=approval_id,
+        action="approve",
+        message_id="wamid-h13-1",
+        nonce=state.broker.get(approval_id).nonce,
     )
     clicked = client.post("/webhook/whatsapp", json=payload)
     assert clicked.status_code == 200
@@ -437,9 +434,7 @@ def test_panel_transcript_script_is_escaped_in_page():
     _state, client = _make()
     approval_id = _pending_id(client)
     payload = "<script>alert(1)</script> hola"
-    resp = client.post(
-        "/panel/voice", data={"approval_id": approval_id, "transcript": payload}
-    )
+    resp = client.post("/panel/voice", data={"approval_id": approval_id, "transcript": payload})
     assert resp.status_code == 200
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in resp.text
     assert "<script>alert(1)</script>" not in resp.text
@@ -473,15 +468,9 @@ def test_support_line_per_phase_en_es():
     assert client2.post(f"/panel/approve/{approval_id}").status_code == 200
     assert _public(client2)["phase"] == "contained"
     contained_en = client2.get("/").text
-    assert (
-        "Warehouse's old token is revoked. The attacker now gets 401."
-        in contained_en
-    )
+    assert "Warehouse's old token is revoked. The attacker now gets 401." in contained_en
     contained_es = client2.get("/?lang=es").text
-    assert (
-        "El token viejo de Bodega quedó revocado. El atacante ahora recibe 401."
-        in contained_es
-    )
+    assert "El token viejo de Bodega quedó revocado. El atacante ahora recibe 401." in contained_es
     assert state2.phase == "contained"
 
     # rejected
@@ -505,9 +494,9 @@ def test_support_line_per_phase_en_es():
     assert _public(client4)["phase"] == "awaiting_confirmation"
     # awaiting_confirmation también muestra la anomalía actual.
     assert "New country:" in client4.get("/").text
-    assert client4.post(
-        "/panel/voice/confirm", data={"approval_id": approval_id4}
-    ).status_code == 200
+    assert (
+        client4.post("/panel/voice/confirm", data={"approval_id": approval_id4}).status_code == 200
+    )
     assert _public(client4)["phase"] == "not_rotated"
     assert "The attacker still gets 200." in client4.get("/").text
     assert "El atacante sigue recibiendo 200." in client4.get("/?lang=es").text
