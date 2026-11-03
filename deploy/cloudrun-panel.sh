@@ -16,6 +16,14 @@ if [[ "$(gcloud config get-value project 2>/dev/null)" != "$PROJECT" ]]; then
   gcloud config set project "$PROJECT"
 fi
 
+# NO_TRAFFIC_TAG=<tag>: publica la revisión SIN tráfico y con esa etiqueta (URL de prueba
+# https://<tag>---<servicio>-...run.app); se pasa al 100 % con
+#   gcloud run services update-traffic "$SERVICE" --to-latest ...
+EXTRA=()
+if [[ -n "${NO_TRAFFIC_TAG:-}" ]]; then
+  EXTRA+=(--no-traffic "--tag=${NO_TRAFFIC_TAG}")
+fi
+
 gcloud run deploy "$SERVICE" \
   --project="$PROJECT" \
   --region="$REGION" \
@@ -26,6 +34,7 @@ gcloud run deploy "$SERVICE" \
   --cpu-boost \
   --ingress=all \
   --allow-unauthenticated \
+  ${EXTRA[@]+"${EXTRA[@]}"} \
   --set-env-vars="SHIELD_SERVICE=panel,DEMO=replay,SHIELD_PANEL_SESSIONS=1,SHIELD_REPLAY_HOME=1,SHIELD_GCP_PROJECT=$PROJECT"
 
 gcloud run services describe "$SERVICE" \
