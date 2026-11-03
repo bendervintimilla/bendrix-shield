@@ -231,6 +231,44 @@ def test_emergency_revoke_all_only_affects_scope():
     assert client.post("/v1/chat/completions", json=BODY, headers=auth(raw_c)).status_code == 401
 
 
+def test_agent_rate_limit_split_across_tokens():
+    # P1-1: la ráfaga repartida entre dos tokens del mismo agente también frena.
+    client, reg = build(rate=3)
+    _, raw1 = reg.create_token("nevera", "crew")
+    _, raw2 = reg.create_token("nevera", "crew")
+    _, raw_otro = reg.create_token("bodega", "crew")
+    assert client.post("/v1/chat/completions", json=BODY, headers=auth(raw1)).status_code == 200
+    assert client.post("/v1/chat/completions", json=BODY, headers=auth(raw2)).status_code == 200
+    assert client.post("/v1/chat/completions", json=BODY, headers=auth(raw1)).status_code == 200
+    assert client.post("/v1/chat/completions", json=BODY, headers=auth(raw2)).status_code == 429
+    assert client.post("/v1/chat/completions", json=BODY, headers=auth(raw_otro)).status_code == 200
+
+
+def test_revoke_all_by_app_leaves_other_app():
+    # P1-2 exacto: todos los de una app dan 401, los de otra siguen en 200.
+    client, reg = build()
+    _, raw_a = reg.create_token("bodega", "crew")
+    _, raw_b = reg.create_token("nevera", "iot")
+    assert reg.revoke_all(app="crew") == 1
+    assert client.post("/v1/chat/completions", json=BODY, headers=auth(raw_a)).status_code == 401
+    assert client.post("/v1/chat/completions", json=BODY, headers=auth(raw_b)).status_code == 200
+
+
+def test_audit_chain_detects_deleted_row():
+    # P1-4: borrar una fila del medio rompe la verificación.
+    client, reg = build()
+    _, raw = reg.create_token("bodega", "crew")
+    for _ in range(3):
+        assert client.post("/v1/chat/completions", json=BODY, headers=auth(raw)).status_code == 200
+    with reg._lock, reg._conn:
+        reg._conn.execute(
+            "DELETE FROM call_logs WHERE id=(SELECT id FROM call_logs ORDER BY id LIMIT 1 OFFSET 1)"
+        )
+    ok, broken_at = reg.verify_audit_chain()
+    assert ok is False
+    assert broken_at is not None
+
+
 def test_rotate_preserves_hardening_fields():
     reg = Registry(":memory:")
     tok, raw = reg.create_token(

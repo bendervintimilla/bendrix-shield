@@ -93,7 +93,7 @@ require_nonce=...)` y la rotación los conserva.
    variable `SHIELD_EMERGENCY_TOKEN`; sin variable, `503`) lo expone
    para apagar todo en segundos.
 
-Pruebas: `tests/test_gateway_hardening_c2489.py` (12 casos, offline).
+Pruebas: `tests/test_gateway_hardening_c2489.py` (15 casos, offline).
 
 ## Rotación (demo Black October)
 
