@@ -55,7 +55,7 @@ T: dict[str, dict[str, str]] = {
         "action_verify": "Check it still works",
         "action_draft_notice": "Draft a notice",
         "action_rotate_upstream_key": "Rotate the upstream key",
-        "live_label": "LIVE — real Meta models, called from this Mac through the Shield gateway",
+        "live_label": "LIVE — real Meta models, called from this Mac through the Wairrior gateway",
         "sticky_attacker": "Attacker",
         "sticky_sdk": "SDK",
         "replay": "Replay",
@@ -1506,7 +1506,7 @@ def render_live_page(
             labels["hero_subtitle"] = labels["replay_hero_subtitle"]
     if remote:
         labels["live_label"] = (
-            "LIVE — real Meta models through the Shield gateway (hosted, spend capped)"
+            "LIVE — real Meta models through the Wairrior gateway (hosted, spend capped)"
             if lang == "en"
             else "EN VIVO — modelos reales de Meta a través del gateway de Shield (alojado, gasto con tope)"
         )

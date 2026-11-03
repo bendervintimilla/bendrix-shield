@@ -739,7 +739,7 @@ def test_live_page_live_and_inactive_and_no_external_resources(monkeypatch):
         page = client.get("/live")
         assert page.status_code == 200
         text = page.text
-        assert "LIVE — real Meta models, called from this Mac through the Shield gateway" in text
+        assert "LIVE — real Meta models, called from this Mac through the Wairrior gateway" in text
         assert "Run until the owner decides" in text
         assert "Muse Spark Open: not run. No Baseten, Modal or Fireworks key in this vault." in text
         assert "Typed fallback: no Voice Transcribe is used in this path" in text

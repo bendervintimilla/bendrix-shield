@@ -10,6 +10,8 @@ For SMEs running AI agents — Purchasing reads supplier invoices, Warehouse cou
 
 ## Live demo
 
+**Video (2:55, one live take on real Meta models):** https://youtu.be/_wTT0IqXHvI — narration and the owner's voice note are synthetic (Meta MMS-TTS); sped-up parts are labeled.
+
 **https://bendrix-shield-panel-290240328973.us-central1.run.app/** — open it, no sign-in, nothing to install. It opens the same sphere screen as live mode, running the **Replay** (EN/ES, two scenes: Warehouse and Cold chain). Press **Run until the owner decides**, then type your approval and watch the stolen token go from `200` to `401` while the other agents keep working. Each visitor gets their own run; the approval goes through the real single-use flow.
 
 It is the replay of a recorded real run: no real keys, no model calls and no spend; "Live" is disabled on this link. The live mode (real Meta models, which costs money) is off on this URL; run it yourself with `make live` and your own key.
@@ -85,7 +87,7 @@ client = shield.wrap(OpenAI(), "shd_<agent>_replace-with-your-token")
 ```
 
 That is the whole integration: `wrap` points your OpenAI-compatible
-client at the Shield gateway with your per-agent Shield token. The real
+client at the Wairrior gateway with your per-agent Shield token. The real
 provider key stays in the gateway's vault. Tools go through the policy
 with `@shield.tool(effect="read" | "write")`, and external documents are
 marked as data, never instructions, with `shield.untrusted(doc)`. A
@@ -163,7 +165,7 @@ simulator outbox. Details in `channels/README.md`.
 
 ```text
                     shd_<agent>_…                 real key (vault only)
-  any app ──────────────────────▶  Shield gateway  ──────────────────▶ Meta Model API
+  any app ──────────────────────▶ Wairrior gateway ──────────────────▶ Meta Model API
                                       │  │
                        gate.check() ──┘  └── policy.check() on every tool call
                                       │
