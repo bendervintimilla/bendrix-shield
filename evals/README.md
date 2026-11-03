@@ -11,6 +11,7 @@ Todo lo sintético usa semilla 42 y es reproducible con `evals/gen_*.py`. Ningú
 | `heldout/*.json` (12+8) | `gen_heldout.py` (H9): set ciego a las reglas — paráfrasis ES/EN/PT, órdenes en varias líneas, imagen con ruido OCR y cartas formales legítimas de cambio de cuenta (esperado `ask_owner`). Congelado: no se retoca para subir la cifra. |
 | `invoices/*.json` (20) | Facturas sintéticas marcadas (`synthetic: true`), con `ground_truth` por campo. |
 | `canaries.json` (10) | Secretos trampa sintéticos `CANARY-SHIELD-*`; el gate de H1 los bloquea. No son credenciales reales. |
+| `redteam/cases.json` (29) | `gen_redteam.py` (C2489-4): batería adversaria sintética en 5 vectores (inyección, exfiltración por el gate, repetición de voz, confusión de agentes, abuso de tasa) contra las APIs reales sin red. Cada caso declara `expect` (`contained`/`clean`/`gap`); los `gap` son bypass medidos que se reportan tal cual en `report.md`, sin ajustar reglas con este set. Runner: `run_redteam.py`; pruebas: `tests/test_redteam_c2489.py`. |
 | `private/tomas.md` | Lista de tomas de bodega para grabar en el local. Ignorado por git (`.gitignore`). |
 
 Métricas del set: ver `tests/test_evals_h2.py` (conteos, esquemas ThreatCard y bloqueo de canarios).
