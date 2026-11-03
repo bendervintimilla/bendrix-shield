@@ -103,7 +103,7 @@ def main() -> int:
             print("[ok] gateway sin token -> 401 (esperado: 401)")
 
             print("\n0:35 La cuadrilla trabaja (replay, sin créditos):")
-            for runner in ("run_invoices.py", "run_stock.py"):
+            for runner in ("run_invoices.py", "run_stock.py", "run_cold_chain.py"):
                 proc = subprocess.run(
                     [sys.executable, str(ROOT / "evals" / runner)],
                     capture_output=True,
