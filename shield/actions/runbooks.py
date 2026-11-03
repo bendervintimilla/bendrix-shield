@@ -245,6 +245,10 @@ class RotateTokenRunbook(_BaseRunbook):
             scopes=list(old.scopes),
             models=list(old.models),
             spend_cap_usd=old.spend_cap_usd,
+            allowed_routes=list(old.allowed_routes),
+            numeric_limits=dict(old.numeric_limits),
+            rate_limit_per_minute=old.rate_limit_per_minute,
+            require_nonce=old.require_nonce,
         )
         if self.ctx.token_store is not None:
             self.ctx.token_store.set_token(agent, raw, new_token.token_id)
@@ -318,6 +322,10 @@ class RotateTokenRunbook(_BaseRunbook):
                     scopes=list(base.scopes),
                     models=list(base.models),
                     spend_cap_usd=base.spend_cap_usd,
+                    allowed_routes=list(base.allowed_routes),
+                    numeric_limits=dict(base.numeric_limits),
+                    rate_limit_per_minute=base.rate_limit_per_minute,
+                    require_nonce=base.require_nonce,
                 )
                 rolled.new_token_id = new_token.token_id
                 rolled.secret = raw
@@ -339,6 +347,10 @@ class RotateTokenRunbook(_BaseRunbook):
                     scopes=list(active.scopes),
                     models=list(active.models),
                     spend_cap_usd=active.spend_cap_usd,
+                    allowed_routes=list(active.allowed_routes),
+                    numeric_limits=dict(active.numeric_limits),
+                    rate_limit_per_minute=active.rate_limit_per_minute,
+                    require_nonce=active.require_nonce,
                 )
                 self.ctx.registry.revoke(active.token_id)
                 rolled.new_token_id = new_token.token_id
@@ -560,6 +572,10 @@ class RevokeRunbook(_BaseRunbook):
                 scopes=list(base.scopes),
                 models=list(base.models),
                 spend_cap_usd=base.spend_cap_usd,
+                allowed_routes=list(base.allowed_routes),
+                numeric_limits=dict(base.numeric_limits),
+                rate_limit_per_minute=base.rate_limit_per_minute,
+                require_nonce=base.require_nonce,
             )
             rolled.new_token_id = new_token.token_id
             rolled.secret = raw
