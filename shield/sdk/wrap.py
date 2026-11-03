@@ -66,7 +66,8 @@ def wrap(
         if store is None:
             from shield.sdk.token_store import LocalTokenStore
 
-            store = LocalTokenStore()
+            # Ligado al agente: este proceso solo abre su propio archivo.
+            store = LocalTokenStore(agent=agent)
             store.set_token(agent, resolved)
         return ShieldClient(client, store, agent)
     return client

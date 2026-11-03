@@ -9,7 +9,7 @@ secret the attacker stole. The demo and the README use this same wording.
 
 | What the attacker steals | What they get | What they do **not** get | What happens next |
 |---|---|---|---|
-| The Shield token in an environment variable, a leaked log line, or a copied config value (`shd_<agent>_…`) | That one token, for that one agent, with that agent's scopes and spend cap, until it is rotated or revoked | The local token store (`~/.shield/agent-tokens.json`, mode `0600`), the real provider key (vault only), and the service identity of the workload | The guardian rotates that agent's token. The stolen copy gets `401`; the legitimate workload refreshes from its local store and keeps working (Bodega keeps counting). Other agents are untouched: one agent = one token = one scope |
+| The Shield token in an environment variable, a leaked log line, or a copied config value (`shd_<agent>_…`) | That one token, for that one agent, with that agent's scopes and spend cap, until it is rotated or revoked | The local token store (`~/.shield/agent-tokens.d/<agent>.json`, mode `0600`), the real provider key (vault only), and the service identity of the workload | The guardian rotates that agent's token. The stolen copy gets `401`; the legitimate workload refreshes from its local store and keeps working (Bodega keeps counting). Other agents are untouched: one agent = one token = one scope |
 | The local token store itself (the file on the agent's host, or the host) | Whatever the store holds, including the ability to refresh after a rotation, plus anything else that host compromise implies | Still not the real provider key (it never leaves the vault/gateway), and still not other agents' stores on other hosts | This is a host compromise, not a token leak. Rotating the token alone is not enough: revoke the agent, re-issue on a clean host, and treat the host as breached |
 | The service identity (Cloud Run service account, only if the platform identity itself is compromised) | The ability to satisfy an identity-bound refresh check (below) and whatever that service account may call in the configured GCP project | The vault's other secrets by itself: Secret Manager access is per-secret IAM, and the panel service carries no write secrets at all | Revoke/rotate at the platform layer (disable the service account, re-deploy with a new one). Shield token rotation alone does not fix a stolen platform identity |
 
@@ -24,8 +24,12 @@ rotation measured in seconds, not a 16-hour abuse window.
    from the vault. A stolen Shield token never upgrades into the
    provider key.
 2. **The refresh path is local and per agent.** `LocalTokenStore` lives
-   on the agent's own host with `0600` permissions and is never
-   committed. Whoever only copied an env var cannot follow a rotation.
+   on the agent's own host and is never committed. Since C2490 each agent
+   has its own file (`~/.shield/agent-tokens.d/<agent>.json`, `0600`, in a
+   `0700` directory), and a store bound to one agent refuses to open
+   another agent's file. Agents running as the same OS user are still one
+   host compromise (row 2); a separate OS user per agent makes the `0600`
+   boundary real. Whoever only copied an env var cannot follow a rotation.
 3. **Rotation is per agent.** Rotating Bodega does not take Compras
    down, and revoking the stolen token does not wait for a redeploy.
 4. **The panel holds no write secrets.** The public panel runs with

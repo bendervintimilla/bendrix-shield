@@ -278,7 +278,7 @@ def _run_host_store(caso: dict) -> dict:
         store = LocalTokenStore(Path(td) / "bodega.json")
         store.set_token("bodega", "shd_bodega_storeDemo001", "shd_bodega_1")
         otro = store.get_token("compras")
-        contenido = (Path(td) / "bodega.json").read_text(encoding="utf-8")
+        contenido = store.path_for("bodega").read_text(encoding="utf-8")
         frenado = otro is None and "upstream-real" not in contenido
         return {
             "observado": f"compras={otro} vault_en_store={'upstream-real' in contenido}",
@@ -294,15 +294,33 @@ def _run_host_store_shared(caso: dict) -> dict:
 
     with tempfile.TemporaryDirectory() as td:
         compartido = Path(td) / "agent-tokens.json"
-        store = LocalTokenStore(compartido)
-        store.set_token("bodega", "shd_bodega_storeDemo001")
-        store.set_token("compras", "shd_compras_storeDemo002")
-        # Un proceso que solo debía usar bodega abre el mismo archivo:
-        alcanzado = LocalTokenStore(compartido).get_token("compras")
+        # El guardián (store sin ligar) escribe los dos agentes, como al rotar.
+        guardian = LocalTokenStore(compartido)
+        guardian.set_token("bodega", "shd_bodega_storeDemo001")
+        guardian.set_token("compras", "shd_compras_storeDemo002")
+        # C2490: un proceso que solo debía usar bodega abre su store ligado.
+        bodega = LocalTokenStore(compartido, agent="bodega")
+        try:
+            alcanzado = bodega.get_token("compras")
+        except PermissionError:
+            alcanzado = None
+        f_bodega = guardian.path_for("bodega")
+        f_compras = guardian.path_for("compras")
+        separados = f_bodega != f_compras and "shd_compras" not in f_bodega.read_text(
+            encoding="utf-8"
+        )
+        permisos = (
+            (f_bodega.stat().st_mode & 0o777) == 0o600
+            and (f_compras.stat().st_mode & 0o777) == 0o600
+            and (guardian.dir.stat().st_mode & 0o777) == 0o700
+        )
         return {
-            "observado": f"token_compras_alcanzado={alcanzado is not None}",
-            "frenado": alcanzado is None,
-            "detalle": "archivo_compartido_mismo_host",
+            "observado": (
+                f"token_compras_alcanzado={alcanzado is not None} "
+                f"archivos_separados={separados} permisos_0600_0700={permisos}"
+            ),
+            "frenado": alcanzado is None and separados and permisos,
+            "detalle": "archivo_por_agente_ligado",
         }
 
 
