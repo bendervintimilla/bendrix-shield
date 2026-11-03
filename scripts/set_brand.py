@@ -91,7 +91,7 @@ def apply_brand(root: Path, new_name: str, *, dry_run: bool = False) -> list[Pat
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Cambia la marca pública (shield/brand.py).")
-    parser.add_argument("new_name", help="nuevo nombre público, ej. NoKey")
+    parser.add_argument("new_name", help="nuevo nombre público, ej. Wairrior")
     parser.add_argument("--dry-run", action="store_true", help="solo muestra qué cambiaría")
     parser.add_argument("--root", type=Path, default=ROOT, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)

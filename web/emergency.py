@@ -19,7 +19,7 @@ import httpx
 from shield.registry import Registry
 from shield.schemas import AgentTokenStatus
 
-PROBE_MODEL = "nokey-revocation-probe"
+PROBE_MODEL = "wairrior-revocation-probe"
 
 
 def run_emergency_revoke(

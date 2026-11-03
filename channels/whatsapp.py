@@ -417,7 +417,7 @@ class WhatsAppChannel:
             except Exception as exc:  # el aviso no debe tumbar el webhook
                 print(f"[whatsapp] could not record error: {exc}", file=sys.stderr, flush=True)
         try:
-            self.send_text(f"NoKey: {error}.")
+            self.send_text(f"Wairrior: {error}.")
         except Exception as exc:
             print(f"[whatsapp] could not reply: {exc}", file=sys.stderr, flush=True)
 
@@ -484,7 +484,7 @@ class WhatsAppChannel:
             heard = f"Heard: “{transcript}”. Understood: {action}."
             status = str(voice.get("status") or "")
             if status == "replayed":
-                self.send_text(f"NoKey: {voice.get('error') or 'recording already used'}.")
+                self.send_text(f"Wairrior: {voice.get('error') or 'recording already used'}.")
                 return {**base, "status": status, "voice": voice}
             if status == "confirmation_required":
                 self.send_text(heard + " Reply “confirm” to confirm.")

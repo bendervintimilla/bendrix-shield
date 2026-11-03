@@ -1,6 +1,6 @@
-# NoKey — Business Protection
+# Wairrior — Business Protection
 
-NoKey is the safety layer between SMEs' AI agents and the models and tools they call.
+Wairrior is the safety layer between SMEs' AI agents and the models and tools they call.
 For SMEs running AI agents — Purchasing reads supplier invoices, Warehouse counts stock — without handing those agents the real provider key.
 
 - **One token per agent:** each agent gets its own revocable `shd_<agent>_…` token, with least-privilege scopes and a spend cap.
@@ -39,7 +39,7 @@ In 2025-2026 attackers trojanized AI tooling, stole provider keys from hosting
 environment variables, injected instructions into documents agents read, and —
 in European supermarkets — remotely turned up refrigeration until shelves
 emptied. Restaurants run the same cold chain. `docs/threats-2026.md` maps each
-real attack (with sources) to the NoKey control that stops it, to what was
+real attack (with sources) to the Wairrior control that stops it, to what was
 missing, and to the prioritized list that was then implemented.
 
 New in this round: a **Refrigeration** agent with its own least-privilege
@@ -69,7 +69,7 @@ closed 5 more bypasses; re-run offline, the battery now stops 36 of 37 and
 
 Motivation, as already documented in this repo (`docs/DEMO.md`): in the
 October 2026 incident behind this project, exposed keys were abused for
-~16 hours (USD 310). With NoKey the loot from the same kind of leak is one
+~16 hours (USD 310). With Wairrior the loot from the same kind of leak is one
 revocable per-agent token, and the fix is a rotation, not a redeploy.
 The hosted replay above needs no key; `make demo` runs the same story
 locally in replay, and `make live` runs it against the real Meta API with
@@ -320,7 +320,7 @@ Checked against `git log` (PR merges #1–#13 plus later commits on top).
 ## Name and affiliation
 
 Built on Meta's Muse models; independent project, not affiliated with
-or endorsed by Meta. The public name is NoKey — it uses no Meta trademark — and it lives
+or endorsed by Meta. The public name is Wairrior — it uses no Meta trademark — and it lives
 in one place (`shield/brand.py`; `scripts/set_brand.py` can rename it).
 Brand assets
 live in `docs/brand/`. The GitHub repository and Python package

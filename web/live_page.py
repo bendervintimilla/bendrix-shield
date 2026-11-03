@@ -1275,6 +1275,16 @@ def _step_html(number: int, step: str, title: str, lang: str, inner: str) -> str
     )
 
 
+
+def _hero_brand_html(brand: str) -> str:
+    """Titular de marca: resalta «AI» dentro del nombre (W·ai·rrior); si no hay, las 2 primeras letras."""
+    i = brand.lower().find("ai")
+    if i > 0:
+        parts = [("outline", brand[:i]), ("fill", brand[i : i + 2]), ("outline", brand[i + 2 :])]
+    else:
+        parts = [("fill", brand[:2]), ("outline", brand[2:])]
+    return "".join(f"<span class='hero-{k}'>{_e(t)}</span>" for k, t in parts if t)
+
 def render_live_page(
     lang: str = "en",
     *,
@@ -1443,8 +1453,7 @@ def render_live_page(
         "<div class='hero'>"
         f"<canvas id='sphereCanvas' role='img' aria-label='{_e(_L('sphere_label'))}'></canvas>"
         "<div class='hero-copy'>"
-        f"<p class='hero-brand' aria-hidden='true'><span class='hero-fill'>{_e(BRAND[:2])}</span>"
-        f"<span class='hero-outline'>{_e(BRAND[2:])}</span></p>"
+        f"<p class='hero-brand' aria-hidden='true'>{_hero_brand_html(BRAND)}</p>"
         f"<p class='hero-subtitle'>{_e(_L('hero_subtitle'))}</p>"
         f"<h1 id='headline' aria-live='polite'>{_e(_L('headline_start'))}</h1>"
         "<div id='attackerStrip' class='attempts'></div>"

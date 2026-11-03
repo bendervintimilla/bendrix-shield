@@ -298,7 +298,7 @@ class SpendLedger:
 LOGIN_HTML = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NoKey · live mode</title>
+<title>Wairrior · live mode</title>
 <style>
 body{{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1117;
 color:#e6edf3;font:16px system-ui,sans-serif}}
@@ -309,7 +309,7 @@ border:1px solid #2b3a48;background:#121b24;color:inherit;margin-top:10px}}
 button{{background:#1f6f4a;border-color:#2e8b5f;cursor:pointer}}
 .err{{color:#ff9d9d}}
 </style></head><body><main>
-<h1>NoKey · live mode</h1>
+<h1>Wairrior · live mode</h1>
 <p>Real Meta models (Muse Spark, SAM 3.1, Voice Transcribe). Access code required;
 spend is capped on the server (USD {usd} and {runs} runs per day).</p>
 {message}

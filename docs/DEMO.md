@@ -1,6 +1,6 @@
-# Guía de la demo — NoKey — Business Protection
+# Guía de la demo — Wairrior — Business Protection
 
-Nombre público: «NoKey, Business Protection». Aviso de no afiliación:
+Nombre público: «Wairrior, Business Protection». Aviso de no afiliación:
 *Built on Meta's Muse models; independent project, not affiliated with
 or endorsed by Meta.* Portadas: `docs/brand/slides/`.
 
@@ -43,7 +43,7 @@ security find-generic-password -s baseten-api-key -a hackathon -w >/dev/null \
 
 El 21-oct-2026 las llaves de IA fueron el botín (paquete troyanizado,
 variables de nube expuestas, ~16 h de abuso, USD 310). Las apps tenían
-la llave real; con NoKey solo tienen un token revocable por agente.
+la llave real; con Wairrior solo tienen un token revocable por agente.
 
 ### 2. Conectar cualquier app en 2 líneas
 

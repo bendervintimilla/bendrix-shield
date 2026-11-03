@@ -1,4 +1,4 @@
-"""Marca pública NoKey: única fuente, reexportación y set_brand (sin red)."""
+"""Marca pública Wairrior: única fuente, reexportación y set_brand (sin red)."""
 
 from __future__ import annotations
 
@@ -29,10 +29,10 @@ def _load_set_brand():
     return module
 
 
-def test_brand_es_nokey_y_web_reexporta_la_misma_fuente():
+def test_brand_es_wairrior_y_web_reexporta_la_misma_fuente():
     import web.brand
 
-    assert BRAND == "NoKey"
+    assert BRAND == "Wairrior"
     assert SUBTITLE == "Business Protection"
     assert web.brand.BRAND is BRAND
     assert web.brand.SUBTITLE is SUBTITLE
@@ -119,7 +119,7 @@ def test_set_brand_dry_run_no_toca_nada(tmp_path):
     module = _load_set_brand()
     root = _mini_tree(tmp_path)
     before = (root / "README.md").read_text(encoding="utf-8")
-    changed = module.apply_brand(root, "NoKey", dry_run=True)
+    changed = module.apply_brand(root, "Wairrior", dry_run=True)
     assert changed
     assert (root / "README.md").read_text(encoding="utf-8") == before
     assert module.current_brand(root) == "OldBrand"
@@ -128,30 +128,30 @@ def test_set_brand_dry_run_no_toca_nada(tmp_path):
 def test_set_brand_cambia_textos_y_conserva_nombres_tecnicos(tmp_path):
     module = _load_set_brand()
     root = _mini_tree(tmp_path)
-    module.apply_brand(root, "NoKey")
-    assert module.current_brand(root) == "NoKey"
+    module.apply_brand(root, "Wairrior")
+    assert module.current_brand(root) == "Wairrior"
     readme = (root / "README.md").read_text(encoding="utf-8")
-    assert readme.startswith("# NoKey — Business Protection")
+    assert readme.startswith("# Wairrior — Business Protection")
     assert "bendrix_shield" in readme and "bendrix-shield" in readme
     assert "bendrix-shield-panel-example.us-central1.run.app" in readme
     assert "OldBrand" not in readme
     assert 'name = "bendrix-shield"' in (root / "pyproject.toml").read_text(encoding="utf-8")
-    assert "NoKey" in (root / "pyproject.toml").read_text(encoding="utf-8")
-    assert "NoKey" in (root / "docs" / "guia.md").read_text(encoding="utf-8")
-    assert "NoKey" in (root / "docs" / "brand" / "slides" / "01.svg").read_text(encoding="utf-8")
+    assert "Wairrior" in (root / "pyproject.toml").read_text(encoding="utf-8")
+    assert "Wairrior" in (root / "docs" / "guia.md").read_text(encoding="utf-8")
+    assert "Wairrior" in (root / "docs" / "brand" / "slides" / "01.svg").read_text(encoding="utf-8")
     # De evals/report.md solo cambia el título; los datos no se tocan.
     report = (root / "evals" / "report.md").read_text(encoding="utf-8")
-    assert report == "# Evals de NoKey — reporte completo\nDatos de OldBrand medidos.\n"
+    assert report == "# Evals de Wairrior — reporte completo\nDatos de OldBrand medidos.\n"
 
 
 def test_set_brand_solo_toca_titulo_de_report(tmp_path):
     module = _load_set_brand()
     root = _mini_tree(tmp_path)
     before = (root / "evals" / "report.md").read_text(encoding="utf-8")
-    changed = module.apply_brand(root, "NoKey", dry_run=True)
+    changed = module.apply_brand(root, "Wairrior", dry_run=True)
     assert root / "evals" / "report.md" in changed
     assert (root / "evals" / "report.md").read_text(encoding="utf-8") == before
-    module.apply_brand(root, "NoKey")
+    module.apply_brand(root, "Wairrior")
     assert (root / "evals" / "report.md").read_text(encoding="utf-8") == (
-        "# Evals de NoKey — reporte completo\nDatos de OldBrand medidos.\n"
+        "# Evals de Wairrior — reporte completo\nDatos de OldBrand medidos.\n"
     )

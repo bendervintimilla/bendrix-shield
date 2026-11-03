@@ -1,6 +1,6 @@
-# NoKey — Business Protection · identidad ligera
+# Wairrior — Business Protection · identidad ligera
 
-**Nombre público por defecto:** NoKey
+**Nombre público por defecto:** Wairrior
 **Subtítulo:** Business Protection
 **Tagline (EN, para video y envío):** Your app never holds the real key. One leaked token, revoked in seconds (replay).
 **Tagline (ES):** Tu app nunca tiene la llave real. Un token filtrado, revocado en segundos.
@@ -10,7 +10,7 @@ Cifras que respaldan el tagline (solo `evals/report.md`, held-out v2):
 frente a ~16 h del incidente real · 4/12 bloqueados y 7/12 al dueño en held-out v2
 (1 lectura en inglés pasó en silencio: se dice, no se esconde).
 
-El nombre público es NoKey. No usa marca de terceros.
+El nombre público es Wairrior. No usa marca de terceros.
 
 ## Cómo cambiarlo (un comando)
 
