@@ -54,14 +54,18 @@ per-agent rate limits (`429`), opt-in nonce + timestamp anti-replay
 (`401`/`409`), a sha256 hash-chained audit log the owner can verify, and an
 emergency revoke-all. An adversarial battery of 37 frozen cases in 5 vectors
 (document injection, token exfiltration, owner-voice replay, agent confusion,
-rate abuse) now stops 31 and still lets 6 pass silently — all 6 published as-is
-in `evals/report.md`, with 0 regressions. Owner approvals are now **single-use**:
+rate abuse) first stopped 28 of 37. Owner approvals are now **single-use**:
 each one is bound to its request nonce, to the exact action and token it
 approves, and expires (15 min by default); replaying the owner's recorded
 "yes" against another request, or reusing one `approval_id` for a second plan,
 no longer works (the 3 bypasses it closed went from 28/37 to 31/37). What a
 nonce does not do is identify the speaker: whoever holds the owner's own
-surface (panel, WhatsApp button) can still approve.
+surface (panel, WhatsApp button) can still approve. A hardening pass (C2490:
+text normalization and base64 decoding before the injection engine and the
+gate, split-canary detection, one token file per agent with `0600`/`0700`)
+closed 5 more bypasses; re-run offline, the battery now stops 36 of 37 and
+1 still passes silently (`rt-inj-audit-en-read`), published as-is in
+`evals/report.md`, with 0 regressions.
 
 Motivation, as already documented in this repo (`docs/DEMO.md`): in the
 October 2026 incident behind this project, exposed keys were abused for

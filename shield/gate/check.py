@@ -14,10 +14,11 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from shield.gate.canaries import find_canaries
+from shield.gate.canaries import find_canaries, find_canaries_compact
 from shield.gate.classify import Classification, classify
 from shield.gate.open_classifier import BLOCK_LABELS, BLOCK_THRESHOLD
 from shield.gate.redact import Redaction, redact_payload
+from shield.textnorm import views
 
 logger = logging.getLogger("shield.gate")
 
@@ -62,9 +63,41 @@ def _to_text(payload: object) -> str:
         return str(payload)
 
 
+def _leaf_strings(node: object) -> list[str]:
+    if isinstance(node, str):
+        return [node]
+    if isinstance(node, bytes):
+        return [node.decode("utf-8", errors="ignore")]
+    if isinstance(node, dict):
+        return [s for v in node.values() for s in _leaf_strings(v)]
+    if isinstance(node, (list, tuple)):
+        return [s for v in node for s in _leaf_strings(v)]
+    return []
+
+
+def _find_canaries_all_views(payload: object, text: str, pool: tuple[str, ...] | None) -> list[str]:
+    """Canarios en el texto, en la concatenación de sus cadenas y en sus vistas.
+
+    Vistas: normalizado y base64 decodificado (``shield.textnorm``), más la
+    forma compacta sin espacios ni separadores para canarios partidos.
+    """
+    texts = [text]
+    joined = "".join(_leaf_strings(payload))
+    if joined and joined != text:
+        texts.append(joined)
+    for t in list(texts):
+        texts.extend(view for _, view in views(t))
+    found: list[str] = []
+    for t in texts:
+        for c in find_canaries(t, canaries=pool) + find_canaries_compact(t, canaries=pool):
+            if c not in found:
+                found.append(c)
+    return found
+
+
 def check(payload: object, *, canaries: list[str] | tuple[str, ...] | None = None) -> GateResult:
     text = _to_text(payload)
-    found = find_canaries(text, canaries=tuple(canaries) if canaries else None)
+    found = _find_canaries_all_views(payload, text, tuple(canaries) if canaries else None)
     if found:
         _alert(found)
         return GateResult(allowed=False, canaries_found=found, reason="canary_in_payload")

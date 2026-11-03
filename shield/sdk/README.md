@@ -21,7 +21,10 @@ update_supplier_bank(iban="EC...", _sources=[doc])
 ```python
 from shield.sdk.token_store import LocalTokenStore
 
-store = LocalTokenStore()  # ~/.shield/agent-tokens.json (0600)
+# Un archivo por agente: ~/.shield/agent-tokens.d/bodega.json (0600, dir 0700).
+# Ligado a "bodega": leer o escribir el token de otro agente da PermissionError.
+# Si existe el ~/.shield/agent-tokens.json viejo, la entrada se migra sola.
+store = LocalTokenStore(agent="bodega")
 client = shield.wrap(OpenAI(), token, agent="bodega", token_store=store)
 # Si actions rota el token, el store recibe el nuevo y, ante un 401,
 # el cliente refresca api_key y reintenta una vez: Bodega sigue contando.

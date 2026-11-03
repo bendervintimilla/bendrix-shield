@@ -357,6 +357,21 @@ cuenta como hecho.
 | P2-2 | **Procedencia de dependencias**: instalación con hashes del lockfile verificados y SBOM generado en CI para el entorno de la demo | 3 | `uv sync` con verificación de hashes en CI; SBOM publicado como artefacto del workflow |
 | P2-3 | **Host comprometido**: prueba de que un proceso con el token store de un agente no alcanza el vault ni el store de otro agente; si lo alcanza, se documenta como compromiso de host (fila 2 de `docs/THREAT_MODEL.md`), no se disimula | 4 | Resultado en `evals/`, verde o publicado como falla con su explicación |
 
+**Estado tras C2490 (endurecimiento):**
+
+- P2-1, en parte: el job `gitleaks` de `.github/workflows/ci.yml` revisa
+  todo el historial con un binario fijado (8.30.1, sha256 verificado) y
+  falla con cualquier hallazgo; en local, 0 hallazgos. Falta demostrar en
+  CI el commit de prueba bloqueado y hacer el check obligatorio para
+  fusionar. Procedimiento: un secreto filtrado se revoca en el acto en su
+  proveedor (o se rota el token Shield con el guardián), aunque el commit
+  ya no lo muestre; reescribir el historial no lo des-filtra.
+- P2-3: `LocalTokenStore` guarda un archivo por agente (`0600`, directorio
+  `0700`) y un store ligado a un agente rechaza abrir el de otro;
+  `rt-host-store-shared` queda frenado en `evals/report.md`. Dos agentes
+  bajo el mismo usuario del sistema siguen siendo un solo compromiso de
+  host (fila 2 de `docs/THREAT_MODEL.md`).
+
 ## Lo que este documento no afirma
 
 - No afirma que los supermercados europeos usaran un vector concreto:
