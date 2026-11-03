@@ -6,6 +6,7 @@ REPLAY_T: dict[str, dict[str, str]] = {
     "en": {
         "replay_label": "REPLAY — a recorded real run; no model is called, no keys, no spend",
         "replay_cost": "Replay · USD 0.00 spent",
+        "replay_hero_subtitle": "A recorded real run: a stolen token and your decision, from the attack to containment on one screen.",
         "replay_phrase": "sí, rota el token de bodega",
         "live_off": "Live",
         "live_off_note": "Live mode is off on this public link: it spends real model credits and needs an access code. The replay below is a recording of a real live run.",
@@ -34,6 +35,7 @@ REPLAY_T: dict[str, dict[str, str]] = {
     "es": {
         "replay_label": "REPETICIÓN — una corrida real grabada; no se llama a ningún modelo, sin llaves y sin gasto",
         "replay_cost": "Repetición · USD 0.00 gastados",
+        "replay_hero_subtitle": "Una corrida real grabada: un token robado y tu decisión, del ataque a la contención en una pantalla.",
         "replay_phrase": "sí, rota el token de bodega",
         "live_off": "En vivo",
         "live_off_note": "El modo en vivo está apagado en este enlace público: gasta créditos de modelos reales y pide un código de acceso. La repetición de abajo es la grabación de una corrida real en vivo.",

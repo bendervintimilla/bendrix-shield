@@ -10,9 +10,9 @@ For SMEs running AI agents — Purchasing reads supplier invoices, Warehouse cou
 
 ## Live demo
 
-**https://bendrix-shield-panel-290240328973.us-central1.run.app/** — open it, no sign-in, nothing to install. Click **Approve** and watch the stolen token go from `200` to `401` while Warehouse keeps working and Purchasing is untouched; **Restart demo** starts over. Each visitor gets their own run.
+**https://bendrix-shield-panel-290240328973.us-central1.run.app/** — open it, no sign-in, nothing to install. It opens the same sphere screen as live mode, running the **Replay** (EN/ES, two scenes: Warehouse and Cold chain). Press **Run until the owner decides**, then type your approval and watch the stolen token go from `200` to `401` while the other agents keep working. Each visitor gets their own run; the approval goes through the real single-use flow.
 
-It is the replay: test tokens and a fake upstream, no real keys, no model calls and no spend. The live mode (real Meta models, which costs money) is off on this URL; run it yourself with `make live` and your own key.
+It is the replay of a recorded real run: no real keys, no model calls and no spend; "Live" is disabled on this link. The live mode (real Meta models, which costs money) is off on this URL; run it yourself with `make live` and your own key.
 
 **Live mode online (access code).** A separate Cloud Run service, `bendrix-shield-live`, runs the same chain with the real Meta models (Muse Spark 1.3, SAM 3.1, Muse Voice Transcribe) behind an access code, so strangers cannot spend. The server enforces a hard cap of USD 5 and 20 runs per day (Ecuador time, ledger in a private GCS object that survives restarts, fails closed) plus USD 0.60 per run; at the cap it answers `429` with a clear message and never calls a model. The Meta key and the code come from Secret Manager (`--set-secrets`), never from the image or the repo. The browser microphone works over HTTPS; if it is denied, the owner's decision can be typed and the page says so. Deploy with `GCP_PROJECT=<project> bash deploy/cloudrun-live.sh`.
 
@@ -54,10 +54,14 @@ per-agent rate limits (`429`), opt-in nonce + timestamp anti-replay
 (`401`/`409`), a sha256 hash-chained audit log the owner can verify, and an
 emergency revoke-all. An adversarial battery of 37 frozen cases in 5 vectors
 (document injection, token exfiltration, owner-voice replay, agent confusion,
-rate abuse) stopped 28 and let 9 pass silently — all 9 published as-is in
-`evals/report.md`, with 0 regressions. One honest debt behind three of those
-bypasses: approvals are not yet single-use across guardian plans (documented
-in `docs/threats-2026.md`).
+rate abuse) now stops 31 and still lets 6 pass silently — all 6 published as-is
+in `evals/report.md`, with 0 regressions. Owner approvals are now **single-use**:
+each one is bound to its request nonce, to the exact action and token it
+approves, and expires (15 min by default); replaying the owner's recorded
+"yes" against another request, or reusing one `approval_id` for a second plan,
+no longer works (the 3 bypasses it closed went from 28/37 to 31/37). What a
+nonce does not do is identify the speaker: whoever holds the owner's own
+surface (panel, WhatsApp button) can still approve.
 
 Motivation, as already documented in this repo (`docs/DEMO.md`): in the
 October 2026 incident behind this project, exposed keys were abused for

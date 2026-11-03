@@ -1275,6 +1275,8 @@ def render_live_page(
         labels["step3_title"] = labels["cold_step3_title"]
     if replay:
         labels["live_label"] = labels["replay_label"]
+        if not cold:
+            labels["hero_subtitle"] = labels["replay_hero_subtitle"]
     if remote:
         labels["live_label"] = (
             "LIVE — real Meta models through the Shield gateway (hosted, spend capped)"
