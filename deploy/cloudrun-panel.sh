@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
-# Despliega el panel público de Shield en el proyecto GCP de $GCP_PROJECT.
-# Servicio bendrix-shield-panel: DEMO=replay, min 0 / max 2, público,
-# SIN secretos de escritura (no --set-secrets). El panel en replay usa
-# su gateway en proceso; SHIELD_GATEWAY_URL apunta al gateway vivo
-# para cuando se sirva en modo conectado.
-# Uso: GCP_PROJECT=<tu-proyecto> GATEWAY_URL=<url-del-gateway> bash deploy/cloudrun-panel.sh
+# Despliega la demo pública (replay) de Shield en el proyecto GCP de $GCP_PROJECT.
+# Servicio bendrix-shield-panel: DEMO=replay, público y sin inicio de sesión,
+# 1 instancia siempre encendida (abre al instante) y máximo 1 (las corridas por
+# visitante viven en memoria de esa instancia), SIN secretos (no --set-secrets).
+# El modo en vivo (/live) queda apagado: cuesta dinero y exige DEMO=live.
+# Uso: GCP_PROJECT=<tu-proyecto> bash deploy/cloudrun-panel.sh
 set -euo pipefail
 
 PROJECT="${GCP_PROJECT:?set GCP_PROJECT to your GCP project}"
 REGION="${GCP_REGION:-us-central1}"
 SERVICE="bendrix-shield-panel"
-GATEWAY_URL="${GATEWAY_URL:?set GATEWAY_URL to the deployed gateway URL}"
 
 if [[ "$(gcloud config get-value project 2>/dev/null)" != "$PROJECT" ]]; then
   gcloud config set project "$PROJECT"
@@ -20,10 +19,14 @@ gcloud run deploy "$SERVICE" \
   --project="$PROJECT" \
   --region="$REGION" \
   --source=. \
-  --min-instances=0 \
-  --max-instances=2 \
+  --min-instances=1 \
+  --max-instances=1 \
+  --concurrency=80 \
+  --cpu-boost \
+  --ingress=all \
   --allow-unauthenticated \
-  --set-env-vars="SHIELD_SERVICE=panel,DEMO=replay,SHIELD_GATEWAY_URL=$GATEWAY_URL,SHIELD_GCP_PROJECT=$PROJECT"
+  --set-env-vars="SHIELD_SERVICE=panel,DEMO=replay,SHIELD_PANEL_SESSIONS=1,SHIELD_GCP_PROJECT=$PROJECT" \
+  --remove-env-vars=SHIELD_GATEWAY_URL
 
 gcloud run services describe "$SERVICE" \
   --project="$PROJECT" --region="$REGION" --format='value(status.url)'

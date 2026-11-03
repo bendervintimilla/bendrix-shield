@@ -13,10 +13,14 @@ from __future__ import annotations
 import html
 import json
 import os
+import secrets
 import time
+from collections import OrderedDict
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
+from threading import Lock
 from typing import Any
 from urllib.parse import urlparse
 
@@ -1111,7 +1115,7 @@ def _models_html(lang: str) -> str:
         for m, d, w in rows_data
     )
     live_link = (
-        f"<p><a href=\"/live\">{_esc(_t(lang, 'models_run'))} — /live</a></p>"
+        f'<p><a href="/live">{_esc(_t(lang, "models_run"))} — /live</a></p>'
         if os.environ.get("DEMO", "replay") == "live"
         else ""
     )
@@ -1459,9 +1463,106 @@ def _create_whatsapp_channel(broker: ApprovalBroker) -> WhatsAppChannel:
     return WhatsAppChannel(broker)
 
 
+_SESSION_COOKIE = "panel_sid"
+_current_demo: ContextVar[DemoState | None] = ContextVar("panel_current_demo", default=None)
+
+
+def _sessions_enabled() -> bool:
+    """Demo pública: cada visitante tiene su propia corrida (``SHIELD_PANEL_SESSIONS=1``)."""
+    return os.environ.get("SHIELD_PANEL_SESSIONS", "") == "1"
+
+
+class SessionStore:
+    """Corridas de replay por visitante, en memoria, con tope y caducidad.
+
+    Evita que un jurado reinicie o apruebe sobre la corrida de otro. Si el
+    proceso se reinicia o la sesión caduca, el visitante recibe una corrida
+    nueva sin error. No guarda nada sensible: el replay usa tokens de prueba.
+    """
+
+    def __init__(self, *, max_sessions: int = 200, ttl_s: float = 1800.0) -> None:
+        self.max_sessions = max_sessions
+        self.ttl_s = ttl_s
+        self._items: OrderedDict[str, tuple[float, DemoState]] = OrderedDict()
+        self._lock = Lock()
+
+    def __len__(self) -> int:
+        return len(self._items)
+
+    def get_or_create(self, sid: str | None) -> tuple[str, DemoState, bool]:
+        now = time.monotonic()
+        with self._lock:
+            for key in [k for k, (seen, _) in self._items.items() if now - seen > self.ttl_s]:
+                del self._items[key]
+            if sid and sid in self._items:
+                _, existing = self._items.pop(sid)
+                self._items[sid] = (now, existing)
+                return sid, existing, False
+        fresh = build_replay_state()
+        new_sid = secrets.token_urlsafe(16)
+        with self._lock:
+            self._items[new_sid] = (now, fresh)
+            while len(self._items) > self.max_sessions:
+                self._items.popitem(last=False)
+        return new_sid, fresh, True
+
+
+class _DemoProxy:
+    """Reenvía cada acceso a la corrida del visitante de la petición en curso."""
+
+    def __init__(self, default: DemoState) -> None:
+        object.__setattr__(self, "_default", default)
+
+    def _target(self) -> DemoState:
+        return _current_demo.get() or object.__getattribute__(self, "_default")
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._target(), name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        setattr(self._target(), name, value)
+
+
+class _SessionMiddleware:
+    """ASGI puro: fija la corrida del visitante y entrega la cookie si es nueva."""
+
+    def __init__(self, app: Any, store: SessionStore) -> None:
+        self.app = app
+        self.store = store
+
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        sid = None
+        for name, value in scope.get("headers", []):
+            if name == b"cookie":
+                for part in value.decode("latin-1").split(";"):
+                    key, _, val = part.strip().partition("=")
+                    if key == _SESSION_COOKIE:
+                        sid = val
+        sid, demo_state, created = self.store.get_or_create(sid)
+        token = _current_demo.set(demo_state)
+
+        async def send_wrapped(message: Any) -> None:
+            if created and message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                cookie = f"{_SESSION_COOKIE}={sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=1800"
+                headers.append((b"set-cookie", cookie.encode("latin-1")))
+                message = {**message, "headers": headers}
+            await send(message)
+
+        try:
+            await self.app(scope, receive, send_wrapped)
+        finally:
+            _current_demo.reset(token)
+
+
 def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) -> FastAPI:
-    demo = state or build_replay_state()
-    local = _panel_local_or_sandbox()
+    base_demo = state or build_replay_state()
+    sessions = _sessions_enabled() and state is None
+    demo: Any = _DemoProxy(base_demo) if sessions else base_demo
+    local = _panel_local_or_sandbox() and not sessions
     app = FastAPI(
         title=f"{BRAND} — panel",
         version="0.1.0",
@@ -1469,12 +1570,18 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         openapi_url="/openapi.json" if local else None,
         redoc_url="/redoc" if local else None,
     )
-    app.state.demo = demo
+    app.state.demo = base_demo
     app.state.live_chain = live_chain
-    channel = _create_whatsapp_channel(demo.broker)
+    channel = _create_whatsapp_channel(base_demo.broker)
     channel.live_chain_getter = lambda: getattr(app.state, "live_chain", None)
     app.state.whatsapp = channel
-    app.include_router(whatsapp_router(channel))
+    if sessions:
+        # Demo pública: sin webhook de WhatsApp (no hay canal que atender) y
+        # una corrida de replay por visitante.
+        app.state.sessions = SessionStore()
+        app.add_middleware(_SessionMiddleware, store=app.state.sessions)
+    else:
+        app.include_router(whatsapp_router(channel))
 
     def _with_cookie(resp: HTMLResponse, request: Request, lang: str) -> HTMLResponse:
         if request.query_params.get("lang") in T:
@@ -1581,10 +1688,12 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         if os.environ.get("DEMO", "replay") not in ("replay", "live"):
             return HTMLResponse("<p>Error: reset solo disponible en replay</p>", status_code=403)
         fresh = build_replay_state()
-        fresh.version = demo.version + 1
-        demo.__dict__.update(fresh.__dict__)
-        channel.broker = demo.broker
-        app.state.whatsapp = channel
+        target = _current_demo.get() or base_demo
+        fresh.version = target.version + 1
+        target.__dict__.update(fresh.__dict__)
+        if not sessions:
+            channel.broker = demo.broker
+            app.state.whatsapp = channel
         if request.headers.get("x-panel-fetch") == "1":
             # El reinicio vino de la página abierta: el dueño ya ve el incidente.
             demo.start_clock()
@@ -1660,9 +1769,7 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
     def live_page(request: Request) -> Any:
         lang = _resolve_lang(request)
         if os.environ.get("DEMO", "replay") != "live":
-            return _with_cookie(
-                HTMLResponse(render_live_inactive_page(lang)), request, lang
-            )
+            return _with_cookie(HTMLResponse(render_live_inactive_page(lang)), request, lang)
         guard = _live_guard(request)
         if guard is not None:
             return guard
@@ -1711,9 +1818,7 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         return JSONResponse(chain.reset())
 
     @app.post("/live/step/{name}")
-    def live_step(
-        name: str, request: Request, file: UploadFile | None = File(None)
-    ) -> Any:
+    def live_step(name: str, request: Request, file: UploadFile | None = File(None)) -> Any:
         guard = _live_guard(request)
         if guard is not None:
             return guard
@@ -1735,9 +1840,7 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
                 wa = getattr(app.state, "whatsapp", None)
                 if wa is not None:
                     if getattr(wa, "live_chain_getter", None) is None:
-                        wa.live_chain_getter = lambda: getattr(
-                            app.state, "live_chain", None
-                        )
+                        wa.live_chain_getter = lambda: getattr(app.state, "live_chain", None)
                     if not wa.config.live:
                         try:
                             from channels.whatsapp import load_config
@@ -1747,9 +1850,7 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
                                 wa.config = cfg
                         except Exception:
                             pass
-                    wa.notify_guardian_plan(
-                        result["plan"], approval_id=result.get("approval_id")
-                    )
+                    wa.notify_guardian_plan(result["plan"], approval_id=result.get("approval_id"))
             except Exception:
                 pass  # WhatsApp nunca bloquea el paso del guardián.
         return JSONResponse(result)
