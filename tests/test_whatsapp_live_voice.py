@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import wave
 
+import httpx
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -326,6 +327,19 @@ def test_guardian_endpoint_sends_plan_to_owner(monkeypatch):
     assert resp.status_code == 200
     assert sim.outbox, "sin credenciales el plan queda en outbox (simulador)"
     assert "yes, rotate it" in sim.outbox[-1]["text"]["body"]
+    assert resp.json()["whatsapp"] == {"sent": True, "simulated": True, "status_code": None}
+
+    class BrokenWA:
+        live_chain_getter = None
+        config = WhatsAppConfig(phone_number=OWNER, token="t", phone_number_id="1")
+
+        def notify_guardian_plan(self, plan, approval_id=None):
+            raise httpx.ConnectError("graph down")
+
+    app.state.whatsapp = BrokenWA()
+    failed = client.post("/live/step/guardian").json()
+    assert failed["status"] == "ok"  # WhatsApp nunca bloquea al guardián
+    assert failed["whatsapp"] == {"sent": False, "error": "ConnectError"}
 
 
 def test_live_chain_state_voice_channel():

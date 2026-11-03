@@ -12,6 +12,7 @@ la forma OpenAI ``/v1/audio/transcriptions``.
 
 from __future__ import annotations
 
+import hmac
 import json
 import os
 import time
@@ -82,6 +83,7 @@ def create_app(
     upstream_transport: httpx.BaseTransport | None = None,
     sandbox: bool | None = None,
     rate_limit_per_minute: int = DEFAULT_RATE_LIMIT_PER_MINUTE,
+    emergency_token: str | None = None,
 ) -> FastAPI:
     reg = registry or Registry()
     vlt = vault or get_vault()
@@ -384,11 +386,15 @@ def create_app(
 
     @app.post("/shield/revoke-all")
     async def revoke_all(request: Request) -> Any:
-        """Revocación de emergencia (C2489-3). Requiere SHIELD_EMERGENCY_TOKEN."""
-        expected = os.environ.get("SHIELD_EMERGENCY_TOKEN", "")
+        """Revocación de emergencia (C2489-3). Requiere SHIELD_EMERGENCY_TOKEN.
+
+        `emergency_token` en create_app (una llave por corrida de la demo) tiene prioridad.
+        """
+        expected = emergency_token or os.environ.get("SHIELD_EMERGENCY_TOKEN", "")
         if not expected:
             return _error(503, "emergency_disabled", "Emergency revocation not configured")
-        if request.headers.get("x-shield-emergency", "") != expected:
+        given = request.headers.get("x-shield-emergency", "")
+        if not hmac.compare_digest(given.encode(), expected.encode()):
             return _error(401, "invalid_emergency_token", "Invalid emergency token")
         body: dict[str, Any] = {}
         try:
