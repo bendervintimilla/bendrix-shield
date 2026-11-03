@@ -31,7 +31,7 @@ def new_raw_token(agent: str) -> str:
 
 
 class Registry:
-    """SQLite (archivo o ``:memory:``) con AgentToken y CallLog del """
+    """SQLite (archivo o ``:memory:``) con AgentToken y CallLog del"""
 
     def __init__(self, db_path: str | Path | None = None) -> None:
         path = db_path or os.environ.get("SHIELD_REGISTRY_DB") or "shield-registry.db"
@@ -64,10 +64,40 @@ class Registry:
                     latency_ms REAL NOT NULL DEFAULT 0,
                     src_ip TEXT,
                     src_country TEXT,
-                    decision TEXT NOT NULL DEFAULT 'allow'
+                    decision TEXT NOT NULL DEFAULT 'allow',
+                    prev_hash TEXT,
+                    entry_hash TEXT
+                );
+                CREATE TABLE IF NOT EXISTS replay_nonces (
+                    token_id TEXT NOT NULL,
+                    nonce_hash TEXT NOT NULL,
+                    expires_at REAL NOT NULL,
+                    PRIMARY KEY (token_id, nonce_hash)
                 );
                 """
             )
+            self._migrate_hardening_columns()
+
+    def _migrate_hardening_columns(self) -> None:
+        """Agrega columnas C2489-3 a bases creadas antes de este cambio."""
+        token_cols = {r[1] for r in self._conn.execute("PRAGMA table_info(agent_tokens)")}
+        for name, ddl in (
+            ("allowed_routes", "TEXT NOT NULL DEFAULT '[]'"),
+            ("numeric_limits", "TEXT NOT NULL DEFAULT '{}'"),
+            ("rate_limit_per_minute", "INTEGER"),
+            ("require_nonce", "INTEGER NOT NULL DEFAULT 0"),
+        ):
+            if name not in token_cols:
+                self._conn.execute(f"ALTER TABLE agent_tokens ADD COLUMN {name} {ddl}")
+        log_cols = {r[1] for r in self._conn.execute("PRAGMA table_info(call_logs)")}
+        for name in ("prev_hash", "entry_hash"):
+            if name not in log_cols:
+                self._conn.execute(f"ALTER TABLE call_logs ADD COLUMN {name} TEXT")
+        self._conn.execute(
+            "CREATE TABLE IF NOT EXISTS replay_nonces ("
+            " token_id TEXT NOT NULL, nonce_hash TEXT NOT NULL,"
+            " expires_at REAL NOT NULL, PRIMARY KEY (token_id, nonce_hash))"
+        )
 
     def close(self) -> None:
         self._conn.close()
@@ -81,6 +111,10 @@ class Registry:
         scopes: list[str] | None = None,
         models: list[str] | None = None,
         spend_cap_usd: float | None = None,
+        allowed_routes: list[str] | None = None,
+        numeric_limits: dict[str, list[float]] | None = None,
+        rate_limit_per_minute: int | None = None,
+        require_nonce: bool = False,
     ) -> tuple[AgentToken, str]:
         raw = new_raw_token(agent)
         token = AgentToken(
@@ -91,10 +125,16 @@ class Registry:
             models=list(models or []),
             spend_cap_usd=spend_cap_usd,
             status=AgentTokenStatus.ACTIVE,
+            allowed_routes=list(allowed_routes or []),
+            numeric_limits=dict(numeric_limits or {}),
+            rate_limit_per_minute=rate_limit_per_minute,
+            require_nonce=bool(require_nonce),
         )
         with self._lock, self._conn:
             self._conn.execute(
-                "INSERT INTO agent_tokens VALUES (?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO agent_tokens (token_id, token_hash, agent, app, scopes, models,"
+                " spend_cap_usd, status, created_at, allowed_routes, numeric_limits,"
+                " rate_limit_per_minute, require_nonce) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     token.token_id,
                     hash_token(raw),
@@ -105,12 +145,17 @@ class Registry:
                     token.spend_cap_usd,
                     token.status.value,
                     datetime.now(UTC).isoformat(),
+                    json.dumps(token.allowed_routes),
+                    json.dumps(token.numeric_limits),
+                    token.rate_limit_per_minute,
+                    1 if token.require_nonce else 0,
                 ),
             )
         return token, raw
 
     @staticmethod
     def _row_to_token(row: sqlite3.Row) -> AgentToken:
+        keys = row.keys()
         return AgentToken(
             token_id=row["token_id"],
             agent=row["agent"],
@@ -119,6 +164,18 @@ class Registry:
             models=json.loads(row["models"]),
             spend_cap_usd=row["spend_cap_usd"],
             status=AgentTokenStatus(row["status"]),
+            allowed_routes=json.loads(row["allowed_routes"])
+            if "allowed_routes" in keys and row["allowed_routes"]
+            else [],
+            numeric_limits=json.loads(row["numeric_limits"])
+            if "numeric_limits" in keys and row["numeric_limits"]
+            else {},
+            rate_limit_per_minute=row["rate_limit_per_minute"]
+            if "rate_limit_per_minute" in keys
+            else None,
+            require_nonce=bool(row["require_nonce"])
+            if "require_nonce" in keys and row["require_nonce"]
+            else False,
         )
 
     def authenticate(self, raw: str | None) -> AgentToken | None:
@@ -175,15 +232,85 @@ class Registry:
             scopes=list(old.scopes),
             models=list(old.models),
             spend_cap_usd=old.spend_cap_usd,
+            allowed_routes=list(old.allowed_routes),
+            numeric_limits=dict(old.numeric_limits),
+            rate_limit_per_minute=old.rate_limit_per_minute,
+            require_nonce=old.require_nonce,
         )
 
+    def revoke_all(self, agent: str | None = None, app: str | None = None) -> int:
+        """Revocación de emergencia: revoca todos los ACTIVE (o solo un agente/app)."""
+        with self._lock, self._conn:
+            if agent is not None:
+                cur = self._conn.execute(
+                    "UPDATE agent_tokens SET status='revoked' WHERE status='active' AND agent=?",
+                    (agent,),
+                )
+            elif app is not None:
+                cur = self._conn.execute(
+                    "UPDATE agent_tokens SET status='revoked' WHERE status='active' AND app=?",
+                    (app,),
+                )
+            else:
+                cur = self._conn.execute(
+                    "UPDATE agent_tokens SET status='revoked' WHERE status='active'"
+                )
+        return int(cur.rowcount or 0)
+
+    def check_and_record_nonce(
+        self, token_id: str, nonce: str, *, now: float, ttl_seconds: float = 600.0
+    ) -> bool:
+        """True si el nonce es nuevo para el token; False si es repetición."""
+        nonce_hash = hash_token(f"{token_id}:{nonce}")
+        with self._lock, self._conn:
+            self._conn.execute("DELETE FROM replay_nonces WHERE expires_at < ?", (now,))
+            row = self._conn.execute(
+                "SELECT 1 FROM replay_nonces WHERE token_id=? AND nonce_hash=?",
+                (token_id, nonce_hash),
+            ).fetchone()
+            if row is not None:
+                return False
+            self._conn.execute(
+                "INSERT INTO replay_nonces (token_id, nonce_hash, expires_at) VALUES (?,?,?)",
+                (token_id, nonce_hash, now + ttl_seconds),
+            )
+        return True
+
     # -- llamadas ---------------------------------------------------------
+    @staticmethod
+    def _audit_hash(prev_hash: str, log: CallLog) -> str:
+        canonical = json.dumps(
+            {
+                "ts": log.ts.isoformat(),
+                "agent": log.agent,
+                "model": log.model,
+                "tokens_in": log.tokens_in,
+                "tokens_out": log.tokens_out,
+                "cost_usd": log.cost_usd,
+                "latency_ms": log.latency_ms,
+                "src_ip": log.src_ip,
+                "src_country": log.src_country,
+                "decision": log.decision.value,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return hashlib.sha256(f"{prev_hash}:{canonical}".encode()).hexdigest()
+
     def record_call(self, log: CallLog) -> None:
         with self._lock, self._conn:
+            row = self._conn.execute(
+                "SELECT entry_hash FROM call_logs ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+            prev_hash = row["entry_hash"] if row and row["entry_hash"] else "0" * 64
+            entry_hash = self._audit_hash(prev_hash, log)
+            log.prev_hash = prev_hash
+            log.entry_hash = entry_hash
             self._conn.execute(
                 "INSERT INTO call_logs"
                 " (ts, agent, model, tokens_in, tokens_out, cost_usd, latency_ms,"
-                " src_ip, src_country, decision) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                " src_ip, src_country, decision, prev_hash, entry_hash)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     log.ts.isoformat(),
                     log.agent,
@@ -195,8 +322,38 @@ class Registry:
                     log.src_ip,
                     log.src_country,
                     log.decision.value,
+                    prev_hash,
+                    entry_hash,
                 ),
             )
+
+    def verify_audit_chain(self) -> tuple[bool, int | None]:
+        """(True, None) si la cadena está intacta; (False, id) en la primera rotura."""
+        with self._lock:
+            rows = self._conn.execute("SELECT * FROM call_logs ORDER BY id").fetchall()
+        prev_hash = "0" * 64
+        for r in rows:
+            # Filas viejas sin hash no rompen la verificación (compatibilidad).
+            if not r["entry_hash"]:
+                continue
+            if r["prev_hash"] != prev_hash:
+                return False, int(r["id"])
+            probe = CallLog(
+                ts=datetime.fromisoformat(r["ts"]),
+                agent=r["agent"],
+                model=r["model"],
+                tokens_in=r["tokens_in"],
+                tokens_out=r["tokens_out"],
+                cost_usd=r["cost_usd"],
+                latency_ms=r["latency_ms"],
+                src_ip=r["src_ip"],
+                src_country=r["src_country"],
+                decision=Decision(r["decision"]),
+            )
+            if self._audit_hash(prev_hash, probe) != r["entry_hash"]:
+                return False, int(r["id"])
+            prev_hash = r["entry_hash"]
+        return True, None
 
     def list_calls(self, agent: str | None = None) -> list[CallLog]:
         with self._lock:
@@ -218,6 +375,8 @@ class Registry:
                 src_ip=r["src_ip"],
                 src_country=r["src_country"],
                 decision=Decision(r["decision"]),
+                prev_hash=r["prev_hash"] if "prev_hash" in r.keys() else None,
+                entry_hash=r["entry_hash"] if "entry_hash" in r.keys() else None,
             )
             for r in rows
         ]

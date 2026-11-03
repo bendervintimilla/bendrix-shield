@@ -1110,10 +1110,30 @@ async function toggleRecord() {
     byId("typedText").focus();
   }
 }
+/* «New run» limpia ya la transcripción y los resultados de la corrida anterior
+   (antes quedaban a la vista hasta que la página terminaba de recargar). */
+function clearRun() {
+  Object.keys(stepTimers).forEach((k) => clearInterval(stepTimers[k]));
+  ["voiceTranscript", "voiceIntent", "voiceStatusLine", "voiceChannel", "disagreeLine",
+   "voiceLevel", "micError", "recordTimer", "containedLine", "sdkLine", "recountLine",
+   "comprasLine", "countValue", "expectedLine", "approvedLine"].forEach((id) => {
+    const node = byId(id); if (node) node.textContent = "";
+  });
+  ["attackerBefore", "attackerAfter"].forEach((id) => { const n = byId(id); if (n) n.replaceChildren(); });
+  const typed = byId("typedText"); if (typed) typed.value = "";
+  ["voiceConfirm", "voiceCancel"].forEach((id) => { const n = byId(id); if (n) n.hidden = true; });
+  document.querySelectorAll("[data-status-for]").forEach((n) => {
+    n.textContent = TEXT.not_run; n.dataset.state = "pending";
+  });
+  document.querySelectorAll(".step").forEach((n) => { n.dataset.state = "pending"; });
+  const bubble = byId("whatsappBubble");
+  if (bubble) { bubble.classList.remove("is-whatsapp", "is-approved"); bubble.dataset.channel = ""; }
+}
 document.addEventListener("DOMContentLoaded", () => {
   byId("runUntilBtn").addEventListener("click", runUntilOwner);
   byId("newRunBtn").addEventListener("click", async () => {
     await fetch("/live/reset", {method: "POST"});
+    clearRun();
     window.location.reload();
   });
   const stickyBtn = byId("stickyNewRunBtn");
@@ -1174,11 +1194,20 @@ def render_live_page(
     *,
     spark_open_no_key: bool = True,
     no_key: bool = False,
+    remote: bool = False,
+    replay_url: str = "/",
 ) -> str:
     import json as _json
 
     lang = lang if lang in T else "en"
-    texts = _json.dumps(T[lang], ensure_ascii=False)
+    labels = dict(T[lang])
+    if remote:
+        labels["live_label"] = (
+            "LIVE — real Meta models through the Shield gateway (hosted, spend capped)"
+            if lang == "en"
+            else "EN VIVO — modelos reales de Meta a través del gateway de Shield (alojado, gasto con tope)"
+        )
+    texts = _json.dumps(labels, ensure_ascii=False)
     script = _JS.replace("__TEXTS__", texts)
     en_current = " aria-current='true'" if lang == "en" else ""
     es_current = " aria-current='true'" if lang == "es" else ""
@@ -1249,9 +1278,9 @@ def render_live_page(
         "<header class='band'><div class='inner'>"
         "<div class='band-top'>"
         f"<p class='brandline'><strong>{_e(BRAND)}</strong> · {_e(SUBTITLE)}</p>"
-        f"<span class='live-label'>{_e(_t(lang, 'live_label'))}</span>"
+        f"<span class='live-label'>{_e(labels['live_label'])}</span>"
         "<div class='band-tools'>"
-        f"<nav class='mode-switch'><a href='/'>{_e(_t(lang, 'replay'))}</a>"
+        f"<nav class='mode-switch'><a href='{_e(replay_url)}'>{_e(_t(lang, 'replay'))}</a>"
         f"<a href='/live' aria-current='true'>{_e(_t(lang, 'live'))}</a></nav>"
         f"<span class='lang'><a href='/live?lang=en'{en_current}>EN</a>"
         f"<a href='/live?lang=es'{es_current}>ES</a></span>"
