@@ -34,6 +34,9 @@ from fastapi.responses import PlainTextResponse
 
 from channels.approvals import ApprovalBroker
 
+# Margen de reloj entre WhatsApp y este servidor al comparar con la hora del plan.
+VOICE_CLOCK_SKEW_S = 5.0
+
 GRAPH_URL = "https://graph.facebook.com/v21.0"
 MAX_MEDIA_BYTES = 5 * 1024 * 1024
 _ALLOWED_MEDIA_SUFFIXES = (".whatsapp.net", ".fbcdn.net")
@@ -140,6 +143,8 @@ class WhatsAppMessage:
     button_id: str = ""
     button_title: str = ""
     audio_id: str = ""
+    timestamp: float = 0.0  # epoch (s) en que WhatsApp recibió el mensaje
+    forwarded: bool = False  # reenviado: no es una grabación nueva del dueño
 
 
 def parse_webhook(payload: dict[str, Any]) -> list[WhatsAppMessage]:
@@ -151,6 +156,14 @@ def parse_webhook(payload: dict[str, Any]) -> list[WhatsAppMessage]:
                 msg = WhatsAppMessage(
                     message_id=str(raw.get("id", "")),
                     from_number=str(raw.get("from", "")),
+                )
+                try:
+                    msg.timestamp = float(raw.get("timestamp") or 0)
+                except (TypeError, ValueError):
+                    msg.timestamp = 0.0
+                context = raw.get("context") or {}
+                msg.forwarded = bool(
+                    context.get("forwarded") or context.get("frequently_forwarded")
                 )
                 interactive = raw.get("interactive") or {}
                 reply = interactive.get("button_reply") or interactive.get("list_reply") or {}
@@ -445,6 +458,19 @@ class WhatsAppChannel:
                     chain, "voice note received but no plan is pending: run the Guardian step first"
                 )
                 return {**base, "status": "ignored", "reason": "no pending approval"}
+            # Contra repetición: solo vale una nota grabada para ESTE plan.
+            if msg.forwarded:
+                self._voice_failed(
+                    chain, "forwarded voice notes do not count: record a new one for this plan"
+                )
+                return {**base, "status": "ignored", "reason": "forwarded"}
+            issued_at = getattr(chain, "voice_issued_at", None)
+            issued = issued_at() if callable(issued_at) else None
+            if issued and msg.timestamp and msg.timestamp < issued - VOICE_CLOCK_SKEW_S:
+                self._voice_failed(
+                    chain, "this voice note is older than the current plan: record a new one"
+                )
+                return {**base, "status": "ignored", "reason": "older_than_plan"}
             try:
                 raw = download_media(msg.audio_id, self.config, self._http)
                 wav = self._audio_converter(raw)
@@ -457,6 +483,9 @@ class WhatsAppChannel:
             action = str(intent.get("action") or voice.get("status") or "")
             heard = f"Heard: “{transcript}”. Understood: {action}."
             status = str(voice.get("status") or "")
+            if status == "replayed":
+                self.send_text(f"NoKey: {voice.get('error') or 'recording already used'}.")
+                return {**base, "status": status, "voice": voice}
             if status == "confirmation_required":
                 self.send_text(heard + " Reply “confirm” to confirm.")
                 return {**base, "status": status, "voice": voice}

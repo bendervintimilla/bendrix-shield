@@ -283,6 +283,20 @@ def _usage_of(result: Any) -> tuple[int, int]:
     )
 
 
+def audio_fingerprint(wav_bytes: bytes) -> str:
+    """Huella SHA-256 del audio (muestras PCM si es WAV; si no, los bytes tal cual).
+
+    Ignora la cabecera para que reempaquetar la misma grabación no la vuelva nueva.
+    """
+    data = bytes(wav_bytes or b"")
+    try:
+        with wave.open(io.BytesIO(data), "rb") as wav:
+            data = wav.readframes(wav.getnframes())
+    except Exception:
+        pass
+    return hashlib.sha256(data).hexdigest()
+
+
 def validate_wav(wav_bytes: bytes) -> dict[str, Any]:
     """Valida RIFF/WAVE mono PCM16 16/24 kHz, <=2 min y <=32 MB."""
     if len(wav_bytes) > 32 * 1024 * 1024:
@@ -492,6 +506,11 @@ class LiveChain:
         self._guardian_plan: dict[str, Any] | None = None
         self._guardian_agent: GuardianAgent | None = None
         self._voice_channel: str | None = None
+        # Contra repetición: huella del audio ya usado en una decisión -> approval_id.
+        # Sobrevive a «New run»: una grabación vieja del dueño no aprueba un plan nuevo.
+        self._voice_used: dict[str, str] = {}
+        # Momento en que el guardián abrió la solicitud vigente (epoch, s).
+        self._approval_issued_at: float | None = None
         self._last_count_image: bytes | None = None
         self._lock = threading.Lock()
         self._server: Any = None
@@ -836,11 +855,13 @@ class LiveChain:
         # El candado se conserva: un paso en curso lo soltará al terminar y debe
         # soltar el mismo objeto que tomó (si no, «release unlocked lock» → 500).
         lock = self._lock
+        voice_used = dict(self._voice_used)
         self.close()
         fresh = LiveChain(vault=vault, upstream_transport=transport, cap_usd=cap)
         fresh._start()
         self.__dict__.update(fresh.__dict__)
         self._lock = lock
+        self._voice_used = voice_used
         return self.state()
 
     # -- procedencia / tope -------------------------------------------------
@@ -1681,6 +1702,7 @@ class LiveChain:
         self._guardian_agent = guardian_agent
         asked = guardian_agent.tool_ask_owner()
         self._approval_id = asked.get("pending_approval_id") or asked.get("approval_id")
+        self._approval_issued_at = time.time()
         out = {
             "status": "ok",
             "plan": plan,
@@ -1706,7 +1728,27 @@ class LiveChain:
         try:
             voice_channel = channel if channel in ("whatsapp", "browser") else "browser"
             self._voice_channel = voice_channel
-            out = self._step_voice(wav_bytes, typed)
+            fingerprint = audio_fingerprint(wav_bytes) if wav_bytes is not None else None
+            used_for = self._voice_used.get(fingerprint) if fingerprint else None
+            if used_for:
+                out = {
+                    "status": "replayed",
+                    "error": (
+                        f"this exact recording was already used for {used_for}: "
+                        "record a new voice note"
+                    ),
+                    "approval_id": self._approval_id,
+                }
+                self.results["voice"] = out
+            else:
+                out = self._step_voice(wav_bytes, typed)
+                if (
+                    fingerprint
+                    and isinstance(out, dict)
+                    and out.get("status") not in ("error", "no_speech")
+                    and out.get("intent")
+                ):
+                    self._voice_used[fingerprint] = str(self._approval_id or "")
             if isinstance(out, dict):
                 out["channel"] = voice_channel
                 if isinstance(self.results.get("voice"), dict):
@@ -1714,6 +1756,10 @@ class LiveChain:
             return self._redact_output(out)
         finally:
             self._lock.release()
+
+    def voice_issued_at(self) -> float | None:
+        """Epoch en que se abrió la solicitud vigente (para descartar audios anteriores)."""
+        return self._approval_issued_at if self._approval_id else None
 
     def record_voice_error(self, error: str, channel: str = "whatsapp") -> dict[str, Any]:
         """Deja visible en el panel una nota de voz que no se pudo procesar.

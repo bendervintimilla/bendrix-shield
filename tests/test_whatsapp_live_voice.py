@@ -466,4 +466,4 @@ def test_live_chain_record_voice_error_shows_in_state_and_page():
     assert chain._lock.acquire(blocking=False)
     chain._lock.release()
     html = render_live_page("en")
-    assert 'r.status === "error" ? TEXT.error' in html
+    assert "TEXT.error + \": \" + (r.error" in html
