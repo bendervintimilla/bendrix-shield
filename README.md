@@ -14,6 +14,8 @@ For SMEs running AI agents — Purchasing reads supplier invoices, Warehouse cou
 
 It is the replay: test tokens and a fake upstream, no real keys, no model calls and no spend. The live mode (real Meta models, which costs money) is off on this URL; run it yourself with `make live` and your own key.
 
+**Live mode online (access code).** A separate Cloud Run service, `bendrix-shield-live`, runs the same chain with the real Meta models (Muse Spark 1.3, SAM 3.1, Muse Voice Transcribe) behind an access code, so strangers cannot spend. The server enforces a hard cap of USD 5 and 20 runs per day (Ecuador time, ledger in a private GCS object that survives restarts, fails closed) plus USD 0.60 per run; at the cap it answers `429` with a clear message and never calls a model. The Meta key and the code come from Secret Manager (`--set-secrets`), never from the image or the repo. The browser microphone works over HTTPS; if it is denied, the owner's decision can be typed and the page says so. Deploy with `GCP_PROJECT=<project> bash deploy/cloudrun-live.sh`.
+
 **Try it**
 
 ```bash
