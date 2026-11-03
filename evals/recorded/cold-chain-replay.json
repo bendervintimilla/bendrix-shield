@@ -1,0 +1,218 @@
+{
+  "scenario": "cold-chain-refrigeracion",
+  "mode": "replay",
+  "network": false,
+  "credits_usd": 0,
+  "ok": true,
+  "elapsed_s": 0.026,
+  "statuses": {
+    "legit_gateway": 200,
+    "attacker_before": 200,
+    "attacker_after": 401,
+    "refrigeracion_after": 200,
+    "bodega_after": 200,
+    "compras_after": 200
+  },
+  "attack_reasons": [
+    "out_of_range:50C fuera de [0,4]C",
+    "off_hours:03:00 fuera de 06:00-22:00",
+    "unexpected_origin:BR (esperado EC)"
+  ],
+  "final_equipment": [
+    {
+      "equipment": "camara",
+      "label": "Cámara fría",
+      "safe_range_c": [
+        0.0,
+        4.0
+      ],
+      "setpoint_c": 3.0
+    },
+    {
+      "equipment": "congelador",
+      "label": "Congelador",
+      "safe_range_c": [
+        -22.0,
+        -18.0
+      ],
+      "setpoint_c": -19.0
+    }
+  ],
+  "steps": [
+    {
+      "step": "legit_setpoint",
+      "evaluation": {
+        "decision": "allow",
+        "reasons": [],
+        "applied": true,
+        "equipment": {
+          "equipment": "camara",
+          "label": "Cámara fría",
+          "safe_range_c": [
+            0.0,
+            4.0
+          ],
+          "setpoint_c": 3.0
+        },
+        "request": {
+          "equipment": "camara",
+          "setpoint_c": 3.0,
+          "hour": 10,
+          "origin_country": "EC",
+          "origin": "panel-local"
+        }
+      },
+      "gateway_status": 200
+    },
+    {
+      "step": "foreign_token_scope",
+      "evaluation": {
+        "decision": "block",
+        "reasons": [
+          "missing_scope:coldchain:setpoint:camara"
+        ],
+        "applied": false,
+        "equipment": {
+          "equipment": "camara",
+          "label": "Cámara fría",
+          "safe_range_c": [
+            0.0,
+            4.0
+          ],
+          "setpoint_c": 3.0
+        },
+        "request": {
+          "equipment": "camara",
+          "setpoint_c": 3.5,
+          "hour": 10,
+          "origin_country": "EC",
+          "origin": "panel-local"
+        }
+      }
+    },
+    {
+      "step": "stolen_token_attack",
+      "gateway_status_before_rotation": 200,
+      "attacks": [
+        {
+          "decision": "block",
+          "reasons": [
+            "out_of_range:50C fuera de [0,4]C",
+            "off_hours:03:00 fuera de 06:00-22:00",
+            "unexpected_origin:BR (esperado EC)"
+          ],
+          "applied": false,
+          "equipment": {
+            "equipment": "camara",
+            "label": "Cámara fría",
+            "safe_range_c": [
+              0.0,
+              4.0
+            ],
+            "setpoint_c": 3.0
+          },
+          "request": {
+            "equipment": "camara",
+            "setpoint_c": 50.0,
+            "hour": 3,
+            "origin_country": "BR",
+            "origin": "external"
+          }
+        },
+        {
+          "decision": "block",
+          "reasons": [
+            "out_of_range:5C fuera de [-22,-18]C",
+            "off_hours:03:00 fuera de 06:00-22:00",
+            "unexpected_origin:BR (esperado EC)"
+          ],
+          "applied": false,
+          "equipment": {
+            "equipment": "congelador",
+            "label": "Congelador",
+            "safe_range_c": [
+              -22.0,
+              -18.0
+            ],
+            "setpoint_c": -20.0
+          },
+          "request": {
+            "equipment": "congelador",
+            "setpoint_c": 5.0,
+            "hour": 3,
+            "origin_country": "BR",
+            "origin": "external"
+          }
+        }
+      ],
+      "equipment_after_attack": [
+        {
+          "equipment": "camara",
+          "label": "Cámara fría",
+          "safe_range_c": [
+            0.0,
+            4.0
+          ],
+          "setpoint_c": 3.0
+        },
+        {
+          "equipment": "congelador",
+          "label": "Congelador",
+          "safe_range_c": [
+            -22.0,
+            -18.0
+          ],
+          "setpoint_c": -20.0
+        }
+      ]
+    },
+    {
+      "step": "rotation_without_owner_voice",
+      "blocked_without_approval": true,
+      "attacker_status_at_that_moment": 200
+    },
+    {
+      "step": "owner_voice_rotation",
+      "voice_status": "approved",
+      "voice_intent": {
+        "action": "approve",
+        "exclude_targets": [],
+        "only_targets": [],
+        "is_partial": false,
+        "source": "deterministic",
+        "transcript": "sí, rota refrigeración"
+      },
+      "rotation_status": "applied",
+      "rotated_agent": "refrigeracion",
+      "new_token_id": "shd_refrigeracion_6808d23d"
+    },
+    {
+      "step": "after_rotation",
+      "attacker_status": 401,
+      "refrigeracion_status": 200,
+      "bodega_status": 200,
+      "compras_status": 200,
+      "legit_setpoint": {
+        "decision": "allow",
+        "reasons": [],
+        "applied": true,
+        "equipment": {
+          "equipment": "congelador",
+          "label": "Congelador",
+          "safe_range_c": [
+            -22.0,
+            -18.0
+          ],
+          "setpoint_c": -19.0
+        },
+        "request": {
+          "equipment": "congelador",
+          "setpoint_c": -19.0,
+          "hour": 11,
+          "origin_country": "EC",
+          "origin": "panel-local"
+        }
+      }
+    }
+  ]
+}

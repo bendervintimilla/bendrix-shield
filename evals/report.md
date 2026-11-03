@@ -423,3 +423,16 @@ Exact costs in the recordings: USD 0.097453, USD 0.091345 and USD 0.085591.
   0.1121 and 0.1316) blocked are 10, 11 and 11 of 12 and false blocks
   are 0, 0 and 1, so the Spark range as a whole includes that false block.
 <!-- H15:heldout2-armc:end -->
+
+## Cadena de frío (IoT) — C2489-2
+
+Replay sin red ni créditos (USD 0). Escenario en `crew/refrigeracion/scenario.py`; grabación en `evals/recorded/cold-chain-replay.json` (sin tokens en claro). Reproducir: `uv run python evals/run_cold_chain.py`.
+
+- Cambio legítimo (cámara 3 °C, 10:00, EC): aplicado, gateway 200.
+- Alcance mínimo: token sin `coldchain:setpoint:camara` bloqueado, sin mutar el equipo.
+- Ataques con token robado bloqueados: 2/2 (cámara a 50 °C y congelador a 5 °C, 03:00, origen BR); señales: fuera de rango, fuera de horario y origen inesperado.
+- Atacante: 200 -> 401 tras rotar solo Refrigeración con confirmación por voz del dueño.
+- Después de rotar: Refrigeración 200, Bodega 200, Compras 200.
+- Equipos al final: [{'equipment': 'camara', 'label': 'Cámara fría', 'safe_range_c': [0.0, 4.0], 'setpoint_c': 3.0}, {'equipment': 'congelador', 'label': 'Congelador', 'safe_range_c': [-22.0, -18.0], 'setpoint_c': -19.0}].
+- Duración del escenario en esta corrida: 0.025 s.
+- Costo en créditos real: USD 0 (sin llamadas a modelos).

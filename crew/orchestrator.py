@@ -25,6 +25,7 @@ from openai import OpenAI
 from crew.bodega.agent import BodegaAgent
 from crew.compras.agent import ComprasAgent
 from crew.compras.ledger import Ledger
+from crew.refrigeracion.agent import RefrigeracionAgent
 from shield import untrusted, wrap
 from shield.meta_client import MetaClient, NeedsCredits
 from shield.registry import Registry
@@ -144,11 +145,13 @@ class Orchestrator:
         compras: ComprasAgent,
         bodega: BodegaAgent,
         *,
+        refrigeracion: RefrigeracionAgent | None = None,
         spark_client: MetaClient | None = None,
         registry: PendingRegistry | None = None,
     ) -> None:
         self.compras = compras
         self.bodega = bodega
+        self.refrigeracion = refrigeracion
         self.spark_client = spark_client
         self.registry = registry or default_registry
         self.token: str | None = None
@@ -292,6 +295,26 @@ class Orchestrator:
                     mode="local_router",
                     tool_calls=calls,
                     data={"proposal": proposal},
+                )
+            if any(
+                k in text
+                for k in ("refrigeracion", "nevera", "congelador", "camara fria", "cadena de frio")
+            ):
+                if self.refrigeracion is None:
+                    return CrewResult(
+                        status="ok",
+                        answer="refrigeración no conectada en esta cuadrilla",
+                        mode="local_router",
+                        tool_calls=calls,
+                    )
+                status = self.refrigeracion.status()
+                calls.append({"tool": "coldchain_status", "status": "ok", "result": status})
+                return CrewResult(
+                    status="ok",
+                    answer="estado de refrigeración listo",
+                    mode="local_router",
+                    tool_calls=calls,
+                    data={"coldchain": status},
                 )
             if any(k in text for k in ("receta", "costo del plato", "recost", "plato")):
                 cost = self.compras.recost_dish(str(context.get("dish") or ""))
@@ -450,15 +473,29 @@ def build_crew(
     reg = registry or Registry(":memory:")
     compras = ComprasAgent(ledger, meta_client=meta_client)
     bodega = BodegaAgent(ledger, meta_client=meta_client)
-    orchestrator = Orchestrator(compras, bodega, spark_client=meta_client)
+    refrigeracion = RefrigeracionAgent()
+    orchestrator = Orchestrator(
+        compras, bodega, refrigeracion=refrigeracion, spark_client=meta_client
+    )
     tokens: dict[str, str] = {}
     clients: dict[str, Any] = {}
-    for agent, obj in (("compras", compras), ("bodega", bodega), ("orchestrator", orchestrator)):
+    crew_scopes = ["crew"]
+    for agent, obj in (
+        ("compras", compras),
+        ("bodega", bodega),
+        ("orchestrator", orchestrator),
+        ("refrigeracion", refrigeracion),
+    ):
+        scopes = refrigeracion.scopes if agent == "refrigeracion" else crew_scopes
+        if agent == "refrigeracion":
+            models = [SPARK_MODEL]
+        else:
+            models = [SPARK_MODEL, "sam-3.1", "muse-voice-transcribe-1.0"]
         _meta, raw = reg.create_token(
             agent,
             "crew",
-            scopes=["crew"],
-            models=[SPARK_MODEL, "sam-3.1", "muse-voice-transcribe-1.0"],
+            scopes=scopes,
+            models=models,
         )
         obj.token = raw  # type: ignore[attr-defined]
         tokens[agent] = raw
@@ -471,6 +508,7 @@ def build_crew(
         "ledger": ledger,
         "compras": compras,
         "bodega": bodega,
+        "refrigeracion": refrigeracion,
         "orchestrator": orchestrator,
         "tokens": tokens,
         "clients": clients,
