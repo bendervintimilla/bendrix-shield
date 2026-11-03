@@ -15,6 +15,10 @@ COPY bendrix_shield ./bendrix_shield
 COPY web ./web
 COPY channels ./channels
 COPY sandbox ./sandbox
+COPY crew ./crew
+# El modo en vivo lee estas imágenes y avisos (web/live_chain.py).
+COPY evals/fixtures/live ./evals/fixtures/live
+COPY evals/advisories ./evals/advisories
 
 RUN pip install --upgrade pip && pip install .
 

@@ -104,7 +104,9 @@ def test_login_sets_strict_httponly_cookie_and_allows_flow(remote_env):
         cookie = r.headers["set-cookie"]
         assert "HttpOnly" in cookie and "Secure" in cookie and "SameSite=strict" in cookie
         assert CODE not in cookie
-        assert client.get("/live").status_code == 200
+        page = client.get("/live")
+        assert page.status_code == 200
+        assert "this Mac" not in page.text and "hosted, spend capped" in page.text
         assert client.post("/live/start").status_code == 200
         assert client.post("/live/step/count").json()["count"] == 7
         # CSRF: un origen distinto al host se rechaza aunque haya cookie.
