@@ -116,8 +116,14 @@ def test_local_router_without_spark():
 def test_build_crew_one_token_per_agent():
     bundle = build_crew()
     tokens = bundle["tokens"]
-    assert set(tokens) == {"compras", "bodega", "orchestrator"}
-    assert len(set(tokens.values())) == 3
+    assert set(tokens) == {"compras", "bodega", "orchestrator", "refrigeracion"}
+    assert len(set(tokens.values())) == 4
     assert all(t.startswith("shd_") for t in tokens.values())
     registered = {t.agent for t in bundle["registry"].list_tokens()}
-    assert registered == {"compras", "bodega", "orchestrator"}
+    assert registered == {"compras", "bodega", "orchestrator", "refrigeracion"}
+    cold = [t for t in bundle["registry"].list_tokens("refrigeracion")][0]
+    assert cold.scopes == [
+        "coldchain:read",
+        "coldchain:setpoint:camara",
+        "coldchain:setpoint:congelador",
+    ]

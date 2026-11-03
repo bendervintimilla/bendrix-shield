@@ -151,6 +151,12 @@ def create_app(
             resp = _error(429, "rate_limit_exceeded", "Rate limit exceeded for this token")
             resp.headers["Retry-After"] = "60"
             return resp
+        # P1-1: el tope también es por agente; repartir la ráfaga entre
+        # dos tokens del mismo agente no lo esquiva.
+        if not limiter.allow(f"agent:{token.agent}", limit=token.rate_limit_per_minute):
+            resp = _error(429, "rate_limit_exceeded", "Rate limit exceeded for this agent")
+            resp.headers["Retry-After"] = "60"
+            return resp
         return None
 
     def country(request: Request) -> str | None:

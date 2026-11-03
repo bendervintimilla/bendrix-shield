@@ -300,6 +300,46 @@ def _run_host_store_shared(caso: dict) -> dict:
         }
 
 
+def _run_fridge_scope(caso: dict) -> dict:
+    from crew.refrigeracion.agent import SetpointRequest, evaluate_setpoint
+
+    ev = evaluate_setpoint(SetpointRequest("camara", 25.0), scopes=["crew"])
+    return {
+        "observado": ev.decision,
+        "frenado": ev.decision == "block" and not ev.applied,
+        "detalle": ",".join(ev.reasons),
+    }
+
+
+def _run_fridge_attack(caso: dict) -> dict:
+    from crew.refrigeracion.agent import (
+        READ_SCOPE,
+        SetpointRequest,
+        evaluate_setpoint,
+        setpoint_scope,
+    )
+
+    scopes = [READ_SCOPE, setpoint_scope("camara")]
+    req = SetpointRequest("camara", 25.0, hour=3, origin_country="BR")
+    ev = evaluate_setpoint(req, scopes=scopes)
+    return {
+        "observado": ev.decision,
+        "frenado": ev.decision == "block" and not ev.applied,
+        "detalle": ",".join(ev.reasons),
+    }
+
+
+def _run_gateway_rate_fridge(caso: dict) -> dict:
+    client, reg = _gateway_client(rate=60)
+    _, raw = reg.create_token("refrigeracion", "crew", rate_limit_per_minute=5)
+    codes = [_post(client, raw) for _ in range(7)]
+    return {
+        "observado": ",".join(map(str, codes)),
+        "frenado": codes[:5] == [200] * 5 and codes[5:] == [429] * 2,
+        "detalle": "limite_por_token_refrigeracion",
+    }
+
+
 _RUNNERS = {
     "policy": _run_policy,
     "gate": _run_gate,
@@ -314,6 +354,9 @@ _RUNNERS = {
     "approval_reuse": _run_approval_reuse,
     "host_store": _run_host_store,
     "host_store_shared": _run_host_store_shared,
+    "fridge_scope": _run_fridge_scope,
+    "fridge_attack": _run_fridge_attack,
+    "gateway_rate_fridge": _run_gateway_rate_fridge,
 }
 
 

@@ -343,6 +343,27 @@
       "nota": "P2-3: con un archivo de store por agente, el store de bodega no entrega el token de compras ni contiene la llave del vault."
     },
     {
+      "id": "rt-conf-compras-setpoint",
+      "vector": "confusion",
+      "kind": "fridge_scope",
+      "expect": "contained",
+      "nota": "P1-3(c): el contexto de Compras (alcance crew, sin coldchain:setpoint:camara) pide mover la cámara: bloqueado por alcance antes de tocar el equipo."
+    },
+    {
+      "id": "rt-fridge-stolen-setpoint",
+      "vector": "confusion",
+      "kind": "fridge_attack",
+      "expect": "contained",
+      "nota": "El ataque de la noticia con el token robado de Refrigeración y su alcance: setpoint de 25 C a las 03:00 desde otro país; lo frena el rango seguro del equipo."
+    },
+    {
+      "id": "rt-rate-fridge-token",
+      "vector": "tasa",
+      "kind": "gateway_rate_fridge",
+      "expect": "contained",
+      "nota": "P1-3(e): ráfaga con el token de Refrigeración: su límite por token da 429."
+    },
+    {
       "id": "rt-host-store-shared",
       "vector": "confusion",
       "kind": "host_store_shared",
