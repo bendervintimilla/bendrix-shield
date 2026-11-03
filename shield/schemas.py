@@ -57,6 +57,12 @@ class AgentToken(BaseModel):
     models: list[str] = Field(default_factory=list)
     spend_cap_usd: float | None = None
     status: AgentTokenStatus = AgentTokenStatus.ACTIVE
+    # C2489-3: alcance mínimo y endurecimiento (vacío/None = sin restricción,
+    # compatibilidad con tokens creados antes de C2489-3).
+    allowed_routes: list[str] = Field(default_factory=list)
+    numeric_limits: dict[str, list[float]] = Field(default_factory=dict)
+    rate_limit_per_minute: int | None = None
+    require_nonce: bool = False
 
 
 class Decision(StrEnum):
@@ -76,6 +82,9 @@ class CallLog(BaseModel):
     src_ip: str | None = None
     src_country: str | None = None
     decision: Decision = Decision.ALLOW
+    # C2489-3: cadena de auditoría (lo completa Registry.record_call).
+    prev_hash: str | None = None
+    entry_hash: str | None = None
 
 
 class ToolCall(BaseModel):
