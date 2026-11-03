@@ -26,7 +26,13 @@ from urllib.parse import urlparse
 
 import httpx
 from fastapi import FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    Response,
+)
 
 from channels.approvals import ApprovalBroker, ChannelApprover
 from channels.voice import VoiceApprovalFlow
@@ -39,6 +45,14 @@ from shield.schemas import CallLog
 from shield.sdk.token_store import InMemoryTokenStore
 from shield.vault.vault import get_vault
 from web.brand import BRAND, SUBTITLE
+from web.live_access import (
+    COOKIE_NAME,
+    COOKIE_TTL_S,
+    AccessGate,
+    SpendLedger,
+    remote_enabled,
+    render_login,
+)
 from web.live_page import render_live_inactive_page, render_live_page
 
 UPSTREAM_KEY = "upstream-demo-key-0000"
@@ -1575,12 +1589,17 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
     channel = _create_whatsapp_channel(base_demo.broker)
     channel.live_chain_getter = lambda: getattr(app.state, "live_chain", None)
     app.state.whatsapp = channel
+    # Modo en vivo publicado (servicio aparte): código de acceso + tope de gasto.
+    remote = remote_enabled() and os.environ.get("DEMO", "replay") == "live" and not sessions
+    gate = AccessGate(os.environ["LIVE_ACCESS_CODE"]) if remote else None
+    ledger = SpendLedger.from_env() if remote else None
+    app.state.live_ledger = ledger
     if sessions:
         # Demo pública: sin webhook de WhatsApp (no hay canal que atender) y
         # una corrida de replay por visitante.
         app.state.sessions = SessionStore()
         app.add_middleware(_SessionMiddleware, store=app.state.sessions)
-    else:
+    elif not remote:
         app.include_router(whatsapp_router(channel))
 
     def _with_cookie(resp: HTMLResponse, request: Request, lang: str) -> HTMLResponse:
@@ -1597,7 +1616,9 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         return _with_cookie(resp, request, lang)
 
     @app.get("/", response_class=HTMLResponse)
-    async def index(request: Request) -> HTMLResponse:
+    async def index(request: Request) -> Any:
+        if remote:
+            return RedirectResponse("/live", status_code=303)
         demo.start_clock()
         lang = _resolve_lang(request)
         return _with_cookie(HTMLResponse(_page(demo, lang)), request, lang)
@@ -1705,12 +1726,30 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         return _post_response(request)
 
     # -- modo live: solo DEMO=live y solo loopback --------------------
+    def _authed(request: Request) -> bool:
+        return gate is not None and gate.cookie_ok(request.cookies.get(COOKIE_NAME))
+
     def _live_guard(request: Request) -> JSONResponse | None:
         if os.environ.get("DEMO", "replay") != "live":
             return JSONResponse(
                 {"error": "live mode only enabled with DEMO=live"},
                 status_code=403,
             )
+        if remote:
+            if not _authed(request):
+                return JSONResponse(
+                    {"error": "access code required", "login": "/live/login"},
+                    status_code=401,
+                )
+            if request.method == "POST":
+                origin = request.headers.get("origin")
+                host_header = request.headers.get("host", "")
+                if origin and urlparse(origin).netloc.lower() != host_header.strip().lower():
+                    return JSONResponse(
+                        {"error": "cross-origin live requests are not allowed"},
+                        status_code=403,
+                    )
+            return None
         host = request.client.host if request.client else ""
         if host not in ("127.0.0.1", "::1", "localhost", "testclient"):
             return JSONResponse(
@@ -1765,11 +1804,91 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         _refresh_whatsapp_config(chain)
         return chain
 
+    def _set_auth_cookie(resp: Response, request: Request) -> None:
+        secure = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
+        resp.set_cookie(
+            COOKIE_NAME,
+            gate.make_cookie(),  # type: ignore[union-attr]
+            max_age=COOKIE_TTL_S,
+            path="/",
+            httponly=True,
+            secure=secure,
+            samesite="strict",
+        )
+
+    def _login_page(message: str = "", status: int = 200) -> HTMLResponse:
+        assert ledger is not None
+        page = render_login(ledger.max_usd, ledger.max_runs, message)
+        return HTMLResponse(page, status_code=status)
+
+    if remote:
+
+        @app.get("/live/login", response_class=HTMLResponse)
+        def live_login_page(request: Request, t: str | None = None) -> Any:
+            if gate is not None and t and gate.ticket_ok(t):
+                resp: Response = RedirectResponse("/live", status_code=303)
+                _set_auth_cookie(resp, request)
+                return resp
+            if _authed(request):
+                return RedirectResponse("/live", status_code=303)
+            return _login_page()
+
+        @app.post("/live/login")
+        async def live_login(request: Request) -> Any:
+            assert gate is not None
+            wait = gate.locked_for()
+            if wait:
+                return _login_page(f"Too many attempts. Try again in {wait} s.", 429)
+            form = await request.form()
+            if not gate.check_code(str(form.get("code") or "")):
+                wait = gate.locked_for()
+                msg = f"Too many attempts. Try again in {wait} s." if wait else "Wrong code."
+                return _login_page(msg, 429 if wait else 401)
+            resp = RedirectResponse("/live", status_code=303)
+            _set_auth_cookie(resp, request)
+            return resp
+
+        @app.post("/live/logout")
+        def live_logout() -> Any:
+            resp = RedirectResponse("/live/login", status_code=303)
+            resp.delete_cookie(COOKIE_NAME, path="/")
+            return resp
+
+        @app.get("/live/budget")
+        def live_budget(request: Request) -> Any:
+            guard = _live_guard(request)
+            if guard is not None:
+                return guard
+            assert ledger is not None
+            snap = ledger.snapshot()
+            snap["mode"] = "live"
+            snap["run_cap_usd"] = float(os.environ.get("SHIELD_LIVE_CAP_USD", "1.00"))
+            snap["spark_review"] = os.environ.get("SHIELD_SPARK_REVIEW", "")
+            return JSONResponse(snap)
+
+    def _budget_gate(chain: Any, step: str) -> JSONResponse | None:
+        """Antes de llamar a un modelo: tope diario. Si se alcanzó, no se llama."""
+        if ledger is None:
+            return None
+        ok, msg = ledger.allow(chain.run_id)
+        if ok:
+            return None
+        return JSONResponse(
+            {"error": "daily_limit", "status": "daily_limit", "message": msg, "step": step},
+            status_code=429,
+        )
+
+    def _budget_record(chain: Any, step: str) -> None:
+        if ledger is not None:
+            ledger.record(chain.run_id, chain.total_cost_usd, step)
+
     @app.get("/live", response_class=HTMLResponse)
     def live_page(request: Request) -> Any:
         lang = _resolve_lang(request)
         if os.environ.get("DEMO", "replay") != "live":
             return _with_cookie(HTMLResponse(render_live_inactive_page(lang)), request, lang)
+        if remote and not _authed(request):
+            return RedirectResponse("/live/login", status_code=303)
         guard = _live_guard(request)
         if guard is not None:
             return guard
@@ -1831,10 +1950,19 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
                 {"error": "live chain not started: POST /live/start first"},
                 status_code=409,
             )
+        blocked = _budget_gate(chain, name)
+        if blocked is not None:
+            return blocked
         if name == "count":
             image_bytes = file.file.read() if file is not None else None
-            return JSONResponse(chain.step_count(image_bytes))
-        result = getattr(chain, f"step_{name}")()
+            try:
+                return JSONResponse(chain.step_count(image_bytes))
+            finally:
+                _budget_record(chain, name)
+        try:
+            result = getattr(chain, f"step_{name}")()
+        finally:
+            _budget_record(chain, name)
         if name == "guardian" and isinstance(result, dict) and result.get("plan"):
             try:
                 wa = getattr(app.state, "whatsapp", None)
@@ -1870,8 +1998,14 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
                 {"error": "live chain not started: POST /live/start first"},
                 status_code=409,
             )
+        blocked = _budget_gate(chain, "voice")
+        if blocked is not None:
+            return blocked
         wav_bytes = file.file.read() if file is not None else None
-        return JSONResponse(chain.step_voice(wav_bytes=wav_bytes, typed=typed))
+        try:
+            return JSONResponse(chain.step_voice(wav_bytes=wav_bytes, typed=typed))
+        finally:
+            _budget_record(chain, "voice")
 
     @app.post("/live/voice/confirm")
     def live_voice_confirm(request: Request) -> Any:
