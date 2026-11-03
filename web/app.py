@@ -15,6 +15,7 @@ import html
 import json
 import os
 import secrets
+import sys
 import time
 from collections import OrderedDict
 from contextvars import ContextVar
@@ -1951,8 +1952,13 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
             return guard
         run = _replay_run(request)
         await asyncio.sleep(0.6)  # que se vea correr: la grabación no tarda nada
-        with run.lock:
-            out = run.step(name)
+
+        def _run_step() -> Any:
+            with run.lock:
+                return run.step(name)
+
+        # «revoke» levanta un gateway en memoria: fuera del bucle de eventos.
+        out = await asyncio.to_thread(_run_step)
         status = 200
         if isinstance(out, dict) and out.get("status") == "error":
             status = 409
@@ -2072,7 +2078,7 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         guard = _live_guard(request)
         if guard is not None:
             return guard
-        steps = {"invoice", "count", "attack", "guardian", "contain"}
+        steps = {"invoice", "count", "attack", "guardian", "contain", "revoke"}
         if name not in steps:
             return JSONResponse({"error": f"unknown live step: {name}"}, status_code=404)
         chain = getattr(app.state, "live_chain", None)
@@ -2095,6 +2101,7 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         finally:
             _budget_record(chain, name)
         if name == "guardian" and isinstance(result, dict) and result.get("plan"):
+            notice: dict[str, Any] | None = None
             try:
                 wa = getattr(app.state, "whatsapp", None)
                 if wa is not None:
@@ -2109,9 +2116,26 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
                                 wa.config = cfg
                         except Exception:
                             pass
-                    wa.notify_guardian_plan(result["plan"], approval_id=result.get("approval_id"))
-            except Exception:
-                pass  # WhatsApp nunca bloquea el paso del guardián.
+                    sent = wa.notify_guardian_plan(
+                        result["plan"], approval_id=result.get("approval_id")
+                    )
+                    code = sent.get("status_code")
+                    simulated = bool(sent.get("simulated"))
+                    notice = {
+                        "sent": simulated or (code is not None and 200 <= code < 300),
+                        "simulated": simulated,
+                        "status_code": code,
+                    }
+            except Exception as exc:  # WhatsApp nunca bloquea el paso del guardián.
+                notice = {"sent": False, "error": type(exc).__name__}
+            if notice is not None:
+                # Que el envío del plan se vea en el panel (y en el log si falla).
+                if not notice["sent"]:
+                    print(f"[whatsapp] plan not sent: {notice}", file=sys.stderr, flush=True)
+                result["whatsapp"] = notice
+                guardian = getattr(chain, "results", {}).get("guardian")
+                if isinstance(guardian, dict):
+                    guardian["whatsapp"] = notice
         return JSONResponse(result)
 
     @app.post("/live/voice")

@@ -33,7 +33,12 @@ _BODEGA_FILE = _RECORDED / "live-run-video-take-2026-11-02.json"
 _COLD_FILE = _RECORDED / "cold-chain-replay.json"
 FIXTURES = {"invoice": "invoice-poisoned.png", "shelf": "shelf-boxes.png"}
 
-_STEP_ORDER = ("invoice", "count", "attack", "guardian", "voice", "contain")
+_STEP_ORDER = ("invoice", "count", "attack", "guardian", "voice", "contain", "revoke")
+# Agente cuyo token robó el atacante y agentes con token en cada escena.
+_SCENE_AGENTS = {
+    "bodega": ("bodega", ("bodega", "compras", "guardian")),
+    "frio": ("refrigeracion", ("refrigeracion", "bodega", "compras")),
+}
 _PROVENANCE_GROUP = {
     "invoice": "invoice",
     "spark_document_review": "invoice",
@@ -135,17 +140,69 @@ class ReplayRun:
     def step(self, name: str) -> dict[str, Any]:
         if name not in _STEP_ORDER or name == "voice":
             return self._error(f"unknown replay step: {name}")
-        needs = {"guardian": "attack", "contain": "voice"}
+        needs = {"guardian": "attack", "contain": "voice", "revoke": "attack"}
         need = needs.get(name)
         if need and need not in self.done:
             return self._error(f"first run: {need}")
         if name == "contain" and (self.results.get("voice") or {}).get("status") != "approved":
             return {"status": "not_approved", "error": "the owner has not approved yet"}
-        builder = getattr(self, f"_{self.scene}_{name}")
+        if name == "revoke":
+            builder = self._revoke
+        else:
+            builder = getattr(self, f"_{self.scene}_{name}")
         out = builder()
         self.results[name] = out
         if name not in self.done:
             self.done.append(name)
+        return out
+
+    # ---- g · emergencia: no es grabado, corre el gateway real en memoria ----
+    def _revoke(self) -> dict[str, Any]:
+        """Revoca todo con el endpoint real `/shield/revoke-all` sobre un registro propio.
+
+        Cada visitante tiene su gateway y su registro en memoria; el upstream es falso y
+        no se alcanza (el token revocado da 401 antes). Sin llaves ni gasto.
+        """
+        import httpx
+        from fastapi.testclient import TestClient
+
+        from shield.gateway.app import create_app
+        from shield.registry import Registry
+        from shield.vault.vault import MemoryVault
+        from web.emergency import run_emergency_revoke
+
+        stolen, agents = _SCENE_AGENTS[self.scene]
+        registry = Registry(":memory:")
+        raw: dict[str, str] = {}
+        ids: dict[str, str] = {}
+        for agent in agents:
+            token, value = registry.create_token(agent, "crew", models=["muse-spark-1.3"])
+            raw[agent], ids[agent] = value, token.token_id
+        probes = [("attacker", raw[stolen])]
+        if "contain" in self.done:
+            # Como en la corrida: el token robado ya se rotó con la voz del dueño.
+            rotated = registry.rotate(ids[stolen])
+            if rotated is not None:
+                raw[stolen] = rotated[1]
+        probes += [(agent, raw[agent]) for agent in agents]
+
+        def _no_upstream(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(599, json={"error": "upstream disabled in replay"})
+
+        key = secrets.token_urlsafe(32)
+        app = create_app(
+            registry=registry,
+            vault=MemoryVault({}),
+            upstream_transport=httpx.MockTransport(_no_upstream),
+            sandbox=True,
+            emergency_token=key,
+        )
+        try:
+            with TestClient(app) as client:
+                out = run_emergency_revoke(client, key, probes, registry=registry)
+        finally:
+            registry.close()
+        out["kind"] = "emergency_revoke"
         return out
 
     # ---- escena Bodega (corrida real grabada) ----

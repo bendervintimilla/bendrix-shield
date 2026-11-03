@@ -80,6 +80,11 @@ T: dict[str, dict[str, str]] = {
         "step4_title": "Guardian reasons (Muse Spark)",
         "step5_title": "You approve by voice",
         "step6_title": "Containment",
+        "step7_title": "Emergency: revoke every token",
+        "revoke_note": "Kill switch for when you don't know which agent leaked: one call to the gateway revokes every active token, then each token is tried again.",
+        "revoke_count": "Tokens revoked",
+        "revoke_locked": "Every token now gets 401. Nothing reaches Meta until the owner issues new tokens.",
+        "revoke_open": "A token still answers",
         "run_step": "Run this step",
         "hidden_order": "Hidden order in the fine print",
         "what_spark_read": "What Spark read from the note",
@@ -210,6 +215,11 @@ T: dict[str, dict[str, str]] = {
         "step4_title": "El guardián razona (Muse Spark)",
         "step5_title": "Tú apruebas por voz",
         "step6_title": "Contención",
+        "step7_title": "Emergencia: revocar todos los tokens",
+        "revoke_note": "Para cuando no sabes qué agente se filtró: una llamada al gateway revoca todos los tokens activos y luego se prueba cada token otra vez.",
+        "revoke_count": "Tokens revocados",
+        "revoke_locked": "Ahora todos los tokens reciben 401. Nada llega a Meta hasta que el dueño emita tokens nuevos.",
+        "revoke_open": "Un token todavía responde",
         "run_step": "Correr este paso",
         "hidden_order": "Orden escondida en la letra pequeña",
         "what_spark_read": "Lo que Spark leyó de la nota",
@@ -810,6 +820,22 @@ function renderResult(step, r, state) {
     renderVoice({...base, ...r, transcript: r.transcript || base.transcript || "", intent: r.intent || base.intent || {}, channel: r.channel || base.channel || ""});
   }
   if (step === "contain") renderContain(r, state);
+  if (step === "revoke") renderRevoke(r);
+}
+function renderRevoke(r) {
+  const box = byId("revokeResult"); if (!box) return;
+  clear(box);
+  if (r.status === "error" && r.revoked == null) { box.appendChild(el("p", TEXT.error + ": " + (r.error || ""))); return; }
+  box.appendChild(el("p", TEXT.revoke_count + ": " + (r.revoked ?? 0), "verdict"));
+  const rows = el("div", null, "attempts");
+  (r.probes || []).forEach((p) => {
+    const row = el("p", null, "mono");
+    row.appendChild(el("span", String(p.status ?? "—"), "code-block code-" + (p.status ?? "x")));
+    row.appendChild(document.createTextNode(" " + p.agent + (p.code ? " · " + p.code : "")));
+    rows.appendChild(row);
+  });
+  box.appendChild(rows);
+  box.appendChild(el("p", r.all_locked ? TEXT.revoke_locked : TEXT.revoke_open));
 }
 /* Esfera de partículas: reacciona al estado que llega de /live/state. */
 let sphereMode = "calm";
@@ -1175,7 +1201,7 @@ function clearRun() {
    "comprasLine", "countValue", "expectedLine", "approvedLine"].forEach((id) => {
     const node = byId(id); if (node) node.textContent = "";
   });
-  ["attackerBefore", "attackerAfter"].forEach((id) => { const n = byId(id); if (n) n.replaceChildren(); });
+  ["attackerBefore", "attackerAfter", "revokeResult"].forEach((id) => { const n = byId(id); if (n) n.replaceChildren(); });
   const typed = byId("typedText"); if (typed) typed.value = "";
   ["voiceConfirm", "voiceCancel"].forEach((id) => { const n = byId(id); if (n) n.hidden = true; });
   document.querySelectorAll("[data-status-for]").forEach((n) => {
@@ -1362,6 +1388,13 @@ def render_live_page(
             _step_html(4, "guardian", _L("step4_title"), lang, step4_inner),
             _step_html(5, "voice", _L("step5_title"), lang, step5_inner),
             _step_html(6, "contain", _L("step6_title"), lang, step6_inner),
+            _step_html(
+                7,
+                "revoke",
+                _L("step7_title"),
+                lang,
+                f"<p>{_e(_L('revoke_note'))}</p><div id='revokeResult' aria-live='polite'></div>",
+            ),
         ]
     )
     no_key_hidden = "" if no_key and not replay else " hidden"

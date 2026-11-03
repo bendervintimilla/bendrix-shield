@@ -13,6 +13,7 @@ import io
 import json
 import os
 import re
+import secrets
 import threading
 import time
 import uuid
@@ -511,6 +512,8 @@ class LiveChain:
         self._voice_used: dict[str, str] = {}
         # Momento en que el guardián abrió la solicitud vigente (epoch, s).
         self._approval_issued_at: float | None = None
+        # g: llave de emergencia propia de esta corrida (nunca se muestra ni se registra).
+        self._emergency_token = secrets.token_urlsafe(32)
         self._last_count_image: bytes | None = None
         self._lock = threading.Lock()
         self._server: Any = None
@@ -796,6 +799,7 @@ class LiveChain:
             vault=vault,
             upstream_transport=self.upstream_transport,
             sandbox=True,
+            emergency_token=self._emergency_token,
         )
         sock = socket.socket()
         sock.bind(("127.0.0.1", 0))
@@ -2124,6 +2128,37 @@ class LiveChain:
         self.results["contain"] = out
         return out
 
+    def step_revoke(self) -> dict[str, Any]:
+        """g · Emergencia: revoca todos los tokens con el endpoint real del gateway."""
+        busy = self._busy()
+        if busy:
+            return busy
+        try:
+            return self._redact_output(self._step_revoke())
+        finally:
+            self._lock.release()
+
+    def _step_revoke(self) -> dict[str, Any]:
+        from web.emergency import run_emergency_revoke
+
+        if not self.gateway_url or self.registry is None:
+            out = {"status": "error", "error": "gateway not running"}
+            self.results["revoke"] = out
+            return out
+        probes: list[tuple[str, str]] = [("attacker", self._raw_tokens.get("bodega", ""))]
+        for agent in ("bodega", "compras", "guardian"):
+            try:
+                current = self.token_store.get_token(agent)
+            except Exception:
+                current = None
+            probes.append((agent, str(current or "")))
+        with httpx.Client(base_url=self.gateway_url, timeout=10.0) as client:
+            out = run_emergency_revoke(
+                client, self._emergency_token, probes, registry=self.registry
+            )
+        self.results["revoke"] = out
+        return out
+
     def _step_count_after_contain(self, image: bytes) -> dict[str, Any]:
         started = time.perf_counter()
         result = self.clients["bodega"].sam_segment_image(
@@ -2146,6 +2181,8 @@ class LiveChain:
     def _live_secrets(self) -> list[str]:
         secrets: list[str] = []
         secrets.extend(str(v) for v in self._raw_tokens.values() if v)
+        if getattr(self, "_emergency_token", ""):
+            secrets.append(self._emergency_token)
         store_data = getattr(self.token_store, "_data", None)
         if isinstance(store_data, dict):
             for agent in list(store_data):
