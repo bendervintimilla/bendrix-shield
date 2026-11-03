@@ -138,7 +138,14 @@ gateway and cost real credits: see the cost shown on screen.
 
 ## WhatsApp voice-note approvals
 
-WhatsApp voice-note approvals: implemented, tested offline; live test pending.
+WhatsApp voice-note approvals: tested live on 2026-11-03 with the owner's
+real voice note over the WhatsApp Cloud API (run `live_c31aa0ec5ef2`, USD 0.076,
+Spark read "Yes, rotate it." → approved → attacker 401, Warehouse SDK 401→200,
+recount 7, Purchasing 200). Evidence, redacted:
+`evals/recorded/live-run-whatsapp-owner-voice-2026-11-03.json`. Its
+`contained_in_s` (791 s) includes the time the plan waited for the owner.
+A recording can approve only one plan; forwarded notes and notes older than the
+plan are rejected.
 
 The owner can approve the live containment plan by replying to a
 WhatsApp text with a voice note instead of using the browser
