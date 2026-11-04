@@ -59,6 +59,7 @@ from web.live_page import render_live_inactive_page, render_live_page
 from web.physical_scene import PhysicalStore, render_physical_page
 from web.replay_run import FIXTURES as REPLAY_FIXTURES
 from web.replay_run import ReplayStore
+from web.sentinel_scene import SentinelStore, render_sentinel_page
 
 UPSTREAM_KEY = "upstream-demo-key-0000"
 
@@ -1610,6 +1611,8 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
     app.state.replay_store = replay_store
     physical_store = PhysicalStore()
     app.state.physical_store = physical_store
+    sentinel_store = SentinelStore()
+    app.state.sentinel_store = sentinel_store
     if sessions:
         # Demo pública: sin webhook de WhatsApp (no hay canal que atender) y
         # una corrida de replay por visitante.
@@ -1634,6 +1637,12 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
     # HEAD también: los chequeos de salud y los previsualizadores de enlaces usan HEAD /.
     @app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
     async def index(request: Request) -> Any:
+        if request.query_params.get("scene") == "sentinel" or (
+            request.query_params.get("scene") is None
+            and os.environ.get("SHIELD_SENTINEL_HOME") == "1"
+        ):
+            lang = _resolve_lang(request)
+            return _with_cookie(HTMLResponse(render_sentinel_page(lang)), request, lang)
         if request.query_params.get("scene") == "physical":
             lang = _resolve_lang(request)
             return _with_cookie(HTMLResponse(render_physical_page(lang)), request, lang)
@@ -2200,6 +2209,58 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         run = _physical_run(request)
         with run.lock:
             return JSONResponse(run.voice_cancel())
+
+    # -- escena Sentinel (M3): ola de ataques contenida por el autopiloto --
+    def _sentinel_run(request: Request) -> Any:
+        return sentinel_store.get(_current_sid.get())
+
+    @app.get("/sentinel", response_class=HTMLResponse)
+    def sentinel_page(request: Request) -> Any:
+        lang = _resolve_lang(request)
+        return _with_cookie(HTMLResponse(render_sentinel_page(lang)), request, lang)
+
+    @app.get("/sentinel/state")
+    def sentinel_state(request: Request) -> Any:
+        return JSONResponse(_sentinel_run(request).state())
+
+    @app.post("/sentinel/reset")
+    def sentinel_reset(request: Request) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _sentinel_run(request)
+        with run.lock:
+            return JSONResponse(run.reset())
+
+    @app.post("/sentinel/replay")
+    def sentinel_replay(request: Request) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _sentinel_run(request)
+        lang = _resolve_lang(request)
+        with run.lock:
+            return JSONResponse(run.replay(lang))
+
+    @app.post("/sentinel/undo")
+    async def sentinel_undo(request: Request, undo_id: str | None = Form(None)) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _sentinel_run(request)
+        with run.lock:
+            out = run.undo(undo_id or "")
+        return JSONResponse(out, status_code=409 if out.get("status") == "error" else 200)
+
+    @app.post("/sentinel/release")
+    async def sentinel_release(request: Request, factor: str | None = Form(None)) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _sentinel_run(request)
+        with run.lock:
+            out = run.release(factor or "")
+        return JSONResponse(out, status_code=400 if out.get("status") == "error" else 200)
 
     @app.get("/live", response_class=HTMLResponse)
     def live_page(request: Request) -> Any:
