@@ -61,7 +61,10 @@ from web.replay_run import FIXTURES as REPLAY_FIXTURES
 from web.replay_run import ReplayStore
 from web.sentinel_scene import SentinelStore, render_sentinel_page
 from web.sentinel_witness import PLACEHOLDER_SVG as SENTINEL_WITNESS_PLACEHOLDER
-from web.sentinel_witness import latest_image as sentinel_witness_latest_image
+from web.sentinel_witness import surveillance_image as sentinel_surveillance_image
+
+SENTINEL_SURVEILLANCE_KEYS = ("occupancy", "after_hours", "stock_watch", "cash_desk",
+                              "security_log")
 
 UPSTREAM_KEY = "upstream-demo-key-0000"
 
@@ -2225,16 +2228,26 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
     def sentinel_state(request: Request) -> Any:
         return JSONResponse(_sentinel_run(request).state())
 
-    @app.get("/sentinel/witness/latest.jpg")
-    def sentinel_witness_image(request: Request) -> Any:
-        # Solo el último cuadro YA redactado de SHIELD_WITNESS_DIR; si no hay,
-        # un placeholder neutro sin foto. Ruta fija: nada viene del cliente.
-        data = sentinel_witness_latest_image()
+    def _surveillance_image(key: str) -> Response:
+        # Solo cuadros YA redactados de SHIELD_WITNESS_DIR (o verificados vacíos
+        # por una persona); si no hay, placeholder neutro sin foto. El nombre
+        # del archivo nunca viene del cliente: sale de observations.json.
+        data = sentinel_surveillance_image(key)
         headers = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
         if data is None:
             return Response(SENTINEL_WITNESS_PLACEHOLDER, media_type="image/svg+xml",
                             headers=headers)
         return Response(data, media_type="image/jpeg", headers=headers)
+
+    @app.get("/sentinel/witness/latest.jpg")
+    def sentinel_witness_image(request: Request) -> Any:
+        return _surveillance_image("occupancy")
+
+    @app.get("/sentinel/surveillance/{key}.jpg")
+    def sentinel_surveillance_img(key: str, request: Request) -> Any:
+        if key not in SENTINEL_SURVEILLANCE_KEYS:
+            return JSONResponse({"error": "unknown card"}, status_code=404)
+        return _surveillance_image(key)
 
     @app.post("/sentinel/reset")
     def sentinel_reset(request: Request) -> Any:

@@ -1,6 +1,6 @@
-"""Testigo de cámara real en la escena «Sentinel» (datos sintéticos del test).
+"""Sección «Surveillance» de Sentinel con cámaras reales (datos sintéticos del test).
 
-Nada de fotos reales: la «imagen» es un JPEG mínimo generado aquí mismo.
+Nada de fotos reales: las «imágenes» son JPEG mínimos generados aquí mismo.
 """
 
 from __future__ import annotations
@@ -11,24 +11,31 @@ import pytest
 from fastapi.testclient import TestClient
 
 from web.app import create_panel_app
-from web.sentinel_witness import load_observations, night_finding, night_playback
+from web.sentinel_witness import eval_summary, load_observations, surveillance_state
 
 # JPEG sintético mínimo (SOI + APP0 + relleno + EOI): no es una foto.
 SYNTH_JPEG = (
     b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
     + bytes(64) + b"\xff\xd9"
 )
+SYNTH_EMPTY = SYNTH_JPEG[:-2] + b"\x01\xff\xd9"
 
 
-def _obs(**over):
+def _obs(camera="cocina1", at="2026-11-04T20:44:00+01:00", people=1, source="live_capture",
+         **over):
     base = {
-        "camera": "kitchen", "site": "Clara del Rey, Madrid", "room": "kitchen",
-        "captured_at": "2026-11-04T03:04:12+01:00", "people": 0, "door_open": False,
-        "person_boxes": [], "model": "SAM 3.1", "response_ids": ["resp_test_abcdefghijkl"],
-        "latency_ms": 812.4, "cost_usd": 0.0021, "source": "playback",
+        "camera": camera, "site": "madrid", "room": camera, "captured_at": at,
+        "people": people, "door_open": None, "person_boxes": [{"x": 1}] * people,
+        "model": "sam-3.1", "response_ids": ["resp_test_abcdefghijklmnop"],
+        "latency_ms": 812.4, "cost_usd": 0.0025, "has_redacted_image": True,
+        "source": source, "ok": True, "error": None,
     }
     base.update(over)
     return base
+
+
+def _img_name(camera, stamp):
+    return f"{camera}_{stamp}.redacted.jpg"
 
 
 @pytest.fixture()
@@ -41,95 +48,96 @@ def client(monkeypatch):
     return TestClient(create_panel_app())
 
 
-def _write(tmp_path, observations, image=SYNTH_JPEG):
-    (tmp_path / "observations.json").write_text(json.dumps(observations))
-    if image is not None:
-        (tmp_path / "latest.jpg").write_bytes(image)
+@pytest.fixture()
+def wdir(tmp_path):
+    obs = [
+        _obs("cocina1", "2026-11-04T20:44:00+01:00", 1),
+        _obs("pasillo", "2026-11-04T20:50:02+01:00", 7),
+        _obs("cocina1-noche-0300", "2026-11-04T20:46:45+01:00", 0, "playback"),
+    ]
+    (tmp_path / "observations.json").write_text(json.dumps(obs))
+    (tmp_path / _img_name("pasillo", "20261104-205002")).write_bytes(SYNTH_JPEG)
+    (tmp_path / _img_name("cocina1-noche-0300", "20261104-204645")).write_bytes(SYNTH_JPEG)
+    empty = "cocina1-noche-0300_20261104-204645.verified-empty.jpg"
+    (tmp_path / empty).write_bytes(SYNTH_EMPTY)
+    (tmp_path / "verified-empty.json").write_text(json.dumps(
+        [{"file": empty, "people_human_verified": 0}]))
     return tmp_path
 
 
-def test_sin_testigo_la_escena_sigue_como_hoy(client):
+def test_sin_datos_todo_pending_y_la_ola_sigue_igual(client):
     page = client.get("/?scene=sentinel&lang=en").text
-    assert "Real camera witness" in page and "Clara del Rey, Madrid" in page
-    img = client.get("/sentinel/witness/latest.jpg")
-    assert img.status_code == 200
-    assert img.headers["content-type"].startswith("image/svg+xml")
-    assert b"<image" not in img.content  # placeholder neutro, sin foto
-    state = client.post("/sentinel/replay").json()
-    assert state["witness"]["available"] is False
-    cold = state["timeline"][0]
-    assert not any("camera" in f.lower() for f in cold["findings"])
-
-
-def test_testigo_nocturno_entra_en_la_ola(client, monkeypatch, tmp_path):
-    _write(tmp_path, [
-        _obs(),
-        _obs(captured_at="2026-11-04T21:10:05+01:00", people=2, door_open=True,
-             source="live", response_ids=["resp_live_0123456789"]),
-    ])
-    monkeypatch.setenv("SHIELD_WITNESS_DIR", str(tmp_path))
-    img = client.get("/sentinel/witness/latest.jpg")
-    assert img.headers["content-type"] == "image/jpeg"
-    assert img.content == SYNTH_JPEG
-    assert img.headers["cache-control"] == "no-store"
-    client.get("/?scene=sentinel")
-    state = client.post("/sentinel/replay").json()
-    w = state["witness"]
-    assert w["available"] and w["has_image"]
-    assert w["latest"]["people"] == 2 and w["latest"]["is_live"] is True
-    assert w["latest"]["response_id_short"].endswith("…")
-    assert len(w["latest"]["response_id_short"]) <= 12
-    assert w["night"]["captured_hhmm"] == "03:04"
-    cold = state["timeline"][0]
-    assert cold["app"] == "cold_room"
-    assert ("Kitchen camera (real, 03:04): 0 people on site — "
-            "a remote defrost with nobody there") in cold["findings"]
-    # Nada privado sale en el estado público: ni rutas ni bytes.
-    dumped = json.dumps(state)
-    assert str(tmp_path) not in dumped and "person_boxes" not in dumped
-
-
-def test_frase_en_espanol(client, monkeypatch, tmp_path):
-    _write(tmp_path, [_obs()])
-    monkeypatch.setenv("SHIELD_WITNESS_DIR", str(tmp_path))
-    client.get("/?scene=sentinel&lang=es")
-    state = client.post("/sentinel/replay?lang=es").json()
-    assert any(f.startswith("Cámara de cocina (real, 03:04): 0 personas")
-               for f in state["timeline"][0]["findings"])
-
-
-def test_sin_grabacion_nocturna_no_hay_frase(tmp_path):
-    # En vivo, o de día, o con gente: no se afirma «nobody there».
-    _write(tmp_path, [
-        _obs(source="live"),
-        _obs(captured_at="2026-11-04T14:00:00+01:00"),
-        _obs(people=1),
-    ])
-    obs = load_observations(tmp_path)
-    assert len(obs) == 3
-    assert night_playback(obs) is None
-    assert night_finding(None, "en") == ""
-
-
-def test_datos_malos_o_imagen_no_jpeg_no_rompen(client, monkeypatch, tmp_path):
-    (tmp_path / "observations.json").write_text("{no es json")
-    (tmp_path / "latest.jpg").write_bytes(b"<svg>not a jpeg</svg>")
-    monkeypatch.setenv("SHIELD_WITNESS_DIR", str(tmp_path))
-    assert load_observations(tmp_path) == []
-    img = client.get("/sentinel/witness/latest.jpg")
+    assert "Surveillance · real cameras, Clara del Rey (Madrid)" in page
+    img = client.get("/sentinel/surveillance/occupancy.jpg")
     assert img.headers["content-type"].startswith("image/svg+xml")
     state = client.post("/sentinel/replay").json()
-    assert state["witness"]["available"] is False
-    _write(tmp_path, [{"captured_at": "ayer", "people": "muchos"}, _obs(people=True)])
-    assert load_observations(tmp_path) == []
+    cards = state["surveillance"]["cards"]
+    assert [c["key"] for c in cards] == [
+        "occupancy", "after_hours", "stock_watch", "cash_desk", "security_log"]
+    assert all(c["status"] == "pending" for c in cards)
+    # La frase del testigo ya no entra en la ola (cambio de prioridad).
+    assert not any("camera" in f.lower() for f in state["timeline"][0]["findings"])
 
 
-def test_observacion_fallida_o_fixture_no_cuenta_como_testigo_real(tmp_path):
-    # Formato real de WitnessObservation.public(): trae ok/error/has_redacted_image.
-    _write(tmp_path, [
-        _obs(ok=False, error="sam timeout", has_redacted_image=False),
-        _obs(source="fixture", ok=True, error=None),
-    ])
+def test_ocupacion_y_fuera_de_horario_con_datos_reales_en_formato(client, monkeypatch, wdir):
+    monkeypatch.setenv("SHIELD_WITNESS_DIR", str(wdir))
+    sv = client.get("/sentinel/state").json()["surveillance"]
+    occ, ah = sv["cards"][0], sv["cards"][1]
+    assert occ["status"] == "live"
+    assert {r["room_en"]: r["people"] for r in occ["rooms"]} == {"Kitchen 1": 1, "Hallway": 7}
+    assert occ["image_room_en"] == "Hallway" and occ["model"] == "SAM 3.1"
+    assert occ["response_id_short"].endswith("…")
+    assert ah["status"] == "all_clear" and ah["recorded_hhmm"] == "03:00"
+    assert ah["people"] == 0 and ah["human_verified"] is True
+    # La regla real del autopiloto se evalúa sobre la observación real.
+    assert ah["engine"]["findings"] == ["unattended_remote_physical_command"]
+    # Imágenes: la de ocupación es la redactada; la nocturna, la verificada vacía.
+    occ_img = client.get("/sentinel/surveillance/occupancy.jpg")
+    assert occ_img.headers["content-type"] == "image/jpeg" and occ_img.content == SYNTH_JPEG
+    assert client.get("/sentinel/surveillance/after_hours.jpg").content == SYNTH_EMPTY
+    assert client.get("/sentinel/surveillance/nope.jpg").status_code == 404
+    dumped = json.dumps(sv)
+    assert str(wdir) not in dumped and "person_boxes" not in dumped
+    assert "redacted.jpg" not in dumped and "verified-empty" not in dumped
+
+
+def test_personas_fuera_de_horario_es_alerta(monkeypatch, tmp_path):
+    (tmp_path / "observations.json").write_text(json.dumps(
+        [_obs("cocina1-noche-0300", people=2, source="playback")]))
+    ah = surveillance_state(tmp_path)["cards"][1]
+    assert ah["status"] == "alert" and ah["people"] == 2
+
+
+def test_surveillance_json_alimenta_tarjetas_y_lo_que_falta_es_pending(tmp_path):
+    (tmp_path / "observations.json").write_text("[]")
+    (tmp_path / "almacen.redacted.jpg").write_bytes(SYNTH_JPEG)
+    (tmp_path / "surveillance.json").write_text(json.dumps({
+        "stock_watch": {"status": "ok", "summary": "Storeroom: 14 boxes",
+                        "image": "almacen.redacted.jpg", "model": "sam-3.1"},
+        "security_log": {"status": "ok", "text": "Shift report", "model": "muse-spark",
+                         "image": "../fuera.jpg"},
+    }))
+    cards = {c["key"]: c for c in surveillance_state(tmp_path)["cards"]}
+    assert cards["stock_watch"]["image"] == "/sentinel/surveillance/stock_watch.jpg"
+    assert cards["stock_watch"]["summary"] == "Storeroom: 14 boxes"
+    assert cards["security_log"]["image"] is None  # ruta fuera de la carpeta: ignorada
+    assert cards["security_log"]["model"] == "Muse Spark"
+    assert cards["cash_desk"]["status"] == "pending"
+
+
+def test_observacion_fallida_o_fixture_no_cuenta_como_camara_real(tmp_path):
+    (tmp_path / "observations.json").write_text(json.dumps([
+        _obs(ok=False, error="sam timeout"),
+        _obs(source="fixture"),
+        {"captured_at": "ayer", "people": "muchos"},
+    ]))
     obs = load_observations(tmp_path)
     assert len(obs) == 1 and obs[0]["is_fixture"] is True
-    assert night_playback(obs) is None
+    assert surveillance_state(tmp_path)["cards"][0]["status"] == "pending"
+
+
+def test_precision_sale_del_eval_grabado():
+    ev = eval_summary()
+    assert ev is not None and ev["frames"] > 0
+    assert ev["presence_ok"] <= ev["presence_n"]
+    assert ev["kitchen_exact"] <= ev["kitchen_n"]
