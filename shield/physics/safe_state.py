@@ -36,6 +36,11 @@ def last_safe_action(params: ColdRoomParams, state: RoomState) -> ProposedAction
     ``state`` se recibe para firmar igual que el resto del escudo y
     para que el llamador deje claro sobre qué equipo actúa; el valor
     devuelto no depende del setpoint actual (pudo ser manipulado).
+
+    Ojo: esta acción sola no trae privilegio. El autopiloto debe
+    pedirla por ``shield.physics.rescue.issue_last_safe_action``,
+    que la devuelve junto a su grant firmado; sin grant válido el
+    gate la trata como cualquier otra acción.
     """
     return ProposedAction(
         kind="set_setpoint",

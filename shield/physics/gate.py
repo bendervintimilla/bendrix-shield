@@ -34,6 +34,8 @@ Todo lo reportado es ``simulated``: sale del gemelo de
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from shield.physics.contract import (
     ColdRoomParams,
     PhysicalVerdict,
@@ -41,6 +43,7 @@ from shield.physics.contract import (
     RoomState,
     Trajectory,
 )
+from shield.physics.rescue import RescueGrant, check_grant
 from shield.physics.safe_state import factory_setpoint_c
 from shield.physics.thermal import simulate
 
@@ -118,10 +121,14 @@ def _effective_horizon(actions: list[ProposedAction], horizon_min: float) -> tup
     return min(required, cap), required > cap
 
 
-def _is_rescue(params: ColdRoomParams, action: ProposedAction) -> bool:
-    """True si es la contención del autopiloto al setpoint de fábrica."""
+def _is_rescue(params: ColdRoomParams, action: ProposedAction, grant_valid: bool) -> bool:
+    """True si es contención del autopiloto CON grant firmado válido.
+
+    El texto ``requested_by`` solo nunca da privilegio (C3-07/C3-08).
+    """
     return (
-        action.kind == "set_setpoint"
+        grant_valid
+        and action.kind == "set_setpoint"
         and action.requested_by == "wairrior-autopilot"
         and action.value is not None
         and abs(action.value - factory_setpoint_c(params)) < 1e-9
@@ -134,13 +141,24 @@ def verify_action(
     action: ProposedAction,
     history: list[ProposedAction] | None = None,
     horizon_min: float = 240,
+    rescue_grant: RescueGrant | None = None,
 ) -> PhysicalVerdict:
     """Decide allow / ask_owner / block simulando antes de actuar."""
     past = list(history or [])
-    effective_horizon, horizon_capped = _effective_horizon([*past, action], horizon_min)
+    # Privilegio de rescate: solo con grant firmado válido (nonce de un
+    # uso, 60 s, atado a equipo/tipo/valor). Sin grant, un claim de
+    # autopiloto se simula sin privilegio (no cancela nada en el gemelo)
+    # y la evidencia lo marca como intento sospechoso.
+    rescue_claim = action.requested_by == "wairrior-autopilot"
+    grant_status = check_grant(rescue_grant, params, action) if rescue_claim else "not_claimed"
+    grant_valid = grant_status == "valid"
+    sim_action = action
+    if rescue_claim and not grant_valid:
+        sim_action = replace(action, requested_by="unverified-rescue-claim")
+    effective_horizon, horizon_capped = _effective_horizon([*past, sim_action], horizon_min)
     baseline = simulate(params, state, [], horizon_min=effective_horizon, dt_s=_DT_S)
     with_action = simulate(
-        params, state, [*past, action], horizon_min=effective_horizon, dt_s=_DT_S
+        params, state, [*past, sim_action], horizon_min=effective_horizon, dt_s=_DT_S
     )
 
     peak, minimum, breach_min, minutes_above_sim = _metrics(params, with_action)
@@ -165,6 +183,15 @@ def verify_action(
     drift_block = (
         setpoint_steps >= _DRIFT_MIN_STEPS
         and drift_up >= _DRIFT_MIN_CUMULATIVE_C
+        and destination_margin_c <= 1.0
+    )
+    # Salami suave (regresión M2 A04/A05): pasos chicos repetidos que
+    # terminan a ≤1 °C del límite no pasan en silencio, aunque un único
+    # setpoint a ese mismo valor sea legítimo y se permita.
+    salami_ask = (
+        action.kind == "set_setpoint"
+        and setpoint_steps >= _DRIFT_MIN_STEPS
+        and drift_up >= 0.6
         and destination_margin_c <= 1.0
     )
 
@@ -199,9 +226,17 @@ def verify_action(
         breach_min is not None
         or decision_margin_c <= _ASK_MARGIN_C
         or cold_margin_c <= _ASK_MARGIN_C
+        or salami_ask
     ):
         decision = "ask_owner"
-        if breach_min is None and cold_margin_c <= _ASK_MARGIN_C < decision_margin_c:
+        if salami_ask and breach_min is None and decision_margin_c > _ASK_MARGIN_C:
+            detail = (
+                f"deriva por pasos chicos: {setpoint_steps} setpoints suman "
+                f"+{drift_up:.1f} °C hasta {final_setpoint:.1f} °C, a "
+                f"{destination_margin_c:.1f} °C del límite; el producto "
+                f"llega a {peak:.1f} °C"
+            )
+        elif breach_min is None and cold_margin_c <= _ASK_MARGIN_C < decision_margin_c:
             detail = (
                 f"el producto baja a {minimum:.1f} °C, a {cold_margin_c:.1f} °C del "
                 f"mínimo seguro de {params.safe_min_c:.1f} °C"
@@ -228,7 +263,7 @@ def verify_action(
     # activo al inicio del rescate. Regla dura adicional: una acción de
     # rescate que mejora la trayectoria frente a no hacer nada (la
     # history siguiendo su curso) es allow inmediato.
-    rescue = _is_rescue(params, action)
+    rescue = _is_rescue(params, action, grant_valid)
     improves = False
     no_action_peak: float | None = None
     if rescue and past:
@@ -276,6 +311,9 @@ def verify_action(
         "steady_state_product_c": final_setpoint if setpoint_steps else None,
         "cold_destination_block": cold_destination_block,
         "rescue_action": rescue,
+        "rescue_claim": rescue_claim,
+        "rescue_grant_status": grant_status,
+        "suspicious_rescue_claim": bool(rescue_claim and not grant_valid),
         "improves_over_doing_nothing": improves,
         "peak_without_action_c": (
             round(no_action_peak, 3) if no_action_peak is not None else None
