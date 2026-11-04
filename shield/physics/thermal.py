@@ -14,6 +14,10 @@ Modelo simulado — supuestos rotulados, no mediciones de un equipo real:
   ``setpoint + hysteresis_c/2`` y apaga a ``setpoint - hysteresis_c/2``.
 - El deshielo enciende un calefactor de ``defrost_heater_w`` y fuerza el
   compresor apagado; ``compressor_off`` también lo fuerza apagado.
+- Una acción de contención del autopiloto (``set_setpoint`` con
+  ``requested_by="wairrior-autopilot"``) cancela el deshielo o el
+  apagado que esté corriendo en ese instante: su ventana se corta en
+  el inicio de la contención (no cancela acciones futuras).
 - ``load_product`` mezcla al instante la masa entrante a ``ambient_c``
   con el producto: ``T = (m1*T1 + m2*ambient_c) / (m1 + m2)`` y la masa
   (y su capacitancia) crece desde ese momento.
@@ -44,13 +48,27 @@ def _validate(params: ColdRoomParams, horizon_min: float, dt_s: float) -> None:
         raise ValueError("las potencias no pueden ser negativas")
 
 
-def _active(action: ProposedAction, t_min: float) -> bool:
+def _active(action: ProposedAction, t_min: float, end_min: float | None = None) -> bool:
     """True si la acción está vigente en el instante ``t_min``."""
     if action.kind == "set_setpoint":
         return t_min >= action.start_in_min
     if action.kind == "load_product":
         return False  # es un evento instantáneo, no una ventana
-    return action.start_in_min <= t_min < action.start_in_min + max(action.duration_min, 0.0)
+    end = (
+        end_min
+        if end_min is not None
+        else action.start_in_min + max(action.duration_min, 0.0)
+    )
+    return action.start_in_min <= t_min < end
+
+
+def _cancelled_end(action: ProposedAction, rescue_starts: list[float]) -> float:
+    """Fin efectivo: una contención en curso corta deshielo/apagado activo."""
+    end = action.start_in_min + max(action.duration_min, 0.0)
+    for start in rescue_starts:
+        if action.start_in_min <= start < end:
+            end = min(end, start)
+    return end
 
 
 def _derivatives(
@@ -101,6 +119,16 @@ def simulate(
 
     ordered = sorted(enumerate(actions), key=lambda item: (item[1].start_in_min, item[0]))
     sorted_actions = [action for _, action in ordered]
+    rescue_starts = [
+        action.start_in_min
+        for action in sorted_actions
+        if action.kind == "set_setpoint" and action.requested_by == "wairrior-autopilot"
+    ]
+    effective_ends = {
+        id(action): _cancelled_end(action, rescue_starts)
+        for action in sorted_actions
+        if action.kind in ("compressor_off", "defrost")
+    }
 
     t_min = float(state.t_min)
     air_c = float(state.air_c)
@@ -147,12 +175,14 @@ def simulate(
             _active(action, step_start) for action in sorted_actions if action.kind == "door_open"
         )
         forced_off = any(
-            _active(action, step_start)
+            _active(action, step_start, effective_ends[id(action)])
             for action in sorted_actions
             if action.kind in ("compressor_off", "defrost")
         )
         defrost_on = any(
-            _active(action, step_start) for action in sorted_actions if action.kind == "defrost"
+            _active(action, step_start, effective_ends[id(action)])
+            for action in sorted_actions
+            if action.kind == "defrost"
         )
 
         # Termostato con histéresis alrededor del setpoint vigente.
