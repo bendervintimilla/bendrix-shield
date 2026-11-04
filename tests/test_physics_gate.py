@@ -46,6 +46,25 @@ def test_setpoint_4_is_allowed_with_margin_informed() -> None:
     assert verdict.evidence["margin_to_safe_max_c"] > 1.0
 
 
+def test_salami_soft_drift_to_4_is_not_silent() -> None:
+    """Regresión M2 A04/A05: deriva suave a 4.0 °C en pasos chicos no es allow."""
+    cases = [
+        (3.6, 3.8, [3.2, 3.4, 3.6, 3.8]),
+        (3.8, 3.9, [3.3, 3.6, 3.9]),
+    ]
+    for product_c, setpoint_c, values in cases:
+        state = RoomState(air_c=product_c, product_c=product_c, setpoint_c=setpoint_c)
+        history = [ProposedAction(kind="set_setpoint", value=value) for value in values]
+        verdict = verify_action(
+            PARAMS, state, ProposedAction(kind="set_setpoint", value=4.0), history=history
+        )
+        assert verdict.decision in ("ask_owner", "block")
+        assert verdict.decision != "allow"
+    # El mismo 4.0 °C en un solo paso legítimo sigue en allow.
+    single = verify_action(PARAMS, RoomState(), ProposedAction(kind="set_setpoint", value=4.0))
+    assert single.decision == "allow"
+
+
 def test_setpoint_very_close_to_limit_asks_owner() -> None:
     """Un setpoint destino a ≤0.5 °C del límite sí escala al dueño."""
     verdict = verify_action(PARAMS, RoomState(), ProposedAction(kind="set_setpoint", value=4.6))

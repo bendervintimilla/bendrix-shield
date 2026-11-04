@@ -167,6 +167,15 @@ def verify_action(
         and drift_up >= _DRIFT_MIN_CUMULATIVE_C
         and destination_margin_c <= 1.0
     )
+    # Salami suave (regresión M2 A04/A05): pasos chicos repetidos que
+    # terminan a ≤1 °C del límite no pasan en silencio, aunque un único
+    # setpoint a ese mismo valor sea legítimo y se permita.
+    salami_ask = (
+        action.kind == "set_setpoint"
+        and setpoint_steps >= _DRIFT_MIN_STEPS
+        and drift_up >= 0.6
+        and destination_margin_c <= 1.0
+    )
 
     if minimum < params.safe_min_c:
         decision = "block"
@@ -199,9 +208,17 @@ def verify_action(
         breach_min is not None
         or decision_margin_c <= _ASK_MARGIN_C
         or cold_margin_c <= _ASK_MARGIN_C
+        or salami_ask
     ):
         decision = "ask_owner"
-        if breach_min is None and cold_margin_c <= _ASK_MARGIN_C < decision_margin_c:
+        if salami_ask and breach_min is None and decision_margin_c > _ASK_MARGIN_C:
+            detail = (
+                f"deriva por pasos chicos: {setpoint_steps} setpoints suman "
+                f"+{drift_up:.1f} °C hasta {final_setpoint:.1f} °C, a "
+                f"{destination_margin_c:.1f} °C del límite; el producto "
+                f"llega a {peak:.1f} °C"
+            )
+        elif breach_min is None and cold_margin_c <= _ASK_MARGIN_C < decision_margin_c:
             detail = (
                 f"el producto baja a {minimum:.1f} °C, a {cold_margin_c:.1f} °C del "
                 f"mínimo seguro de {params.safe_min_c:.1f} °C"
