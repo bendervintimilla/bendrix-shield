@@ -26,8 +26,9 @@ SV_T: dict[str, dict[str, str]] = {
         "sv_eval_head": "Measured accuracy · {n} labeled real frames · {model} · eval {date}:",
         "sv_eval_pending": "Measured accuracy: pending (no recorded eval).",
         "sv_presence": "presence vs empty {ok}/{n} (precision {p}, recall {r})",
-        "sv_kitchens": "exact people count {ok}/{n} in the kitchens",
-        "sv_other": "{room} crowd: {ok}/{n} exact, {w1}/{n} within ±1",
+        "sv_count": "people count exact {ok}/{n}, within ±1 {w1}/{n}",
+        "sv_perfect": "{rooms}: {ok}/{n} exact",
+        "sv_other": "{room}: {ok}/{n} exact, {w1}/{n} within ±1",
         "sv_per_frame": " per frame",
         "sv_occupancy": "Occupancy by room",
         "sv_after_hours": "After-hours intrusion",
@@ -69,8 +70,9 @@ SV_T: dict[str, dict[str, str]] = {
         "sv_eval_head": "Precisión medida · {n} cuadros reales etiquetados · {model} · eval {date}:",
         "sv_eval_pending": "Precisión medida: pendiente (no hay eval grabado).",
         "sv_presence": "presencia vs vacío {ok}/{n} (precisión {p}, recall {r})",
-        "sv_kitchens": "conteo exacto de personas {ok}/{n} en las cocinas",
-        "sv_other": "{room} con multitud: {ok}/{n} exactos, {w1}/{n} a ±1",
+        "sv_count": "conteo de personas exacto {ok}/{n}, a ±1 {w1}/{n}",
+        "sv_perfect": "{rooms}: {ok}/{n} exactos",
+        "sv_other": "{room}: {ok}/{n} exactos, {w1}/{n} a ±1",
         "sv_per_frame": " por cuadro",
         "sv_occupancy": "Ocupación por sala",
         "sv_after_hours": "Intrusión fuera de horario",
@@ -137,7 +139,10 @@ SV_CSS = """
 .sv-rooms li[aria-current="true"]{border-color:#efa83a}
 .sv-rooms b{color:var(--ok-text);font-size:18px;font-variant-numeric:tabular-nums}
 .sv-metric{font-weight:600;font-size:15px}.sv-big{font-weight:800;font-size:20px;color:var(--warn-text)}
-.sv-card[data-status="alert"] .sv-big{color:var(--bad-text)}.sv-sim{color:var(--warn-text);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.sv-src{color:var(--warn-text);font-size:14px}
+.sv-card[data-status="alert"] .sv-big{color:var(--bad-text)}.sv-time{font-weight:600;font-size:14px;color:var(--muted)}
+.sv-log ul{margin:0;padding-left:18px}.sv-log li{margin:2px 0}.sv-log-title{font-weight:800;margin:0 0 4px}
+.sv-log li.sv-action{list-style:none;margin:6px 0 2px -18px;padding:6px 10px;border-left:4px solid #efa83a;background:rgba(239,168,58,.12);color:var(--warn-text);font-weight:700;border-radius:4px}
+.sv-sim{color:var(--warn-text);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.sv-src{color:var(--warn-text);font-size:14px}
 .sv-proof{color:var(--muted);font-size:13px}.sv-log{white-space:pre-wrap;font-size:14px;background:var(--sunk);border-radius:8px;padding:8px 10px;overflow:auto}
 @media (prefers-reduced-motion:reduce){.sv-card.sv-scan .scanline{animation:none}.sv-card{transition:none}}
 """
@@ -164,8 +169,10 @@ function filled(parent, tpl, vals, counted) {
 function renderEval(ev) {
   const p = byId("svEval"); if (!p) return; clear(p);
   if (!ev) { p.textContent = TEXT.sv_eval_pending; return; }
-  const parts = [fill(TEXT.sv_presence, {ok: ev.presence_ok, n: ev.presence_n, p: fx(ev.presence_precision), r: fx(ev.presence_recall)}),
-    fill(TEXT.sv_kitchens, {ok: ev.kitchen_exact, n: ev.kitchen_n})];
+  const parts = [fill(TEXT.sv_presence, {ok: ev.presence_ok, n: ev.presence_n, p: fx(ev.presence_precision), r: fx(ev.presence_recall)})];
+  if (ev.count_n) parts.push(fill(TEXT.sv_count, {ok: ev.exact, w1: ev.within_1, n: ev.count_n}));
+  const pf = ev.perfect || {};
+  if (pf.n) parts.push(fill(TEXT.sv_perfect, {rooms: (TEXT.lang_code === "es" ? pf.rooms_es : pf.rooms_en).join(", "), ok: pf.exact, n: pf.n}));
   (ev.others || []).forEach((o) => parts.push(fill(TEXT.sv_other, {room: L(o, "room"), ok: o.exact, w1: o.within_1, n: o.n})));
   if (ev.latency_p50_ms != null) parts.push("p50 " + Math.round(ev.latency_p50_ms) + " ms");
   if (ev.cost_per_frame_usd != null) parts.push("USD " + Number(ev.cost_per_frame_usd).toFixed(4) + TEXT.sv_per_frame);
@@ -200,11 +207,12 @@ function renderSurveillance(sv) {
       const showRoom = (r, li) => {
         const img = card.querySelector(".w-frame img"); if (img && r.image) img.src = r.image;
         ul.querySelectorAll("li").forEach((x) => x.removeAttribute("aria-current")); if (li) li.setAttribute("aria-current", "true");
-        src.textContent = TEXT.sv_live_label + " · " + L(r, "room") + " · " + r.people + " " + (r.people === 1 ? TEXT.sv_person : TEXT.sv_people) + " · " + fill(TEXT.sv_frames, {n: r.frames}) + (r.people === 0 ? " · " + TEXT.sv_blurred : "");
+        src.textContent = TEXT.sv_live_label + " · " + L(r, "room") + (r.hhmm ? " · " + r.hhmm : "") + " · " + r.people + " " + (r.people === 1 ? TEXT.sv_person : TEXT.sv_people) + " · " + fill(TEXT.sv_frames, {n: r.frames}) + (r.people === 0 ? " · " + TEXT.sv_blurred : "");
       };
       c.rooms.forEach((r) => {
         const li = el("li"); li.appendChild(el("span", L(r, "room"))); li.appendChild(num(r.people));
         li.appendChild(el("span", r.people === 1 ? TEXT.sv_person : TEXT.sv_people, "hint"));
+        if (r.hhmm) li.appendChild(el("span", r.hhmm, "hint mono"));
         li.addEventListener("click", () => showRoom(r, li)); li._show = () => showRoom(r, li);
         ul.appendChild(li);
       });
@@ -219,10 +227,22 @@ function renderSurveillance(sv) {
       card.appendChild(el("p", fill(TEXT.sv_rec_label, {hhmm: c.recorded_hhmm, n: c.people, model: c.model}) + (c.human_verified ? " · " + TEXT.sv_verified : ""), "sv-src"));
       if (c.engine && (c.engine.findings || []).length) card.appendChild(el("p", fill(TEXT.sv_engine, {rule: c.engine.findings.join(", ")}), "hint sv-engine"));
     } else if (c.status !== "pending") {
-      if (c.metric) card.appendChild(el("p", L(c, "metric"), "sv-big"));
+      if (c.metric) { const big = el("p", L(c, "metric"), "sv-big"); if (c.hhmm) big.appendChild(el("span", " · " + c.hhmm, "sv-time")); card.appendChild(big); }
       const summary = L(c, "summary"); if (summary) card.appendChild(el("p", summary, "sv-metric"));
       if (c.simulated) card.appendChild(el("p", TEXT.sv_simulated, "sv-sim"));
-      const text = L(c, "text"); if (text) card.appendChild(el("p", text, "sv-log"));
+      const lines = TEXT.lang_code === "es" ? (c.lines_es || c.lines_en) : c.lines_en;
+      if (lines && lines.length) {
+        const box = el("div", null, "sv-log"); const ul = el("ul");
+        lines.forEach((raw, i) => {
+          const t = String(raw).replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "");
+          const isTitle = /^#+\s*/.test(raw) || (i === 0 && lines.length > 2 && /:\s*$/.test(t));
+          if (isTitle) { box.appendChild(el("p", t.replace(/^#+\s*/, ""), "sv-log-title")); return; }
+          const li = el("li", t);
+          if (/^(action needed|acción (necesaria|requerida)|accion (necesaria|requerida))\s*:/i.test(t)) li.className = "sv-action";
+          ul.appendChild(li);
+        });
+        box.appendChild(ul); card.appendChild(box);
+      }
     }
     const proof = fmtProof(c); if (proof && c.status !== "pending") card.appendChild(el("p", proof, "sv-proof mono"));
     grid.appendChild(card);

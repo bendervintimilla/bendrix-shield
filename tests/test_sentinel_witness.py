@@ -148,7 +148,10 @@ def test_precision_sale_del_eval_grabado():
     ev = eval_summary()
     assert ev is not None and ev["frames"] > 0
     assert ev["presence_ok"] <= ev["presence_n"]
-    assert ev["kitchen_exact"] <= ev["kitchen_n"]
+    assert ev["exact"] <= ev["within_1"] <= ev["count_n"]
+    # Las salas imperfectas se muestran, no se esconden (p. ej. la caja: SAM 3, etiqueta 2).
+    total = ev["perfect"]["n"] + sum(o["n"] for o in ev["others"])
+    assert total == ev["count_n"]
 
 
 def test_formato_w1_surveillance_json_y_verified_empty(tmp_path):
@@ -174,8 +177,8 @@ def test_formato_w1_surveillance_json_y_verified_empty(tmp_path):
     assert cards["stock_watch"]["status"] == "expected"
     assert cards["stock_watch"]["response_count"] == 2
     assert cards["cash_desk"]["simulated"] is True
-    assert cards["security_log"]["text_en"] == "line 1\nline 2"
-    assert cards["security_log"]["text_es"] == "línea 1"
+    assert cards["security_log"]["lines_en"] == ["line 1", "line 2"]
+    assert cards["security_log"]["lines_es"] == ["línea 1"]
     assert sv["stats"]["models"] == ["Meta SAM 3.1 + Muse Spark"]
 
 

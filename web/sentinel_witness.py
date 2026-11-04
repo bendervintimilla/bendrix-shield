@@ -261,24 +261,38 @@ def eval_summary(root: Path = REPO_ROOT) -> dict[str, Any] | None:
         return None
     s = data["summary"]
     pres = s.get("presence") or {}
-    by_cam = s.get("count_by_camera") or {}
+    count = s.get("count") or {}
+    groups: dict[str, dict[str, int]] = {}
+    for cam, v in (s.get("count_by_camera") or {}).items():
+        g = groups.setdefault(_base_and_time(cam)[0], {"n": 0, "exact": 0, "within_1": 0})
+        for k in g:
+            g[k] += int(v.get(k) or 0)
+    perfect = {k: v for k, v in groups.items() if v["n"] and v["exact"] == v["n"]}
+    imperfect = {k: v for k, v in groups.items() if v["n"] and v["exact"] < v["n"]}
+    kitchens = [v for k, v in groups.items() if k.startswith(("cocina", "kitchen"))]
     n_pres = int(pres.get("n") or 0)
-    ok_pres = int(pres.get("tp") or 0) + int(pres.get("tn") or 0)
-    kitchens = [v for k, v in by_cam.items() if k.startswith(("cocina", "kitchen"))]
-    others = {k: v for k, v in by_cam.items() if not k.startswith(("cocina", "kitchen"))}
     return {
         "run_date": str((data.get("meta") or {}).get("run_at") or "")[:10],
         "model": model_label(str((data.get("meta") or {}).get("model") or "")),
         "frames": int(s.get("frames") or 0),
-        "presence_ok": ok_pres, "presence_n": n_pres,
+        "presence_ok": int(pres.get("tp") or 0) + int(pres.get("tn") or 0),
+        "presence_n": n_pres,
         "presence_precision": pres.get("precision"), "presence_recall": pres.get("recall"),
-        "kitchen_exact": sum(int(v.get("exact") or 0) for v in kitchens),
-        "kitchen_n": sum(int(v.get("n") or 0) for v in kitchens),
+        "exact": int(count.get("exact") or s.get("people_exact") or 0),
+        "within_1": int(count.get("within_1") or s.get("people_within_1") or 0),
+        "count_n": int(count.get("n") or s.get("people_scored") or 0),
+        "kitchen_exact": sum(v["exact"] for v in kitchens),
+        "kitchen_n": sum(v["n"] for v in kitchens),
+        "perfect": {
+            "rooms_en": [room_label(k, False) for k in sorted(perfect, key=_room_order)],
+            "rooms_es": [room_label(k, True) for k in sorted(perfect, key=_room_order)],
+            "exact": sum(v["exact"] for v in perfect.values()),
+            "n": sum(v["n"] for v in perfect.values()),
+        },
         "others": [
             {"room_en": room_label(k, False), "room_es": room_label(k, True),
-             "exact": int(v.get("exact") or 0), "within_1": int(v.get("within_1") or 0),
-             "n": int(v.get("n") or 0), "mae": v.get("mae")}
-            for k, v in sorted(others.items())
+             "exact": v["exact"], "within_1": v["within_1"], "n": v["n"]}
+            for k, v in sorted(imperfect.items(), key=lambda kv: _room_order(kv[0]))
         ],
         "latency_p50_ms": s.get("latency_ms_p50"),
         "cost_per_frame_usd": s.get("cost_usd_per_frame"),
@@ -336,7 +350,8 @@ def _occupancy(obs: list[dict[str, Any]]) -> dict[str, Any]:
         "occupancy", "live",
         image=f"/sentinel/surveillance/room/{last['room_key']}.jpg",
         rooms=[{"room_en": o["room_en"], "room_es": o["room_es"], "people": o["people"],
-                "frames": frames[k], "image": f"/sentinel/surveillance/room/{k}.jpg"}
+                "frames": frames[k], "hhmm": o["recorded_hhmm"],
+                "image": f"/sentinel/surveillance/room/{k}.jpg"}
                for k, o in sorted(rooms.items(), key=lambda kv: _room_order(kv[0]))],
         frames=len(live),
         image_room_en=last["room_en"], image_room_es=last["room_es"],
@@ -393,7 +408,8 @@ _SURV_FIELDS = ("status", "summary", "summary_es", "metric", "metric_es", "text"
                 "pos_event", "inputs")
 
 
-def _from_surveillance(key: str, surv: dict[str, Any], base: Path | None) -> dict[str, Any]:
+def _from_surveillance(key: str, surv: dict[str, Any], base: Path | None,
+                       by_image: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
     raw = next((surv[k] for k in _SURV_KEYS[key] if isinstance(surv.get(k), dict)), None)
     if raw is None:
         return _card(key, "pending")
@@ -401,18 +417,26 @@ def _from_surveillance(key: str, surv: dict[str, Any], base: Path | None) -> dic
             for f in _SURV_FIELDS if f in raw and isinstance(raw[f], (str, int, float))
             and not isinstance(raw[f], bool)}
     text = raw.get("text")
-    if isinstance(text, dict):  # {"en": [...], "es": [...]} o {"en": "..."}
+    if isinstance(text, dict):  # {"en": [...], "es": [...]} (viñetas) o {"en": "..."}
         for lang in ("en", "es"):
             val = text.get(lang)
-            if isinstance(val, list):
-                val = "\n".join(_text(x, 400) for x in val if isinstance(x, str))
-            if isinstance(val, str) and val.strip():
-                card[f"text_{lang}"] = _text(val, 3000)
+            if isinstance(val, str):
+                val = val.splitlines()
+            lines = val if isinstance(val, list) else []
+            lines = [_text(x, 500) for x in lines if isinstance(x, str) and x.strip()][:20]
+            if lines:
+                card[f"lines_{lang}"] = lines
+        card.pop("text", None)
+    elif isinstance(text, str) and text.strip():
+        card["lines_en"] = [_text(x, 500) for x in text.splitlines() if x.strip()][:20]
         card.pop("text", None)
     status = str(card.pop("status", "") or "ok").lower()[:20]
     card["simulated"] = raw.get("simulated") is True
     image = str(raw.get("image") or raw.get("image_file") or "")
     has_img = safe_image(base, image) is not None
+    seen = (by_image or {}).get(image)
+    if seen is not None and seen["recorded_hhmm"]:
+        card["hhmm"] = seen["recorded_hhmm"]
     ids = raw.get("response_ids") or raw.get("response_id") or []
     ids = [ids] if isinstance(ids, str) else ids
     return _card(
@@ -438,12 +462,13 @@ def surveillance_state(base: Path | None = None) -> dict[str, Any]:
     obs = load_observations(base)
     surv = load_surveillance(base)
     verified = verified_empty(base)
+    by_image = {o["_image"]: o for o in obs}
     cards = [
         _occupancy(obs),
         _after_hours(obs, verified),
-        _from_surveillance("stock_watch", surv, base),
-        _from_surveillance("cash_desk", surv, base),
-        _from_surveillance("security_log", surv, base),
+        _from_surveillance("stock_watch", surv, base, by_image),
+        _from_surveillance("cash_desk", surv, base, by_image),
+        _from_surveillance("security_log", surv, base, by_image),
     ]
     real = [o for o in obs if not o["is_fixture"]]
     models = sorted({o["model"] for o in real})
