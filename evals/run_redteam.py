@@ -1,4 +1,4 @@
-"""Batería red team de C2489-4 contra Wairrior y el guardián (sin red, USD 0).
+"""Batería red team de C2489-4 contra wAIrrior y el guardián (sin red, USD 0).
 
 Ejecuta `evals/redteam/cases.json` (generado por `evals/gen_redteam.py`,
 congelado) contra las APIs reales: `PolicyEngine` determinista (sin Spark),
@@ -494,7 +494,7 @@ def _resumen(filas: list[dict]) -> str:
     lineas = [
         "## Red team C2489-4 — batería adversaria (sin red, USD 0)",
         "",
-        "Batería sintética propia contra Wairrior y el guardián, congelada en "
+        "Batería sintética propia contra wAIrrior y el guardián, congelada en "
         "`evals/redteam/cases.json` (generador `evals/gen_redteam.py`) y "
         "ejecutable con `uv run python evals/run_redteam.py`. Cinco vectores: "
         "inyección en documentos/facturas, exfiltración del token por el gate, "

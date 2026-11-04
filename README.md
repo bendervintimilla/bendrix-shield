@@ -34,12 +34,12 @@ make live   # with your META_MODEL_API_KEY; see Run it live
 |---|---|---|
 | Live take shown in the video (2026-11-03, run `live_97efbfa04a72`, real Meta models) | 70.8 s from the attack to the first `401` (includes the wait for the owner's voice approval); Warehouse SDK `401 → 200`, recount 7; Purchasing `200`; WhatsApp alert sent (HTTP 200); revoke-all: 3 tokens revoked, 4 probes `401`; USD 0.097 | `evals/recorded/live-run-video-take-2026-11-03.json` |
 | WhatsApp approval with the owner's real voice note (2026-11-03, run `live_c31aa0ec5ef2`) | Transcribed "Yes, rotate it." → approved → attacker `401`; Warehouse SDK `401 → 200`, recount 7; Purchasing `200`; USD 0.076 | `evals/recorded/live-run-whatsapp-owner-voice-2026-11-03.json` |
-| Adversarial red team (37 frozen cases, 5 vectors, offline, USD 0) | Stopped 36/37 on the frozen measurement; 1 passed silently (`rt-inj-audit-en-read`, an English read); 0 regressions | `evals/report.md` red team (36/37 frozen; see report for the post-measurement rule fix); `uv run python evals/run_redteam.py` |
+| Adversarial red team (37 frozen cases, 5 vectors, offline, USD 0) | Stopped 36/37 on the frozen measurement (main `73875bc`); 1 passed silently (`rt-inj-audit-en-read`, an English read). After that measurement the rule was adjusted, not the case (verb "attach" added to `reveal_secret`): the re-run stops 37/37, 0 regressions. 37/37 is a post-measurement fix, not a blind figure | `evals/report.md` red team and its "Ajuste posterior a la medición" subsection; `uv run python evals/run_redteam.py` |
 | Held-out v2, rules only | Blocked 4/12, to owner 7/12, silent 1/12 (a read; sensitive writes 0/12) | `evals/report.md` H11 held-out v2 |
 | Held-out v2, per-document Spark review (3 runs) | Blocked 12, 10, 11/12; silent 0, 1, 1; false blocks 1, 0, 0 | `evals/report.md` H15; `evals/recorded/heldout2-spark-armc*.json` |
 | Stolen-token rotation (replay) | Attacker `200 → 401` in under 10 seconds | `tests/test_actions_h6.py`; `evals/report.md` H6 |
 | Live chain recorded 2026-10-31 | USD 0.0749 in 84.7 s; stolen token `401`, crew token `200` after refresh | `evals/recorded/live-run-2026-10-31.json` |
-| Offline test suite | Runs with no network and no key; must end green | `make test` |
+| Offline test suite | 401 passed with no network and no key (2026-11-04, branch `wairrior-final`) | `make test` / `uv run pytest -q` |
 
 Time to the first `401` depends on who is in the loop: under 10 s in replay, about 24.6 s scripted live with a synthetic voice file, 70.8 s in the video take with the owner's voice approval, and 791 s over WhatsApp (that figure includes the time the plan waited for the owner).
 
@@ -79,8 +79,10 @@ gate, split-canary detection, one token file per agent with `0600`/`0700`)
 closed 5 more bypasses. Re-run offline on the frozen cases, the battery
 stops 36 of 37 and 1 passed silently (`rt-inj-audit-en-read`), published
 as-is in `evals/report.md`, with 0 regressions; 28/37 and 31/37 are the
-earlier, historical measurements. See the report for the post-measurement
-rule fix.
+earlier, historical measurements. After that frozen measurement, one rule
+was adjusted (the English verb "attach" in `reveal_secret`; the case was not
+touched) and the re-run stops 37/37 with 0 regressions; the report labels it
+as a post-measurement fix, since the case was known before the rule changed.
 
 The hosted replay above needs no key; `make demo` runs the same story
 locally in replay, and `make live` runs it against the real Meta API with
@@ -343,7 +345,7 @@ the repo starts with its initial commit on 28 Oct 2026).
 | | Public replay with one run per visitor (#14); Live demo section and deploy script (#15); threats 2025-2026 → controls (#16); gateway scopes, rate limits, anti-replay nonce and hash-chained audit (#17, #20); cold-chain scenario (#18); adversarial red-team battery and its honest table (#21, #22) |
 | | Live mode online with access code and server-side spend cap (#23, #24); live panel fix for a new run started mid-step (#25); single-use owner approvals and the sphere screen on the public URL (#26); no-traffic tagged deploys (#27) |
 | | WhatsApp voice-note errors visible (#28); hardening pass to 36/37 on the frozen red team (#29); one voice recording approves one plan (#30); emergency revoke-all (#31); live WhatsApp approval with the owner's real voice note (#32) |
-| | Public brand (#33), panel redesign (#34), panel label and new video link (#35); then the wAIrrior spelling and the video take's record (`evals/recorded/live-run-video-take-2026-11-03.json`) in the final docs pass |
+| | Public brand (#33), panel redesign (#34), panel label and new video link (#35); then the wAIrrior spelling and the video take's record (`evals/recorded/live-run-video-take-2026-11-03.json`) in the final docs pass; final pass: replay reset/step race, live start race, CVE ids no longer redacted as phones, post-measurement "attach" rule fix |
 
 ## Name and affiliation
 
