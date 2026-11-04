@@ -25,6 +25,13 @@ def _box(obj: int, x: int) -> str:
 
 BOXES_3 = "<0f>" + ",".join(_box(i, i * 15) for i in range(3))
 DOOR_1 = "<0f>" + _box(0, 5)
+OPEN_OUTPUTS = {
+    "cardboard box": BOXES_3,
+    "open doorway": DOOR_1,
+    "closed door": "",
+    "door": DOOR_1,
+}
+CLOSED_OUTPUTS = {**OPEN_OUTPUTS, "open doorway": "", "closed door": DOOR_1}
 
 
 def test_interpret_counts_convierte_cajas_a_kg_con_supuesto_rotulado():
@@ -45,9 +52,23 @@ def test_interpret_counts_puerta_no_visible_conserva_estado_previo():
 
 
 def test_interpret_counts_puerta_visible_cerrada():
-    out = interpret_counts(box_count=2, open_door_count=0, door_count=1)
+    out = interpret_counts(box_count=2, open_door_count=0, door_count=1, closed_door_count=1)
     assert out["door_open"] is False
     assert out["door_visible"] is True
+    assert out["door_decided"] is True
+
+
+def test_interpret_counts_senales_en_conflicto_conserva_estado_previo():
+    # «open doorway» y «closed door» a la vez: no se decide, no se inventa.
+    out = interpret_counts(
+        box_count=1,
+        open_door_count=1,
+        door_count=1,
+        closed_door_count=1,
+        previous_door_open=False,
+    )
+    assert out["door_decided"] is False
+    assert out["door_open"] is False
 
 
 def test_interpret_counts_rechaza_kg_por_caja_no_positivo():
@@ -58,7 +79,7 @@ def test_interpret_counts_rechaza_kg_por_caja_no_positivo():
 def test_perception_from_outputs_actualiza_sin_mutar_estado():
     base = RoomState(product_kg=999.0, door_open=False, air_c=4.0)
     result = perception_from_outputs(
-        {"cardboard box": BOXES_3, "open door": DOOR_1, "door": DOOR_1},
+        OPEN_OUTPUTS,
         state=base,
         material_label="AI-generated test image",
     )
@@ -74,7 +95,7 @@ def test_perception_from_outputs_actualiza_sin_mutar_estado():
 
 def test_perception_from_outputs_sin_cajas_es_cero_no_error():
     result = perception_from_outputs(
-        {"cardboard box": "", "open door": "", "door": ""},
+        {"cardboard box": "", "open doorway": "", "closed door": "", "door": ""},
         state=RoomState(door_open=True),
     )
     assert result.box_count == 0
@@ -87,15 +108,16 @@ def test_perceive_room_con_sam_fn_inyectada_no_toca_red():
 
     def fake(prompt: str, media: dict) -> str:
         seen.append(prompt)
-        return {"cardboard box": BOXES_3, "open door": "", "door": DOOR_1}[prompt]
+        return CLOSED_OUTPUTS[prompt]
 
     result = perceive_room(
         "https://example.test/room.png", sam_fn=fake, state=RoomState()
     )
-    assert seen == ["cardboard box", "open door", "door"]  # un concepto por pedido
+    # Un concepto por pedido SAM.
+    assert seen == ["cardboard box", "open doorway", "closed door", "door"]
     assert result.box_count == 3
     assert result.state.door_open is False
-    assert result.evidence["total_cost_usd"] == pytest.approx(3 * 2.50 / 1000)
+    assert result.evidence["total_cost_usd"] == pytest.approx(4 * 2.50 / 1000)
     assert result.evidence["calls"][0]["response_id"] is None  # replay/local
 
 
@@ -103,7 +125,7 @@ def test_perceive_room_replay_dict_sin_cliente():
     media = {
         "kind": "image",
         "url": "replay://room.png",
-        "sam_output": {"cardboard box": BOXES_3, "open door": DOOR_1, "door": DOOR_1},
+        "sam_output": OPEN_OUTPUTS,
     }
     result = perceive_room(media, state=RoomState())
     assert result.box_count == 3
@@ -118,7 +140,7 @@ def test_perceive_room_imagen_vacia_es_error():
 def _sam_response(request: httpx.Request) -> httpx.Response:
     payload = json.loads(request.content)
     prompt = payload["input"][0]["content"][0]["text"]
-    text = {"cardboard box": BOXES_3, "open door": DOOR_1, "door": DOOR_1}[prompt]
+    text = OPEN_OUTPUTS[prompt]
     return httpx.Response(
         200,
         json={"id": f"resp_{abs(hash(prompt)) % 9999}", "model": "sam-3.1", "output_text": text},
@@ -141,7 +163,12 @@ def test_perceive_room_via_meta_client_con_respx(tmp_path):
     assert result.state.product_kg == 3 * DEFAULT_KG_PER_BOX
     assert result.state.door_open is True
     ev = result.evidence
-    assert ev["total_cost_usd"] == pytest.approx(3 * 2.50 / 1000)
+    assert ev["total_cost_usd"] == pytest.approx(4 * 2.50 / 1000)
     assert ev["total_latency_ms"] >= 0
     assert all(c["response_id"] and c["response_id"].startswith("resp_") for c in ev["calls"])
-    assert {c["prompt"] for c in ev["calls"]} == {"cardboard box", "open door", "door"}
+    assert {c["prompt"] for c in ev["calls"]} == {
+        "cardboard box",
+        "open doorway",
+        "closed door",
+        "door",
+    }

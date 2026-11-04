@@ -34,17 +34,17 @@ def test_media_contiene_reversible_y_undo():
     assert "camara" not in engine.safe_states
 
 
-def test_critica_dos_apps_circuit_breaker():
+def test_campana_dos_apps_no_es_global():
     engine = ContainmentEngine()
     evs = [ev(app="pos_erp", actor="bot", action="iban_change", target="supplier:acme",
               token_id="t1"),
            ev(app="payments", actor="bot", action="transfer", target="supplier:acme",
               token_id="t1", ts=T0 + timedelta(minutes=2), values={"amount": 5000})]
     _, result = run_pipeline(evs, engine=engine)
-    assert result.circuit_breaker and engine.frozen
+    assert result.scope_level == 'campaign' and not result.circuit_breaker
     assert result.pending_owner  # pagar / IBAN definitivo: nunca automático
-    assert "You were attacked. We already did:" in result.notice_en
-    assert "Fuiste atacado. Ya hicimos:" in result.notice_es
+    assert result.notice_en.startswith("wAIrrior stopped an attack")
+    assert result.notice_es.startswith("wAIrrior detuvo un ataque")
     assert "second factor" in result.notice_en
     assert result.detect_to_contain_ms >= 0
 
@@ -66,5 +66,5 @@ def test_aviso_solo_sandbox():
             ts=T0.replace(hour=2), values={"amount": 99999, "beneficiary": "NEW"})])
     fake = _FakeWhatsApp()
     out = dispatch_notice_sandbox(result, fake)
-    assert out["sent"] and fake.sent and "attacked" in fake.sent[0]
+    assert out["sent"] and fake.sent and "stopped an attack" in fake.sent[0]
     assert dispatch_notice_sandbox(result, None)["sent"] is False

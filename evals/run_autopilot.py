@@ -1,15 +1,18 @@
-"""Eval M10 (SIMULACIÓN): compara sin wAIrrior / suspender-todo / contención fina.
+"""Eval M10 (SIMULACIÓN): daño colateral medido con tráfico legítimo de fondo.
 
 Uso: ``uv run python evals/run_autopilot.py`` (sin red ni créditos).
+Genera 300 eventos legítimos de fondo por escenario (semilla fija
+20261104, 4 apps) y mide: escrituras legítimas que siguen con
+suspender-todo vs con wAIrrior, y ataques que pasan en cada brazo.
 Escribe ``evals/recorded/autopilot-bench.json`` y ``evals/autopilot/REPORT.md``.
-Las operaciones legítimas de lectura siguen en modo solo-lectura; las de
-escritura solo se pausan en las apps congeladas por el circuit breaker.
 """
 
 from __future__ import annotations
 
 import json
+import random
 import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -20,11 +23,43 @@ ROOT = Path(__file__).parent
 SCENARIOS = ROOT / "autopilot" / "scenarios.json"
 BENCH = ROOT / "recorded" / "autopilot-bench.json"
 REPORT = ROOT / "autopilot" / "REPORT.md"
+BACKGROUND_N = 300
+SEED = 20261104
+T0 = datetime(2026, 11, 4, 10, 0, tzinfo=UTC)
 
 
 def _events(raw: list[dict]) -> list[SecurityEvent]:
     return [SecurityEvent.from_dict({k: v for k, v in item.items() if k != "label"})
             for item in raw]
+
+
+def background_traffic(n: int = BACKGROUND_N, seed: int = SEED) -> list[SecurityEvent]:
+    """300 legítimos con semilla fija: pagos conocidos, otros equipos, otros agentes."""
+    rng = random.Random(seed)
+    out: list[SecurityEvent] = []
+    for i in range(n):
+        app = ("payments", "pos_erp", "cold_room", "ai_gateway")[i % 4]
+        ts = T0 + timedelta(seconds=rng.randrange(0, 600))
+        if app == "payments":
+            raw = {"app": app, "actor": "payments-bot", "action": "transfer",
+                   "target": "supplier:known", "ts": ts.isoformat(),
+                   "source": "human" if (i // 4) % 2 == 0 else "agent",
+                   "values": {"amount": rng.randrange(400, 601),
+                              "beneficiary": "KNOWN", "beneficiary_known": True}}
+        elif app == "pos_erp":
+            raw = {"app": app, "actor": "erp-bot", "action": "supplier_change",
+                   "target": f"supplier:known-{i % 5}", "ts": ts.isoformat(),
+                   "values": {"field": "contact"}}
+        elif app == "cold_room":
+            raw = {"app": app, "actor": "refrigeracion", "action": "set_setpoint",
+                   "target": f"camara-{2 + i % 3}", "ts": ts.isoformat(),
+                   "values": {"value": 3.0}}
+        else:
+            raw = {"app": app, "actor": "ops-bot", "action": "model_call",
+                   "target": "muse-spark-1.3", "ts": ts.isoformat(),
+                   "token_id": "tok-ops", "values": {"cost_usd": 1}}
+        out.append(SecurityEvent.from_dict(raw))
+    return out
 
 
 def evaluate(scenario: dict) -> dict:
@@ -37,37 +72,30 @@ def evaluate(scenario: dict) -> dict:
     incident, result = run_pipeline(events, baseline, engine=engine)
     blocked = engine.blocked_actions | engine.held_payments
     malicious = [e for e in events if labels[e.event_id] == "malicious"]
-    legit = [e for e in events if labels[e.event_id] == "legit"]
-    w_malicious_blocked = sum(1 for e in malicious if e.event_id in blocked)
-    # Con circuit breaker la escritura legítima se pausa; la lectura continúa.
-    w_legit_write_ok = 0 if result.circuit_breaker else sum(
-        1 for e in legit if e.event_id not in blocked)
-    legit_write_total = int(scenario.get("legitimate_write_ops") or 0)
-    legit_read_total = int(scenario.get("legitimate_read_ops") or 0)
+    w_blocked = sum(1 for e in malicious if e.event_id in blocked)
+    background = background_traffic()
+    bg_ok = sum(1 for e in background if engine.allows_write(e))
     return {
         "id": scenario["id"], "title": scenario["title"], "simulated": True,
         "severity": incident.severity, "correlated": incident.correlated,
-        "circuit_breaker": result.circuit_breaker,
+        "scope_level": result.scope_level, "circuit_breaker": result.circuit_breaker,
+        "frozen_scopes": result.frozen_scopes,
         "findings": [f["kind"] for f in incident.to_dict()["findings"]],
         "detect_to_contain_ms": round(result.detect_to_contain_ms, 3),
         "measures": [m["kind"] for m in result.to_dict()["measures"]],
         "pending_owner": result.pending_owner,
-        "notice_en": result.notice_en,
+        "notice_en": result.notice_en, "notice_es": result.notice_es,
         "comparison": {
-            "no_shield": {"malicious_succeed": len(malicious),
-                          "legitimate_write_ok": legit_write_total,
-                          "legitimate_read_ok": legit_read_total},
-            "suspend_all_arkea_style": {"malicious_succeed": 0,
-                                        "legitimate_write_ok": 0,
-                                        "legitimate_read_ok": 0},
-            "wairrior_fine_containment": {
-                "malicious_blocked": w_malicious_blocked,
-                "malicious_succeed": len(malicious) - w_malicious_blocked,
-                "legitimate_events_ok": w_legit_write_ok,
-                "legitimate_write_ok": 0 if result.circuit_breaker else legit_write_total,
-                "legitimate_read_ok": legit_read_total,
-                "writes_paused_by_circuit_breaker": bool(result.circuit_breaker),
-            },
+            "background_legitimate_writes_total": len(background),
+            "no_shield": {"attacks_succeed": len(malicious),
+                          "background_legitimate_ok": len(background)},
+            "suspend_all_arkea_style": {"attacks_succeed": 0,
+                                        "background_legitimate_ok": 0},
+            "wairrior": {"attacks_blocked": w_blocked,
+                         "attacks_succeed": len(malicious) - w_blocked,
+                         "background_legitimate_ok": bg_ok,
+                         "background_legitimate_blocked_collateral":
+                             len(background) - bg_ok},
         },
     }
 
@@ -77,29 +105,39 @@ def main() -> int:
     results = [evaluate(s) for s in data["scenarios"]]
     bench = {"simulated": True,
              "label": "SIMULACIÓN — sin datos reales, tiempos locales en ms",
+             "background": {"n": BACKGROUND_N, "seed": SEED,
+                            "apps": ["payments", "pos_erp", "cold_room", "ai_gateway"]},
              "sources": data.get("sources"), "scenarios": results}
     BENCH.parent.mkdir(parents=True, exist_ok=True)
     BENCH.write_text(json.dumps(bench, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     lines = ["# Autopilot bench — SIMULACIÓN (M10)", "",
-             "Escenarios basados en los ataques reales citados en `ORDENES.md`. "
-             "Nada de esto es una medición sobre clientes reales.", "",
-             "| Escenario | Severidad | Breaker | Detección→contención (ms, local) | "
-             "Maliciosas que pasan sin escudo | Maliciosas bloqueadas wAIrrior | "
-             "Escrituras legítimas OK (suspender-todo) | Escrituras legítimas OK (wAIrrior) |",
-             "|---|---|---|---|---|---|---|---|"]
+             "Basado en los ataques reales de `ORDENES.md`. Alcances: "
+             "`actor`, `app` (solo esa app y ese tipo de operación), `campaign` "
+             "(una campaña en 2 apps: actor + proveedor + beneficiarios nuevos) y "
+             "`global` (solo >=3 apps o varios actores; las operaciones humanas "
+             "recurrentes a beneficiarios conocidos siguen aun en global). "
+             "Fondo: 300 escrituras legítimas por escenario, semilla fija 20261104.", "",
+             "| Escenario | Nivel | Breaker global | ms local | Ataques que pasan "
+             "(sin escudo → wAIrrior) | Legítimas de fondo OK (suspender-todo → wAIrrior) /300 |",
+             "|---|---|---|---|---|---|"]
     for r in results:
         c = r["comparison"]
         lines.append(
-            f"| {r['id']} | {r['severity']} | {r['circuit_breaker']} | "
-            f"{r['detect_to_contain_ms']} | {c['no_shield']['malicious_succeed']} | "
-            f"{c['wairrior_fine_containment']['malicious_blocked']} | "
-            f"{c['suspend_all_arkea_style']['legitimate_write_ok']} | "
-            f"{c['wairrior_fine_containment']['legitimate_write_ok']} |")
-    lines += ["", "Lectura: suspender todo (patrón Arkéa) frena el ataque pero también "
-              "todas las operaciones legítimas. wAIrrior contiene por actor/app y solo "
-              "pausa escrituras cuando salta el circuit breaker (≥2 apps o crítico); "
-              "las lecturas siguen y cada medida tiene undo. Lo irreversible "
-              "(pagar, IBAN definitivo) queda para el dueño con segundo factor.", ""]
+            f"| {r['id']} | {r['scope_level']} | {r['circuit_breaker']} | "
+            f"{r['detect_to_contain_ms']} | {c['no_shield']['attacks_succeed']} → "
+            f"{c['wairrior']['attacks_succeed']} | "
+            f"{c['suspend_all_arkea_style']['background_legitimate_ok']} → "
+            f"{c['wairrior']['background_legitimate_ok']} |")
+    wave = next((r for r in results if r["id"] == "combined_wave"), None)
+    if wave:
+        lines += ["", "## Ola combinada (único caso global): aviso completo al dueño", "",
+                  f"> EN: {wave['notice_en']}", "", f"> ES: {wave['notice_es']}", ""]
+    lines += ["Lectura: Arkéa es nivel campaign (no global): quedan vivas las "
+              "recurrentes a beneficiarios conocidos, que es lo que el banco no "
+              "pudo separar. Solo la ola en >=3 apps llega a global, y aun ahí "
+              "sobreviven las operaciones humanas recurrentes del fondo (la mitad "
+              "de los pagos de fondo, 38 de 300 en esta semilla). Cada medida "
+              "tiene undo y lo irreversible queda para el dueño.", ""]
     REPORT.write_text("\n".join(lines), encoding="utf-8")
     print(f"OK {len(results)} escenarios -> {BENCH} y {REPORT}")
     return 0
