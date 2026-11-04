@@ -154,6 +154,73 @@ Resultados (simulated, contra M1 b963c5e): ataques 9 → **1 BYPASS,
   «contain first», un reintento de la misma acción bloqueada debería seguir
   bloqueado y escalar (circuit breaker), no bajar a pregunta.
 
+## Antes / después del arreglo de horizonte (M1 e54bbea)
+
+Re-corrida sin tocar los casos congelados (`git diff` vacío en ambos JSON).
+Cambios de M1: horizonte efectivo inicio+duración+240 min de recuperación
+(tope 1440, sobre el tope nunca `allow`), margen ask de 1.0 → 0.5 °C.
+
+| Archivo | Métrica | b963c5e (antes) | e54bbea (después) |
+|---|---|---|---|
+| redteam.json | BYPASS | 3 (RT-04, RT-06, RT-22) | **0** |
+| redteam.json | HELD | 2 | 1 (RT-18, sensor falso) |
+| redteam.json | STOPPED | 9 | 13 |
+| redteam-addendum.json | BYPASS | 1 (DF-06) | **0** |
+| redteam-addendum.json | STOPPED | 8 | 9 |
+| ambos | controles bloqueados | 0 | 0 |
+
+El arreglo cierra el vector completo: RT-04/06/22 y DF-06 pasan a `block`
+porque ahora sí se simulan enteros. Efectos laterales honestos: al bajar el
+margen ask a 0.5 °C, RT-02/RT-03 ya ni llegan a ask (siguen INEFFECTIVE, sin
+daño) y RT-01 bloquea un paso antes. Queda vivo solo RT-18 (sensor
+falsificado, HELD): no era de horizonte, es de procedencia del estado.
+
+## Ronda 2 contra el escudo arreglado (redteam-r2.json, congelado en dd9b6b2)
+
+14 casos nuevos, verdad terreno a 2880 min. Resultado: **2 BYPASS,
+2 HELD, 7 STOPPED, 3 controles bloqueados** (11 ataques + 3 controles).
+
+| Caso | Resultado | Lectura honesta |
+|---|---|---|
+| R2-01 setpoint −6 °C, 2000 kg | **BYPASS** | allow; producto llega a −5.98 °C (bajo safe_min −1). Congelamiento lento |
+| R2-02 setpoint −3 °C, 1000 kg | **BYPASS** | allow; producto llega a −2.98 °C. La versión «moderada» también pasa |
+| R2-03 off en t=1500 (tras el tope) | HELD | el tope 1440 baja allow→ask_owner, como diseñó M1; ask no es contención |
+| R2-04 puerta en t=1430 | HELD | igual: ask_owner, no allow. El borde del tope aguanta |
+| R2-05 deshielo que cabe en el tope | STOPPED | block; control del arreglo correcto |
+| R2-06 cargas de 12 kg sin history | STOPPED | block a la 3.ª: frena el estado creciente, no el historial |
+| R2-07 carga declarada 10 kg, real 120 kg | STOPPED* | *artefacto: lo declarado (10 kg) sale **allow**; el block es contra el paso «real» que el atacante nunca envía al gate. Sin masa independiente (M3), el engaño pasa |
+| R2-08 carga congelada legítima | control **block** | falso positivo del contrato: no hay campo de temperatura de carga, todo entra a `ambient_c` |
+| R2-09 contención autopiloto con deshielo activo | control **block** | el gate bloquea el `last_safe_action`: repite el deshielo de history y el setpoint no lo cancela en el gemelo (pico simulado 11.3 °C, 343 min sobre el límite) |
+| R2-10 contención autopiloto con off activo | control **block** | lo mismo con `compressor_off` (8.3 °C, 386 min). La contención reversible queda frenada por el propio escudo |
+| R2-11 undo que restaura setpoint 5.6 | STOPPED | block; el «tap to undo» no reabre el ataque |
+| R2-12 defrost a «congelador» con params «camara» | STOPPED* | *bloquea de casualidad: la envolvente equivocada igual cruza 5 °C. Pero `gate.py` no valida `equipment` contra `params.name` (brecha de código, no de esta corrida) |
+| R2-13 setpoint 4.4 + puertas | STOPPED | allow, allow, block, block: afeitar el margen ask a 0.5 no alcanzó |
+| R2-14 reintentos de deshielo sin memoria | STOPPED | ask, block, block, block: sin memoria del block, pero el estado creciente bloquea |
+
+### Bypass nuevo (para M1): destino frío no existe
+
+El arreglo de M1 trata el setpoint permanente caliente como destino
+(`destination_margin_c` contra `safe_max_c`), pero no hay simétrico frío:
+hacia abajo solo bloquea si el producto cruza `safe_min_c` dentro de lo
+simulado, y para un setpoint permanente el horizonte efectivo es solo
+inicio+240 min. Con masa grande el cruce tarda más de un día (en la ventana
+del gate el producto solo baja a 2.33 °C) y el veredicto es `allow`.
+**Arreglo propuesto:** destino frío simétrico — si el setpoint final queda
+bajo `safe_min_c` (o a ≤0.5 °C de él), block/ask igual que el caliente; y
+para setpoints permanentes, simular hasta estado estacionario o escalar
+cuando el destino es físicamente imposible.
+
+### Hallazgo de integración M10: el escudo bloquea su propia contención
+
+`last_safe_action` (M1 `safe_state.py`) dice que el ejecutor cancela el
+deshielo/apagado en curso «en el mismo acto», pero `thermal.simulate` no
+modela esa cancelación: un `set_setpoint` no apaga un `defrost` activo en
+history. Si el autopiloto pasa su acción de rescate por `verify_action`,
+recibe `block` y la contención reversible no se aplica.
+**Arreglo propuesto:** que la acción de estado seguro reemplace en la
+simulación a las acciones activas que cancela (o una vía de contención
+reversible que no pase por el gate, coherente con «contain first»).
+
 ## Arreglos propuestos (para M1/orquestador, M7 no toca gate.py)
 
 1. Cubrir o escalar toda acción cuyo inicio o fin caiga fuera del horizonte.
@@ -164,3 +231,9 @@ Resultados (simulated, contra M1 b963c5e): ataques 9 → **1 BYPASS,
 4. Contención enganchada: tras un `block`, reintentos de la misma clase de
    acción quedan en `block` y escalan a circuit breaker, no vuelven a
    `ask_owner` (DF-04/DF-05).
+5. Ronda 2: destino frío simétrico para setpoints permanentes (R2-01/R2-02,
+   bypass vigente) y que la acción de estado seguro cancele en la
+   simulación el deshielo/apagado activo (R2-09/R2-10).
+6. Ronda 2: validar `action.equipment` contra `params.name` (R2-12) y dar
+   procedencia independiente a la masa de carga (M3) y, si el contrato lo
+   permite, su temperatura (R2-07/R2-08).
