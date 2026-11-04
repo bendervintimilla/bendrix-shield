@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 import secrets
 import time
 from collections import OrderedDict
@@ -52,11 +53,45 @@ _PROVENANCE_GROUP = {
 
 _cache: dict[str, Any] = {}
 
+_ADVISORIES = _RECORDED.parent / "advisories"
+_CVE_PHONE = "CVE-[REDACTED:phone]"
+_CVE_PHONE_TITLED = re.compile(re.escape(_CVE_PHONE) + r'(", "title": ")([^"]+)"')
+
+
+def _fix_cve_redaction(node: Any) -> Any:
+    """Deshace en la grabación el falso positivo «CVE-[REDACTED:phone]».
+
+    El patrón de teléfono viejo comía «2026-NNNN» de los CVE. Si la grabación
+    trae el título del aviso (vuelta de ``list_advisories``), el id se recupera
+    del mismo `evals/advisories/*.json` que sirvió la herramienta, solo si el
+    título es único; si no, queda «CVE-(id)». No inventa ids.
+    """
+    if isinstance(node, dict):
+        return {k: _fix_cve_redaction(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [_fix_cve_redaction(v) for v in node]
+    if not isinstance(node, str) or _CVE_PHONE not in node:
+        return node
+    by_title: dict[str, list[str]] = {}
+    for f in sorted(_ADVISORIES.glob("*.json")):
+        try:
+            adv = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(adv, dict) and str(adv.get("id", "")).startswith("CVE-"):
+            by_title.setdefault(str(adv.get("title", "")), []).append(str(adv["id"]))
+
+    def _sub(m: re.Match[str]) -> str:
+        ids = by_title.get(m.group(2), [])
+        return (ids[0] if len(ids) == 1 else "CVE-(id)") + m.group(1) + m.group(2) + '"'
+
+    return _CVE_PHONE_TITLED.sub(_sub, node).replace(_CVE_PHONE, "CVE-(id)")
+
 
 def _load(path: Path) -> dict[str, Any]:
     key = str(path)
     if key not in _cache:
-        _cache[key] = json.loads(path.read_text(encoding="utf-8"))
+        _cache[key] = _fix_cve_redaction(json.loads(path.read_text(encoding="utf-8")))
     return copy.deepcopy(_cache[key])
 
 

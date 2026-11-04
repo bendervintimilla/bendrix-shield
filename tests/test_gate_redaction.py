@@ -54,3 +54,26 @@ def test_classify_is_honest_stub():
     result = classify("cualquier texto")
     assert result.label == "unclassified"
     assert result.model == "stub"
+
+
+def test_phone_no_toca_cve_ni_ids_con_prefijo_letra_guion():
+    # Antes: 'CVE-2026-1234' salía como 'CVE-[REDACTED:phone]' en la UI del guardián.
+    for ident in (
+        "CVE-2026-1234",
+        "CVE-2026-0322",
+        "CVE-2026-105133",
+        "ref ABC-1234-5678",
+        "chatcmpl-01a19d7f-e123-4567-b54c-b421ac175146",
+        "a49e883d-1234-5678-838f-45576e2e8830",
+        "01a19d80-1234-5678-8ea5-abd08b2a7252",
+    ):
+        redacted, kinds = redact_text(f'{{"id": "{ident}"}}')
+        assert ident in redacted, ident
+        assert "phone" not in {f.kind for f in kinds}, ident
+
+
+def test_phone_sigue_redactando_telefonos():
+    for tel in ("+593 99 123 4567", "099 123 4567", "(02) 234-5678", "+593991112233", "2345-6789"):
+        redacted, kinds = redact_text(f"llamar al {tel}.")
+        assert tel not in redacted, tel
+        assert "phone" in {f.kind for f in kinds}, tel

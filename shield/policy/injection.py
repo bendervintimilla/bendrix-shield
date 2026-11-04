@@ -27,7 +27,7 @@ _STRONG: list[tuple[str, re.Pattern[str]]] = [
     (
         "reveal_secret",
         re.compile(
-            r"(imprime|imprimir|muestra|mostrar|revela|revelar|env[ií]a|enviar|manda|mandar|print|reveal|show|send|leak|disclose|share|include|provide|output|paste|expose|divulge|forward|incluye|incluir|incluy\w*|comparte|compartir|divulga|divulgar|expone|exponer|entrega|entregar|proporciona|proporcionar|facilita|facilitar|copia|copiar|adjunta|reenv[ií]a|give|tell|dime|dame|pass|inclua|compartilhe|compartilhar|revele|mostre|envie|divulgue|exponha|forne[çc]a|encaminhe).{0,50}(api[\s_-]?key|credentials?|credencial(?:es)?|chaves?|llaves?|claves?|keys?|secrets?|secretos?|segredos?|tokens?|passwords?|contrase[ñn]as?|senhas?|system\s*prompt|prompt del sistema|private\s*key|llave privada|chave privada|access\s*token|auth\s*token)",  # noqa: E501
+            r"(imprime|imprimir|muestra|mostrar|revela|revelar|env[ií]a|enviar|manda|mandar|print|reveal|show|send|leak|disclose|share|include|provide|output|paste|expose|divulge|forward|incluye|incluir|incluy\w*|comparte|compartir|divulga|divulgar|expone|exponer|entrega|entregar|proporciona|proporcionar|facilita|facilitar|copia|copiar|adjunta|attach(?:es|ed|ing)?|reenv[ií]a|give|tell|dime|dame|pass|inclua|compartilhe|compartilhar|revele|mostre|envie|divulgue|exponha|forne[çc]a|encaminhe).{0,50}(api[\s_-]?key|credentials?|credencial(?:es)?|chaves?|llaves?|claves?|keys?|secrets?|secretos?|segredos?|tokens?|passwords?|contrase[ñn]as?|senhas?|system\s*prompt|prompt del sistema|private\s*key|llave privada|chave privada|access\s*token|auth\s*token)",  # noqa: E501
             re.I,
         ),
     ),
