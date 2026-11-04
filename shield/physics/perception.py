@@ -16,9 +16,13 @@ Supuestos rotulados (no mediciones):
 
 - ``DEFAULT_KG_PER_BOX``: kg por caja usados para pasar de conteo a masa
   térmica. Es un supuesto de orden de magnitud, no un peso medido.
-- Puerta: ``door_open`` solo se afirma si SAM ve «open door». Si no se ve
-  ninguna puerta en la imagen, se conserva el ``door_open`` previo y la
-  evidencia marca ``door_visible=False``; no se inventa un cierre.
+- Puerta: el prompt ``open door`` segmentó el panel de la puerta en las
+  dos imágenes de prueba reales (abierta y cerrada, 2026-11-04), así que
+  no discrimina. Sí discriminaron ``open doorway`` (1 abierta / 0 cerrada)
+  y ``closed door`` (0 / 1). Por eso ``door_open`` exige ver
+  ``open doorway`` y no ver ``closed door`` (y al revés para cerrada).
+  Si no se ve ninguna puerta, o ambos conceptos aparecen, se conserva el
+  ``door_open`` previo y la evidencia lo marca; no se inventa el estado.
 """
 
 from __future__ import annotations
@@ -34,9 +38,10 @@ from shield.physics.contract import RoomState
 
 SAM_MODEL = "sam-3.1"
 BOX_PROMPT = "cardboard box"
-DOOR_OPEN_PROMPT = "open door"
+DOOR_OPEN_PROMPT = "open doorway"
+DOOR_CLOSED_PROMPT = "closed door"
 DOOR_PROMPT = "door"
-PROMPTS = (BOX_PROMPT, DOOR_OPEN_PROMPT, DOOR_PROMPT)
+PROMPTS = (BOX_PROMPT, DOOR_OPEN_PROMPT, DOOR_CLOSED_PROMPT, DOOR_PROMPT)
 
 DEFAULT_KG_PER_BOX = 10.0
 ASSUMPTION_KG_PER_BOX_LABEL = (
@@ -50,24 +55,33 @@ def interpret_counts(
     box_count: int,
     open_door_count: int,
     door_count: int,
+    closed_door_count: int = 0,
     kg_per_box: float = DEFAULT_KG_PER_BOX,
     previous_door_open: bool = False,
 ) -> dict[str, Any]:
     """Convierte conteos SAM en masa y estado de puerta (determinista)."""
     if kg_per_box <= 0:
         raise ValueError("kg_per_box debe ser positivo")
-    if min(box_count, open_door_count, door_count) < 0:
+    if min(box_count, open_door_count, door_count, closed_door_count) < 0:
         raise ValueError("los conteos SAM no pueden ser negativos")
-    door_visible = door_count > 0 or open_door_count > 0
+    door_visible = door_count > 0 or open_door_count > 0 or closed_door_count > 0
+    # Abierta solo si se ve el vano abierto y no una puerta cerrada (y al revés).
+    decided = (open_door_count > 0) != (closed_door_count > 0)
+    if decided:
+        door_open = open_door_count > 0
+    else:  # no visible o señales en conflicto: se conserva lo previo
+        door_open = bool(previous_door_open)
     return {
         "box_count": int(box_count),
         "open_door_count": int(open_door_count),
+        "closed_door_count": int(closed_door_count),
         "door_count": int(door_count),
         "product_kg": round(int(box_count) * float(kg_per_box), 3),
         "kg_per_box": float(kg_per_box),
         "kg_per_box_label": ASSUMPTION_KG_PER_BOX_LABEL,
         "door_visible": door_visible,
-        "door_open": (open_door_count > 0) if door_visible else bool(previous_door_open),
+        "door_decided": bool(decided and door_visible),
+        "door_open": door_open,
     }
 
 
@@ -129,6 +143,7 @@ def _build(
     values = interpret_counts(
         box_count=counts[BOX_PROMPT],
         open_door_count=counts[DOOR_OPEN_PROMPT],
+        closed_door_count=counts[DOOR_CLOSED_PROMPT],
         door_count=counts[DOOR_PROMPT],
         kg_per_box=kg_per_box,
         previous_door_open=base.door_open,
@@ -143,8 +158,10 @@ def _build(
         "total_latency_ms": round(sum(float(c["latency_ms"]) for c in calls), 3),
         "box_count": values["box_count"],
         "open_door_count": values["open_door_count"],
+        "closed_door_count": values["closed_door_count"],
         "door_count": values["door_count"],
         "door_visible": values["door_visible"],
+        "door_decided": values["door_decided"],
         "kg_per_box": values["kg_per_box"],
         "kg_per_box_label": values["kg_per_box_label"],
         "assumptions": [ASSUMPTION_KG_PER_BOX_LABEL],
