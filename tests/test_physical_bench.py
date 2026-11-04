@@ -6,7 +6,7 @@ import json
 from dataclasses import fields
 from pathlib import Path
 
-from evals.run_physical import SHIELDS, evaluate_cases, load_cases, render_markdown
+from evals.run_physical import SHIELDS, build_report, evaluate_cases, load_cases, render_markdown
 from shield.physics.contract import ProposedAction, RoomState
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -84,6 +84,22 @@ def test_runner_offline_none_and_static() -> None:
     assert static_rows["A04"]["decision"] == "allow"  # cada paso salami en rango
     assert static_rows["L05"]["decision"] == "allow"
     assert "static" in render_markdown(evaluate_cases(_cases()[:1], shields=("static",)))
+
+
+def test_addendum_defrost_override_separate() -> None:
+    """Addendum congelado aparte: vector propio y reporte separado."""
+    path = ROOT / "evals" / "physical" / "cases-addendum.json"
+    addendum = load_cases(path)
+    assert len(addendum) >= 5
+    assert {c["vector"] for c in addendum} == {"defrost_override"}
+    assert sum(c["label"] == "attack" for c in addendum) >= 4
+    for case in addendum:
+        RoomState(**case["state"])
+        ProposedAction(**case["action"])
+    report = build_report(_cases()[:1], addendum)
+    assert report["cases"] == 1  # el addendum no suma a los totales
+    assert report["addendum"]["cases"] == len(addendum)
+    assert "defrost_override" in render_markdown(report)
 
 
 def test_runner_predictive_unavailable_is_not_silent_pass() -> None:

@@ -172,6 +172,16 @@ def evaluate_cases(
     return {"label_note": "simulated", "cases": len(cases), "results": rows, "summary": summary}
 
 
+def build_report(
+    cases: list[dict[str, Any]], addendum: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    """Reporte principal y, aparte, el addendum (sin mezclar totales)."""
+    report = evaluate_cases(cases)
+    if addendum:
+        report["addendum"] = evaluate_cases(addendum)
+    return report
+
+
 def render_markdown(report: dict[str, Any]) -> str:
     """Tabla markdown por escudo y vector; publica los fallos tal cual."""
     shields = tuple(report["summary"])
@@ -229,6 +239,39 @@ def render_markdown(report: dict[str, Any]) -> str:
         d = by_case[case_id]
         cells = " | ".join(d.get(name, "-") for name in shields)
         lines.append(f"| {case_id} | {label} | {vector} | {cells} |")
+    if report.get("addendum"):
+        sub = report["addendum"]
+        lines += [
+            "",
+            "## Addendum `defrost_override` (separado, no suma a los totales)",
+            "",
+            "Vector propio por orden del orquestador (4-nov): deshielo largo o "
+            "repetido, como el ataque real a congeladores de supermercados en "
+            "Europa del 2-nov-2026 citado en ORDENES.md. Archivo aparte "
+            "`cases-addendum.json`, congelado antes de correrlo. Contención "
+            "automática primero: `block` deja el equipo en su último estado "
+            "seguro sin esperar al dueño.",
+            "",
+            "| " + " | ".join(["Escudo", "Ataques", "Frenados", "Pasan en silencio",
+                               "Legítimos", "Permitidos", "Bloqueos falsos"]) + " |",
+            "|---|---:|---:|---:|---:|---:|---:|",
+        ]
+        for name in shields:
+            t = sub["summary"][name]["total"]
+            lines.append(
+                f"| {name} | {t['attacks_total']} | {t['attacks_stopped']} "
+                f"| {t['attacks_silent_pass']} | {t['legit_total']} "
+                f"| {t['legit_allowed']} | {t['false_blocks']} |"
+            )
+        lines += ["", header, "|" + "---|" * (3 + len(shields))]
+        by_sub: dict[str, dict[str, str]] = defaultdict(dict)
+        for row in sub["results"]:
+            by_sub[row["case_id"]][row["shield"]] = row["decision"]
+        sub_labels = {r["case_id"]: (r["label"], r["vector"]) for r in sub["results"]}
+        for case_id in sorted(by_sub):
+            label, vector = sub_labels[case_id]
+            cells = " | ".join(by_sub[case_id].get(name, "-") for name in shields)
+            lines.append(f"| {case_id} | {label} | {vector} | {cells} |")
     lines.append("")
     return "\n".join(lines)
 
@@ -240,7 +283,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json-out", type=Path, default=DEFAULT_JSON)
     parser.add_argument("--md-out", type=Path, default=DEFAULT_MD)
     args = parser.parse_args(argv)
-    report = evaluate_cases(load_cases(args.cases))
+    addendum_path = args.cases.parent / "cases-addendum.json"
+    addendum = load_cases(addendum_path) if addendum_path.exists() else None
+    report = build_report(load_cases(args.cases), addendum)
     args.json_out.parent.mkdir(parents=True, exist_ok=True)
     args.md_out.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(report, ensure_ascii=False, indent=1) + "\n"
@@ -253,6 +298,14 @@ def main(argv: list[str] | None = None) -> int:
             f"silent_pass={t['attacks_silent_pass']} false_blocks={t['false_blocks']} "
             f"unavailable={t['attacks_unavailable'] + t['legit_unavailable']}"
         )
+    if report.get("addendum"):
+        for name in SHIELDS:
+            t = report["addendum"]["summary"][name]["total"]
+            print(
+                f"addendum/{name}: attacks_stopped={t['attacks_stopped']}/"
+                f"{t['attacks_total']} silent_pass={t['attacks_silent_pass']} "
+                f"false_blocks={t['false_blocks']}"
+            )
     return 0
 
 

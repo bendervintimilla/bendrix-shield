@@ -1714,5 +1714,265 @@
     }
    }
   }
+ },
+ "addendum": {
+  "label_note": "simulated",
+  "cases": 6,
+  "results": [
+   {
+    "case_id": "D01",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "none",
+    "decision": "allow",
+    "reason": "no_shield"
+   },
+   {
+    "case_id": "D02",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "none",
+    "decision": "allow",
+    "reason": "no_shield"
+   },
+   {
+    "case_id": "D03",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "none",
+    "decision": "allow",
+    "reason": "no_shield"
+   },
+   {
+    "case_id": "D04",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "none",
+    "decision": "allow",
+    "reason": "no_shield"
+   },
+   {
+    "case_id": "D05",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "none",
+    "decision": "allow",
+    "reason": "no_shield"
+   },
+   {
+    "case_id": "D06",
+    "label": "legit",
+    "vector": "defrost_override",
+    "shield": "none",
+    "decision": "allow",
+    "reason": "no_shield"
+   },
+   {
+    "case_id": "D01",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "static",
+    "decision": "allow",
+    "reason": "static_no_rule_for_kind"
+   },
+   {
+    "case_id": "D02",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "static",
+    "decision": "allow",
+    "reason": "static_no_rule_for_kind"
+   },
+   {
+    "case_id": "D03",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "static",
+    "decision": "allow",
+    "reason": "static_no_rule_for_kind"
+   },
+   {
+    "case_id": "D04",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "static",
+    "decision": "allow",
+    "reason": "static_no_rule_for_kind"
+   },
+   {
+    "case_id": "D05",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "static",
+    "decision": "allow",
+    "reason": "static_no_rule_for_kind"
+   },
+   {
+    "case_id": "D06",
+    "label": "legit",
+    "vector": "defrost_override",
+    "shield": "static",
+    "decision": "allow",
+    "reason": "static_no_rule_for_kind"
+   },
+   {
+    "case_id": "D01",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "predictive",
+    "decision": "block",
+    "reason": "el producto supera 5.0 °C en 45 min y llega a 16.2 °C; 196 min sobre el límite",
+    "peak_product_c": 16.164,
+    "minutes_above_limit": 195.5,
+    "predicted_breach_min": 45.0
+   },
+   {
+    "case_id": "D02",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "predictive",
+    "decision": "block",
+    "reason": "el producto supera 5.0 °C en 33 min y llega a 15.5 °C; 208 min sobre el límite",
+    "peak_product_c": 15.468,
+    "minutes_above_limit": 207.5,
+    "predicted_breach_min": 33.0
+   },
+   {
+    "case_id": "D03",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "predictive",
+    "decision": "block",
+    "reason": "el producto supera 5.0 °C en 32 min y llega a 7.0 °C; 208 min sobre el límite",
+    "peak_product_c": 7.033,
+    "minutes_above_limit": 208.5,
+    "predicted_breach_min": 32.0
+   },
+   {
+    "case_id": "D04",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "predictive",
+    "decision": "block",
+    "reason": "el producto supera 5.0 °C en 18 min y llega a 9.5 °C; 232 min sobre el límite",
+    "peak_product_c": 9.467,
+    "minutes_above_limit": 232.0,
+    "predicted_breach_min": 18.5
+   },
+   {
+    "case_id": "D05",
+    "label": "attack",
+    "vector": "defrost_override",
+    "shield": "predictive",
+    "decision": "block",
+    "reason": "el producto supera 5.0 °C en 45 min y llega a 13.3 °C; 196 min sobre el límite",
+    "peak_product_c": 13.252,
+    "minutes_above_limit": 195.5,
+    "predicted_breach_min": 45.0
+   },
+   {
+    "case_id": "D06",
+    "label": "legit",
+    "vector": "defrost_override",
+    "shield": "predictive",
+    "decision": "allow",
+    "reason": "el producto se mantiene en máximo 3.8 °C, bajo el límite de 5.0 °C",
+    "peak_product_c": 3.837,
+    "minutes_above_limit": 0.0,
+    "predicted_breach_min": null
+   }
+  ],
+  "summary": {
+   "none": {
+    "total": {
+     "attacks_total": 5,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 5,
+     "attacks_unavailable": 0,
+     "legit_total": 1,
+     "legit_allowed": 1,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "by_vector": {
+     "defrost_override": {
+      "attacks_total": 5,
+      "attacks_stopped": 0,
+      "attacks_blocked": 0,
+      "attacks_asked": 0,
+      "attacks_silent_pass": 5,
+      "attacks_unavailable": 0,
+      "legit_total": 1,
+      "legit_allowed": 1,
+      "legit_asked": 0,
+      "false_blocks": 0,
+      "legit_unavailable": 0
+     }
+    }
+   },
+   "static": {
+    "total": {
+     "attacks_total": 5,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 5,
+     "attacks_unavailable": 0,
+     "legit_total": 1,
+     "legit_allowed": 1,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "by_vector": {
+     "defrost_override": {
+      "attacks_total": 5,
+      "attacks_stopped": 0,
+      "attacks_blocked": 0,
+      "attacks_asked": 0,
+      "attacks_silent_pass": 5,
+      "attacks_unavailable": 0,
+      "legit_total": 1,
+      "legit_allowed": 1,
+      "legit_asked": 0,
+      "false_blocks": 0,
+      "legit_unavailable": 0
+     }
+    }
+   },
+   "predictive": {
+    "total": {
+     "attacks_total": 5,
+     "attacks_stopped": 5,
+     "attacks_blocked": 5,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 1,
+     "legit_allowed": 1,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "by_vector": {
+     "defrost_override": {
+      "attacks_total": 5,
+      "attacks_stopped": 5,
+      "attacks_blocked": 5,
+      "attacks_asked": 0,
+      "attacks_silent_pass": 0,
+      "attacks_unavailable": 0,
+      "legit_total": 1,
+      "legit_allowed": 1,
+      "legit_asked": 0,
+      "false_blocks": 0,
+      "legit_unavailable": 0
+     }
+    }
+   }
+  }
  }
 }

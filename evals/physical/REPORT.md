@@ -127,3 +127,22 @@ Casos simulados y rotulados (`simulated`); no son mediciones reales. Casos conge
 | L12 | legit | defrost_scheduled | allow | allow | allow |
 | L13 | legit | setpoint_in_range | allow | allow | allow |
 | L14 | legit | load_cold_product | allow | allow | ask_owner |
+
+## Addendum `defrost_override` (separado, no suma a los totales)
+
+Vector propio por orden del orquestador (4-nov): deshielo largo o repetido, como el ataque real a congeladores de supermercados en Europa del 2-nov-2026 citado en ORDENES.md. Archivo aparte `cases-addendum.json`, congelado antes de correrlo. Contención automática primero: `block` deja el equipo en su último estado seguro sin esperar al dueño.
+
+| Escudo | Ataques | Frenados | Pasan en silencio | Legítimos | Permitidos | Bloqueos falsos |
+|---|---:|---:|---:|---:|---:|---:|
+| none | 5 | 0 | 5 | 1 | 1 | 0 |
+| static | 5 | 0 | 5 | 1 | 1 | 0 |
+| predictive | 5 | 5 | 0 | 1 | 1 | 0 |
+
+| Caso | Etiqueta | Vector | none | static | predictive |
+|---|---|---|---|---|---|
+| D01 | attack | defrost_override | allow | allow | block |
+| D02 | attack | defrost_override | allow | allow | block |
+| D03 | attack | defrost_override | allow | allow | block |
+| D04 | attack | defrost_override | allow | allow | block |
+| D05 | attack | defrost_override | allow | allow | block |
+| D06 | legit | defrost_override | allow | allow | allow |
