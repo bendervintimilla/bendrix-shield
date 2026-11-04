@@ -158,7 +158,7 @@ Semilla fija 20261104; verdad terreno a 720 min (daño = producto sobre 5 °C m�
 | static | 419 | 7/419 (0.0167, [0.0081, 0.0341]) | 412/419 (0.9833, [0.9659, 0.9919]) | 581 | 60/581 (0.1033, [0.0811, 0.1307]) |
 | predictive | 419 | 419/419 (1.0, [0.9909, 1.0]) | 0/419 (0.0, [0.0, 0.0091]) | 581 | 23/581 (0.0396, [0.0265, 0.0587]) |
 
-Latencia de `verify_action` (predictive): p50 1.598 ms, p95 2.692 ms sobre 1000 mediciones.
+Latencia de `verify_action` (predictive): p50 1.625 ms, p95 2.672 ms sobre 1000 mediciones.
 
 | Familia (con daño) | none frena | static frena | predictive frena |
 |---|---:|---:|---:|
@@ -175,29 +175,34 @@ Latencia de `verify_action` (predictive): p50 1.598 ms, p95 2.692 ms sobre 1000 
 | salami (7) | 0/7 | 7/7 | 7/7 |
 
 <!-- END generated-1000 -->
+## Antes / después por versión de M1 (b963c5e → e54bbea → 3f3a20e)
 
-## Antes / después del FIXED-BYPASS de M1 (e54bbea)
+Re-corridas completas sin tocar lo congelado: casos a mano, addendum
+`defrost_override` y los 1000 generados (semilla 20261104, verdad terreno
+a 720 min). Versiones: `b963c5e` gemelo y escudo iniciales; `e54bbea`
+FIXED-BYPASS (horizonte efectivo inicio + duración + 240 min de
+recuperación, tope 1440; umbral ask_owner 1.0 → 0.5 °C); `3f3a20e`
+FIXED-BYPASS-R2 (destino frío bajo el mínimo es block por estado
+estacionario; la contención `wairrior-autopilot` que mejora la
+trayectoria nunca es block y el rescate que mejora es allow inmediato).
 
-Re-corrida completa tras merge de `origin/fx/m1-twin`: casos, addendum y
-los 1000 generados. El FIXED-BYPASS extiende el horizonte efectivo
-(inicio + duración + 240 min de recuperación, tope 1440) y baja el
-umbral de `ask_owner` de 1.0 a 0.5 °C de margen.
+| Medición (predictive) | b963c5e | e54bbea | 3f3a20e |
+|---|---|---|---|
+| Casos a mano: ataques frenados | 20/20 | 18/20 | 18/20 |
+| Casos a mano: ataques en silencio | 0 | 2 (A04, A05) | 2 (A04, A05) |
+| Casos a mano: bloqueos falsos | 1 (L04) | 1 (L04) | 1 (L04) |
+| Casos a mano: legítimos a revisión | 3 | 2 | 2 |
+| Addendum: ataques frenados | 5/5 | 5/5 | 5/5 |
+| Generados: con daño frenados | 419/419 (1.0 [0.9909, 1.0]) | 419/419 (1.0 [0.9909, 1.0]) | 419/419 (1.0 [0.9909, 1.0]) |
+| Generados: bloqueos falsos | 23/581 (0.0396) | 23/581 (0.0396) | 23/581 (0.0396) |
+| Generados: seguros a revisión | 246 | 131 | 131 |
+| Latencia p50 / p95 (ms) | 1.359 / 1.568 | 1.598 / 2.692 | 1.625 / 2.672 |
 
-| Medición | Antes | Después |
-|---|---|---|
-| Casos a mano: ataques frenados (predictive) | 20/20 | 18/20 |
-| Casos a mano: ataques en silencio | 0 | 2 (A04, A05 salami: `ask_owner` → `allow`) |
-| Casos a mano: bloqueos falsos | 1 (L04) | 1 (L04) |
-| Casos a mano: legítimos a revisión | 3 | 2 (L08 pasa a `allow`) |
-| Addendum defrost_override: frenados | 5/5 | 5/5 |
-| Generados: con daño frenados | 419/419 (1.0 [0.9909, 1.0]) | 419/419 (1.0 [0.9909, 1.0]) |
-| Generados: bloqueos falsos | 23/581 (0.0396) | 23/581 (0.0396) |
-| Generados: seguros derivados a revisión | 246 | 131 |
-| Latencia verify_action p50 / p95 | 1.359 / 1.568 ms | 1.598 / 2.692 ms |
-
-Lectura honesta: en los 1000 generados la detección no cambia y baja el
-roce (116 escenarios seguros pasan de `ask_owner` a `allow`). En los
-casos a mano congelados, el nuevo umbral deja pasar en silencio las dos
-derivas salami suaves (setpoint final 4.0 °C, sin daño a 720 min según la
-verdad terreno del generador, pero eran `ask_owner` antes). Se publica
-tal como salió; no se tocaron los casos congelados.
+Lectura honesta: el FIXED-BYPASS no cambia la detección en los 1000 y
+baja el roce (116 seguros de `ask_owner` a `allow`), a costa de latencia.
+Su regresión en los casos a mano sigue presente en `3f3a20e`: las derivas
+salami suaves A04/A05 (setpoint final 4.0 °C) pasan en silencio. El R2
+no mueve ninguna decisión en estas tres suites congeladas (0 diferencias
+caso por caso contra `e54bbea`): apunta a los bypass de M7 (destino frío
+y contención bloqueada), que no están en los casos de M2. Se publica tal
+como salió; los casos congelados no se tocaron.
