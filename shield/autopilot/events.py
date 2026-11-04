@@ -132,13 +132,12 @@ def from_cold_room(raw: dict[str, Any]) -> SecurityEvent:
 
 
 def proposed_action_from_event(event: SecurityEvent) -> Any:
-    """Acción física desde un evento ENTRANTE: jamás confiable como rescate.
+    """Acción física desde un evento ENTRANTE, sin privilegio alguno.
 
-    ``requested_by`` va siempre prefijado ``external:``: un evento que
-    declare ``actor='wairrior-autopilot'`` no obtiene el privilegio de
-    rescate del gate (C3-16). El rescate legítimo solo nace dentro del
-    autopiloto (``build_internal_rescue_action``) y, cuando M1 publique
-    ``shield/physics/rescue.py``, deberá llevar su RescueGrant firmado.
+    El ``requested_by`` es solo una declaración: el gate de M1 ya no da
+    privilegio por ese string; exige un RescueGrant firmado válido. Un
+    evento con ``actor='wairrior-autopilot'`` queda marcado sospechoso
+    en la evidencia del gate y en ``detect`` (C3-16), nunca rescatado.
     """
     from shield.physics.contract import ProposedAction
 
@@ -146,44 +145,47 @@ def proposed_action_from_event(event: SecurityEvent) -> Any:
         kind=event.action, equipment=event.target or "camara",
         value=event.values.get("value"),
         duration_min=float(event.values.get("duration_min") or 0),
-        requested_by=f"external:{event.actor}", source=event.source)
+        requested_by=event.actor, source=event.source)
+
+
+def emit_safe_state_rescue(target: str = "camara", state: Any | None = None):
+    """Emisor REAL del rescate: ``issue_last_safe_action`` de M1.
+
+    Devuelve ``(action, RescueGrant)`` firmado (HMAC, 60 s, un solo
+    uso). Es la única vía por la que el autopiloto obtiene privilegio
+    de rescate; ningún evento entrante pasa por aquí.
+    """
+    from shield.physics.contract import ColdRoomParams, RoomState
+    from shield.physics.rescue import issue_last_safe_action
+
+    params = ColdRoomParams(name=target or "camara")
+    return issue_last_safe_action(params, state or RoomState())
 
 
 def build_internal_rescue_action(equipment: str = "camara", value: float = 3.0) -> Any:
-    """Rescate INTERNO del autopiloto (no construido desde eventos externos)."""
-    from shield.physics.contract import ProposedAction
-
-    return ProposedAction(kind="set_setpoint", equipment=equipment, value=value,
-                          requested_by="wairrior-autopilot", source="schedule")
+    """Compatibilidad: la acción del rescate interno (con su grant emitido)."""
+    action, _grant = emit_safe_state_rescue(equipment)
+    return action
 
 
-def _grant_kwargs(fn: Any, rescue_grant: Any) -> dict[str, Any]:
-    """Pasa el grant solo si la cadena (pipeline/gate) ya lo acepta firmado."""
-    if rescue_grant is None:
-        return {}
-    import inspect
-    params = inspect.signature(fn).parameters
-    if "rescue_grant" in params:
-        return {"rescue_grant": rescue_grant}
-    if "rescue" in params:
-        return {"rescue": rescue_grant}
-    return {}
+def verify_rescue(action: Any, grant: Any, *, state: Any | None = None,
+                  history: list | None = None) -> Any:
+    """Verifica el rescate ante ``gate.verify_action(..., rescue_grant=...)``."""
+    from shield.physics.contract import ColdRoomParams, RoomState
+    from shield.physics.gate import verify_action
+
+    params = ColdRoomParams(name=action.equipment)
+    return verify_action(params, state or RoomState(), action,
+                         history=history, rescue_grant=grant)
 
 
-def cold_room_physics_verdict(event: SecurityEvent,
-                              rescue_grant: Any | None = None) -> Any | None:
-    """Pasa un evento de frío por la cadena física (M6/M1). None si no aplica.
-
-    ``rescue_grant``: RescueGrant firmado de M1 cuando exista; se pasa a
-    ``verify_before_actuate``/``verify_action`` solo si su firma ya lo
-    acepta. Un grant sin cadena que lo verifique no da privilegio.
-    """
+def cold_room_physics_verdict(event: SecurityEvent) -> Any | None:
+    """Pasa un evento de frío por la cadena física (M6/M1). None si no aplica."""
     if event.app != "cold_room":
         return None
     kind_map = {"set_setpoint": "set_setpoint", "defrost": "defrost",
                 "compressor_off": "compressor_off", "door_open": "door_open"}
-    kind = kind_map.get(event.action)
-    if kind is None:
+    if kind_map.get(event.action) is None:
         return None
     from shield.physics.contract import ColdRoomParams, RoomState
 
@@ -192,10 +194,8 @@ def cold_room_physics_verdict(event: SecurityEvent,
     try:  # M6: verificar-antes-de-actuar (residuo de sensor + gate).
         from shield.physics.pipeline import verify_before_actuate
 
-        return verify_before_actuate(params, [state], [state.air_c], action,
-                                     **_grant_kwargs(verify_before_actuate, rescue_grant))
+        return verify_before_actuate(params, [state], [state.air_c], action)
     except ImportError:  # pragma: no cover - solo si M6 no está fusionado
         from shield.physics.gate import verify_action
 
-        return verify_action(params, state, action,
-                             **_grant_kwargs(verify_action, rescue_grant))
+        return verify_action(params, state, action)

@@ -4,12 +4,12 @@ Basado en los ataques reales de `ORDENES.md`. Alcances: `actor`, `app` (solo esa
 
 | Escenario | Nivel | Breaker global | ms local | Ataques que pasan (sin escudo → wAIrrior) | Legítimas de fondo OK (suspender-todo → wAIrrior) /300 |
 |---|---|---|---|---|---|
-| defrost_forced_2nov | app | False | 8.763 | 1 → 0 | 0 → 300 |
-| arkea_iban_fraud_4nov | campaign | False | 0.083 | 2 → 0 | 0 → 263 |
-| stolen_token_oct | app | False | 0.118 | 12 → 0 | 0 → 300 |
+| defrost_forced_2nov | app | False | 10.666 | 1 → 0 | 0 → 300 |
+| arkea_iban_fraud_4nov | campaign | False | 0.091 | 2 → 0 | 0 → 263 |
+| stolen_token_oct | app | False | 0.131 | 12 → 0 | 0 → 300 |
 | legit_recurring_payment | none | False | 0.022 | 0 → 0 | 0 → 300 |
-| legit_scheduled_defrost | none | False | 1.583 | 0 → 0 | 0 → 300 |
-| combined_wave | global | True | 2.943 | 15 → 0 | 0 → 38 |
+| legit_scheduled_defrost | none | False | 1.607 | 0 → 0 | 0 → 300 |
+| combined_wave | global | True | 4.321 | 15 → 0 | 0 → 38 |
 
 ## Ola combinada (único caso global): aviso completo al dueño
 
@@ -29,4 +29,4 @@ Toca para deshacer · Aprueba el cambio de IBAN solo con tu segundo factor.
 
 Lectura: Arkéa es nivel campaign (no global): 263/300 legítimas vivas; las 37 pausadas son los pagos de agente del bot contenido (congelado en físico y pagos tras la contención, ronda 3 de M7: cambiar target o clase de acción ya no evade). Solo la ola en >=3 apps llega a global, y aun ahí sobreviven las operaciones humanas recurrentes (38/300). Cada medida tiene undo y lo irreversible queda para el dueño.
 
-Ronda 3 (M7): C3-11 (otro target) y C3-12 (otra clase de acción) quedan bloqueados por el congelamiento del actor/token; C3-13 (90 min, actores/tokens distintos) correlaciona por objetivo y firma de campaña en 24 h; C3-16 (actor 'wairrior-autopilot' forjado) se marca sospechoso y nunca obtiene rescate: el grant firmado de M1 se pasará solo cuando la cadena lo acepte.
+Ronda 3 (M7): C3-11 (otro target) y C3-12 (otra clase de acción) quedan bloqueados por el congelamiento del actor/token; C3-13 (90 min, actores/tokens distintos) correlaciona por objetivo y firma de campaña en 24 h; C3-16 (actor 'wairrior-autopilot' forjado) se marca sospechoso y nunca obtiene rescate. La contención física usa el RescueGrant real de M1 (issue_last_safe_action + verify_action con grant): rescate allow solo con grant firmado válido, de un solo uso.
