@@ -43,7 +43,12 @@ from shield.autopilot import (
     from_pos_erp,
     run_pipeline,
 )
-from shield.autopilot.respond import TokenOps
+from shield.autopilot.respond import (
+    TokenOps,
+    _fmt_amount,
+    _pretty_supplier,
+    possessive_en,
+)
 from shield.gateway.app import UPSTREAM_KEY_NAME, create_app
 from shield.physics.contract import ColdRoomParams, ProposedAction, RoomState
 from shield.physics.gate import verify_action
@@ -80,13 +85,16 @@ def _e(value: Any) -> str:
 class _RegistryTokenOps(TokenOps):
     """TokenOps del autopiloto respaldado por el Registry real del gateway."""
 
-    def __init__(self, registry: Registry, token_id: str) -> None:
+    def __init__(self, registry: Registry, token_id: str, agent: str = "bodega") -> None:
         self._registry = registry
         self._old_id = token_id
+        self._agent = agent
         self._new_id: str | None = None
         self.new_raw: str = ""
 
     def rotate(self, actor: str) -> str:
+        if actor != self._agent:
+            return ""  # otros actores no tienen llave en este gateway
         out = self._registry.rotate(self._old_id)
         if out is None:
             return ""
@@ -98,12 +106,15 @@ class _RegistryTokenOps(TokenOps):
     def revoke(self, actor: str) -> None:
         # El motor global revoca; aquí la llave robada se reemplaza de una
         # vez (rotación real en el Registry): la vieja da 401 y nace otra.
-        if self._new_id is None:
+        if actor == self._agent and self._new_id is None:
             self.rotate(actor)
 
     def restore(self, actor: str) -> None:
         # Deshacer la rotación (decisión del dueño): muere el token nuevo
-        # y el anterior vuelve a ACTIVE en el Registry.
+        # y el anterior vuelve a ACTIVE en el Registry. Solo para el agente
+        # dueño de la llave: deshacer otra medida no revive la robada.
+        if actor != self._agent:
+            return
         if self._new_id:
             self._registry.revoke(self._new_id)
             self._new_id = None
@@ -144,18 +155,58 @@ def _legit_events() -> list[SecurityEvent]:
     ]
 
 
-MEASURE_LABELS: dict[str, tuple[str, str]] = {
-    "block_action": ("Blocked the malicious action", "Acción maliciosa bloqueada"),
-    "hold_payment": ("Payment held (not executed)", "Pago retenido (no ejecutado)"),
-    "safe_state": ("Cold room kept at its last safe setting", "Cámara en su último estado seguro"),
-    "rotate_token": ("Stolen key replaced", "Llave robada reemplazada"),
-    "revoke_tokens": ("Attacker's key revoked and replaced", "Llave del atacante revocada y reemplazada"),
-    "read_only": ("App put in read-only mode", "App en solo lectura"),
-    "freeze_app_scope": ("That kind of operation frozen in the app", "Ese tipo de operación congelado en la app"),
-    "freeze_campaign": ("Campaign frozen for that actor and supplier", "Campaña congelada para ese actor y proveedor"),
-    "circuit_breaker": ("Agent writes paused across apps", "Escrituras de agentes en pausa en todas las apps"),
-    "log": ("Event logged", "Evento registrado"),
-}
+APP_NAMES: dict[str, tuple[str, str]] = {key: (en, es) for key, en, es in APPS}
+ACTOR_APP = {"refrigeracion": "cold_room", "payments-bot": "payments", "bodega": "ai_gateway"}
+
+
+def measure_label(m: dict[str, Any], ctx: dict[str, Any], lang: str) -> str:
+    """Etiqueta de una medida: «App: qué se hizo», con datos de la ola.
+
+    ``ctx`` trae lo que la ola sabe de cada ataque (duración del deshielo,
+    monto y proveedor del pago, tamaño de la ráfaga, agente de la llave).
+    """
+    es = lang == "es"
+    kind, app, target, detail = m["kind"], m["app"], m["target"], m.get("detail", "")
+    owner_app = ACTOR_APP.get(target, app) if app == "*" else app
+    name = APP_NAMES.get(owner_app, ("All apps", "Todas las apps"))[1 if es else 0]
+    supplier = ctx.get("supplier", "the supplier")
+    amount = ctx.get("amount", "")
+    if kind == "block_action" and app == "cold_room":
+        hours = ctx.get("defrost_hours", "")
+        what = (f"deshielo de {hours} horas bloqueado" if es
+                else f"blocked the {hours}-hour defrost")
+    elif kind == "safe_state":
+        what = (f"se mantiene en su último ajuste seguro ({ctx.get('safe_c', 3.0):g} °C)" if es
+                else f"kept at its last safe setting ({ctx.get('safe_c', 3.0):g} °C)")
+    elif kind == "block_action" and app == "pos_erp":
+        what = (f"cambio de datos bancarios de {supplier} bloqueado" if es
+                else f"{possessive_en(supplier)} bank-details change blocked")
+    elif kind in ("hold_payment", "block_action") and app == "payments":
+        what = (f"transferencia de {amount} a {supplier} retenida" if es
+                else f"transfer of {amount} to {supplier} held")
+    elif kind == "block_action" and app == "ai_gateway":
+        n = ctx.get("burst", 0)
+        what = (f"{n} llamadas con la llave robada bloqueadas" if es
+                else f"{n} calls with the stolen key blocked")
+    elif (kind in ("revoke_tokens", "rotate_token", "freeze_actor_writes")
+          and target == ctx.get("stolen_agent")):
+        # Revocar y congelar al mismo agente es una sola decisión de negocio.
+        what = ("llave robada reemplazada y agente congelado" if es
+                else "stolen key replaced, agent frozen")
+    elif kind in ("revoke_tokens", "freeze_actor_writes"):
+        what = (f"agente {target}: llaves revocadas y escrituras congeladas" if es
+                else f"agent {target}: keys revoked, writes frozen")
+    elif kind == "circuit_breaker":
+        name = "Todas las apps" if es else "All apps"
+        what = ("escrituras de agentes en pausa" if es else "agent writes paused")
+    elif kind == "freeze_app_scope":
+        what = (f"operación «{detail or target}» congelada" if es
+                else f"operation '{detail or target}' frozen")
+    elif kind == "read_only":
+        what = "en solo lectura" if es else "read-only"
+    else:
+        what = "registrado" if es else "logged"
+    return f"{name}: {what}"
 
 
 def _background_300() -> list[SecurityEvent]:
@@ -207,6 +258,7 @@ class SentinelRun:
         self.measures: list[dict[str, Any]] = []
         self.pending_owner: dict[str, list[str]] = {}
         self.legit_still_running = 300
+        self.still_breakdown: dict[str, Any] = {}
         self.scope_level = "none"
         self.total_ms = 0.0
         self.notice: dict[str, Any] = {}
@@ -281,6 +333,7 @@ class SentinelRun:
                 verdict.baseline, verdict.with_action,
                 safe_max_c=params.safe_max_c,
                 breach_min=verdict.predicted_breach_min, lang=lang,
+                legend_top=True,
             ),
         }
 
@@ -321,19 +374,39 @@ class SentinelRun:
             "rotated": after_attacker == 401 and legit_after == 200,
         }
         self.total_ms = round(result.detect_to_contain_ms, 3)
-        self.measures = [
-            {
-                **m.to_dict(), "undone": False,
-                "label_en": MEASURE_LABELS.get(m.kind, ("Contained", "Contenido"))[0],
-                "label_es": MEASURE_LABELS.get(m.kind, ("Contained", "Contenido"))[1],
-            }
-            for m in result.measures
-        ]
+        # Lo que la ola sabe de cada ataque, para rotular cada medida.
+        ctx = {
+            "defrost_hours": f"{float(cold_event.values.get('duration_min') or 0) / 60:g}",
+            "safe_c": float(safe.value),
+            "supplier": _pretty_supplier(pay_event.target),
+            "amount": _fmt_amount(pay_event),
+            "burst": len(burst),
+            "stolen_agent": "bodega",
+        }
+        self.measures = []
+        for m in result.measures:
+            d = {**m.to_dict(), "undone": False}
+            d["label_en"] = measure_label(d, ctx, "en")
+            d["label_es"] = measure_label(d, ctx, "es")
+            self.measures.append(d)
         # Operaciones legítimas que el motor deja vivas tras la contención.
         background = _background_300()
-        self.legit_still_running = sum(
-            1 for e in background if engine.allows_write(e)
-        )
+        kept = [e for e in background if engine.allows_write(e)]
+        self.legit_still_running = len(kept)
+        # Por qué esa cifra: desglose leído del motor, no escrito a mano.
+        self.still_breakdown = {
+            "scope_level": result.scope_level,
+            "human_known_payments_kept": sum(
+                1 for e in kept if e.source == "human" and e.app == "payments"
+                and e.values.get("beneficiary_known")),
+            "other_kept": sum(
+                1 for e in kept if not (e.source == "human" and e.app == "payments")),
+            "agent_writes_paused": sum(
+                1 for e in background if e.source != "human" and not engine.allows_write(e)),
+            "human_paused": sum(
+                1 for e in background if e.source == "human" and not engine.allows_write(e)),
+            "total": len(background),
+        }
         self.scope_level = result.scope_level
         self.timeline = self._timeline(incident, lang)
         # Aviso de negocio de M10, tal cual sale del motor (EN y ES).
@@ -494,6 +567,7 @@ class SentinelRun:
             "legit_allowed": self.legit_allowed,
             "legit_counters": self.legit_counters,
             "legit_still_running": self.legit_still_running,
+            "still_breakdown": self.still_breakdown,
             "legit_total": 300,
             "scope_level": self.scope_level,
             "released": self.released,
@@ -539,6 +613,8 @@ SENTINEL_T: dict[str, dict[str, str]] = {
         "detected_contained": "detected → contained",
         "still_a": "Legitimate operations still running:",
         "still_b": "(shutting everything down: 0/300)",
+        "still_why_global": "Why: three apps hit at once, so the engine went global and paused every AGENT write ({paused} of {total}); human payments to known suppliers keep going ({kept}).",
+        "still_why_scoped": "Why: the engine froze only what the attack touched ({paused} of {total} paused).",
         "approve2fa": "Approve with 2nd factor",
         "ms": "ms",
         "not_run": "Press the button: the wave is simulated, the engine is real.",
@@ -580,6 +656,8 @@ SENTINEL_T: dict[str, dict[str, str]] = {
         "detected_contained": "detectado → contenido",
         "still_a": "Operaciones legítimas que siguen vivas:",
         "still_b": "(apagar todo: 0/300)",
+        "still_why_global": "Por qué: tres apps atacadas a la vez, así que el motor pasó a global y pausó toda escritura de AGENTES ({paused} de {total}); los pagos humanos a proveedores conocidos siguen ({kept}).",
+        "still_why_scoped": "Por qué: el motor congeló solo lo que tocó el ataque ({paused} de {total} en pausa).",
         "approve2fa": "Aprobar con segundo factor",
         "ms": "ms",
         "not_run": "Pulsa el botón: la ola es simulada, el motor es real.",
@@ -659,7 +737,8 @@ a{color:#ffd28a}.wrap{width:min(1760px,calc(100% - 48px));margin:0 auto}
 .chat{background:#0b3d2e;border:1px solid rgba(54,179,126,.5);border-radius:12px 12px 12px 2px;padding:12px 16px;max-width:560px}
 .chat p{margin:5px 0;font-size:16px}.chat-text{font-size:17px;font-weight:650}
 .stillrow{text-align:center;color:var(--muted);font-size:16px;margin:2px 0 8px}.stillrow b{color:var(--ok-text);font-size:19px}
-.chart svg{height:175px}
+.stillwhy{text-align:center;color:var(--muted);font-size:15px;margin:-4px auto 8px;max-width:1100px}
+.chart svg{width:100%;height:auto;min-height:300px;max-height:340px}
 .measure{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding:8px 0;font-size:15px}
 .measure code{font-family:var(--mono);font-size:13px;color:var(--muted)}
 input[type="text"]{min-height:40px;padding:8px 12px;font:inherit;background:var(--sunk);border:1px solid var(--line-strong);border-radius:8px;color:var(--text)}
@@ -694,6 +773,14 @@ function render(data) {
   byId("cCold").textContent = c.cold_ok || 0; byId("cGateway").textContent = c.gateway_ok || 0;
   byId("bigMs").textContent = data.replayed ? Number(data.detect_to_contain_ms || 0).toFixed(1) + " ms" : "—";
   byId("stillN").textContent = (data.legit_still_running ?? 300) + "/" + (data.legit_total || 300);
+  const sb = data.still_breakdown || {}; const why = byId("stillWhy");
+  if (data.replayed && sb.scope_level === "global") {
+    why.textContent = TEXT.still_why_global.replace("{paused}", sb.agent_writes_paused).replace("{kept}", sb.human_known_payments_kept).replace("{total}", sb.total);
+    why.hidden = false;
+  } else if (data.replayed && sb.scope_level) {
+    why.textContent = TEXT.still_why_scoped.replace("{paused}", sb.agent_writes_paused).replace("{total}", sb.total);
+    why.hidden = false;
+  } else { why.hidden = true; }
   const tl = byId("timeline"); clear(tl);
   if (!data.replayed) { tl.appendChild(el("li", TEXT.not_run)); }
   (data.timeline || []).forEach((e2) => {
@@ -716,14 +803,16 @@ function render(data) {
   const noticeText = data.notice ? (TEXT.lang_code === "es" ? data.notice.text_es : data.notice.text_en) : "";
   if (noticeText) {
     noticeText.split("\n").forEach((line, i) => notice.appendChild(el("p", line, i === 0 ? "chat-text" : "")));
-    const byKind = {};
-    (data.measures || []).forEach((m) => { (byKind[m.kind + "|" + m.app] = byKind[m.kind + "|" + m.app] || []).push(m); });
-    Object.values(byKind).forEach((group) => {
-      const m = group[0];
+    // Una fila por medida de negocio («App: qué se hizo»); Undo deshace
+    // todas las medidas del motor que caen bajo esa misma etiqueta.
+    const byLabel = {};
+    (data.measures || []).forEach((m) => { const k = TEXT.lang_code === "es" ? m.label_es : m.label_en; (byLabel[k] = byLabel[k] || []).push(m); });
+    Object.entries(byLabel).forEach(([label, group]) => {
+      const done = group.every((m) => m.undone);
       const row = el("div", null, "measure");
-      row.appendChild(el("span", TEXT.lang_code === "es" ? m.label_es : m.label_en));
-      const b = el("button", m.undone ? TEXT.undone : TEXT.undo, "btn small"); b.type = "button"; b.disabled = !!m.undone;
-      b.addEventListener("click", async () => { const form = new FormData(); form.append("undo_id", m.undo_id); const r = await api("/sentinel/undo", {method: "POST", body: form}); render(r.data.state || r.data); });
+      row.appendChild(el("span", label));
+      const b = el("button", done ? TEXT.undone : TEXT.undo, "btn small"); b.type = "button"; b.disabled = done;
+      b.addEventListener("click", async () => { let last = null; for (const m of group) { if (m.undone) continue; const form = new FormData(); form.append("undo_id", m.undo_id); last = await api("/sentinel/undo", {method: "POST", body: form}); } if (last) render(last.data.state || last.data); });
       row.appendChild(b); notice.appendChild(row);
     });
     const pending = (data.pending_owner || {})[TEXT.lang_code] || [];
@@ -803,6 +892,7 @@ def render_sentinel_page(lang: str = "en") -> str:
         f"<section id='apps' class='apps' aria-live='polite'>{apps_html}</section>"
         f"<div class='counter'><b id='bigMs'>—</b><span>{_e(t('detected_contained'))} · {_e(t('simulated'))}</span></div>"
         f"<p class='stillrow'>{_e(t('still_a'))} <b id='stillN'>300/300</b> {_e(t('still_b'))}</p>"
+        "<p class='stillwhy' id='stillWhy' hidden></p>"
         "<div class='grid'>"
         f"<section class='panel'><h2>{_e(t('timeline'))}</h2><ul class='tl' id='timeline'></ul>"
         f"<h2 style='margin-top:18px'>{_e(t('legit_title'))}</h2><div class='legit'>"

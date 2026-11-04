@@ -148,3 +148,40 @@ def test_undo_y_release_con_segundo_factor(client):
     )
     assert good.status_code == 200
     assert good.json()["released"] is True
+
+
+def test_pulido_etiquetas_por_app_y_posesivo(client):
+    client.get("/?scene=sentinel")
+    state = _replay(client)
+    labels = {m["label_en"] for m in state["measures"]}
+    assert "Cold room: blocked the 4-hour defrost" in labels
+    assert "Payments: transfer of USD 4,800 to Acme Foods held" in labels
+    assert any(lbl.startswith("AI gateway: stolen key replaced") for lbl in labels)
+    assert "Blocked the malicious action" not in labels
+    # Cada etiqueta dice la app: «App: qué cosa».
+    assert all(": " in m["label_en"] and ": " in m["label_es"] for m in state["measures"])
+    assert "Foods's" not in state["notice"]["text_en"]
+    assert "Acme Foods' bank details" in state["notice"]["text_en"]
+
+
+def test_desglose_de_operaciones_vivas_sale_del_motor(client):
+    client.get("/?scene=sentinel")
+    state = _replay(client)
+    sb = state["still_breakdown"]
+    assert sb["scope_level"] == "global"
+    assert sb["total"] == 300
+    assert sb["human_known_payments_kept"] + sb["other_kept"] == state["legit_still_running"]
+    assert sb["agent_writes_paused"] + sb["human_paused"] + state["legit_still_running"] == 300
+    page = client.get("/?scene=sentinel&lang=en").text
+    assert "stillWhy" in page and "every AGENT write" in page
+
+
+def test_deshacer_otro_agente_no_revive_la_llave_robada(client):
+    client.get("/?scene=sentinel")
+    state = _replay(client)
+    other = next(m for m in state["measures"]
+                 if m["kind"] == "revoke_tokens" and m["target"] == "payments-bot")
+    assert client.post("/sentinel/undo", data={"undo_id": other["undo_id"]}).json()["status"] == "ok"
+    store = client.app.state.sentinel_store
+    run = next(r for _, r in store._items.values() if r.run_id == state["run_id"])
+    assert run._gw_call(run._stolen_raw) == 401

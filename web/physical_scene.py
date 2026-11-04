@@ -218,6 +218,22 @@ def _points(traj: Trajectory, key: str, w: float, h: float, x0: float, y0: float
     return " ".join(pts)
 
 
+def _legend_strip(legend: tuple[str, str, str], with_safe: bool, x0: float) -> str:
+    """Leyenda en franja superior, fuera del área de curvas."""
+    items = [("#36b37e", legend[0]), ("#e5534b", legend[1])]
+    if with_safe:
+        items.append(("#efa83a", legend[2]))
+    out, x = [], x0
+    for color, text in items:
+        out.append(
+            f"<line x1='{x:.1f}' y1='26' x2='{x + 34:.1f}' y2='26' stroke='{color}' "
+            "stroke-width='5' stroke-linecap='round'/>"
+            f"<text x='{x + 44:.1f}' y='33' fill='#e8ecf2' font-size='21'>{html.escape(text)}</text>"
+        )
+        x += 44 + len(text) * 10.5 + 40
+    return "".join(out)
+
+
 def trajectory_svg(
     baseline: Trajectory,
     with_action: Trajectory,
@@ -226,11 +242,19 @@ def trajectory_svg(
     breach_min: float | None = None,
     lang: str = "en",
     safe: Trajectory | None = None,
+    legend_top: bool = False,
 ) -> str:
-    """Gráfico SVG sin librerías: producto con y sin la acción, y la línea de 5 °C."""
+    """Gráfico SVG sin librerías: producto con y sin la acción, y la línea de 5 °C.
+
+    Con ``legend_top`` (escena Sentinel) el gráfico es más alto y la leyenda
+    va en una franja propia encima del área de curvas: nunca se enciman.
+    """
     es = lang == "es"
     width, height = 1200, 380
     x0, y0, w, h = 70.0, 26.0, 1080.0, 292.0
+    if legend_top:
+        width, height = 900, 420
+        x0, y0, w, h = 52.0, 62.0, 830.0, 314.0
     all_vals = baseline.product_c + with_action.product_c + (safe.product_c if safe else [])
     y_min = float(int(min(all_vals + [safe_max_c]) - 1))
     y_max = float(int(max(all_vals + [safe_max_c]) + 1) + 1)
@@ -300,14 +324,20 @@ def trajectory_svg(
         f"points='{_points(with_action, 'product_c', w, h, x0, y0, x_max, y_min, y_span)}'/>"
         + safe_line
         + breach_svg
-        + f"<text x='{x0 + 14}' y='{y0 + h - 42:.1f}' fill='#7fe0b4' font-size='16'>— {html.escape(legend[0])}</text>"
-        f"<text x='{x0 + 14}' y='{y0 + h - 18:.1f}' fill='#ffaaa3' font-size='16'>— {html.escape(legend[1])}</text>"
+        + (_legend_strip(legend, safe is not None, x0) if legend_top else (
+            f"<text x='{x0 + 14}' y='{y0 + h - 42:.1f}' fill='#7fe0b4' font-size='16'>— {html.escape(legend[0])}</text>"
+            f"<text x='{x0 + 14}' y='{y0 + h - 18:.1f}' fill='#ffaaa3' font-size='16'>— {html.escape(legend[1])}</text>"
+            + (
+                f"<text x='{x0 + 430}' y='{y0 + h - 18:.1f}' fill='#ffd28a' font-size='16'>— {html.escape(legend[2])}</text>"
+                if safe is not None else ""
+            )
+        ))
         + (
-            f"<text x='{x0 + 430}' y='{y0 + h - 18:.1f}' fill='#ffd28a' font-size='16'>— {html.escape(legend[2])}</text>"
-            if safe is not None else ""
+            f"<text x='{x0 + w}' y='{y0 - 8:.1f}' fill='#6c7787' font-size='14' text-anchor='end'>"
+            if legend_top else
+            f"<text x='{x0 + w}' y='{height - 8}' fill='#6c7787' font-size='14' text-anchor='end'>"
         )
-        + f"<text x='{x0 + w}' y='{height - 8}' fill='#6c7787' font-size='14' text-anchor='end'>"
-        f"{'minutos' if es else 'minutes'} · simulated</text></svg>"
+        + f"{'minutos' if es else 'minutes'} · simulated</text></svg>"
     )
 
 

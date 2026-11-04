@@ -102,6 +102,12 @@ class ShieldActionsTokenOps:
             runbook.rollback(result)
 
 
+def possessive_en(name: str) -> str:
+    """Posesivo inglés correcto: «Acme Foods'» y «Acme's», nunca «Foods's»."""
+    name = name.strip()
+    return f"{name}'" if name.lower().endswith("s") else f"{name}'s"
+
+
 def operation_scope(event: SecurityEvent) -> str:
     """Tipo de operación congelable a nivel app (app + operación, no app entera)."""
     if event.app == "payments" and event.action == "transfer":
@@ -372,14 +378,14 @@ def build_business_notice(incident: Incident | None, events: list[SecurityEvent]
                 f"Pagos: un pago{amt} a un IBAN nuevo para {supplier} está retenido; "
                 f"los datos bancarios de {supplier} están congelados." if es else
                 f"Payments: a payment{amt} to a new IBAN for {supplier} is on hold; "
-                f"{supplier}'s bank details are frozen.")
+                f"{possessive_en(supplier)} bank details are frozen.")
         elif e.app == "pos_erp" and "payments" not in {x.app for x in flagged}:
             seen_apps.add(e.app)
             supplier = _pretty_supplier(e.target)
             lines.append(
                 f"Proveedores: los datos bancarios de {supplier} están congelados."
                 if es else
-                f"Suppliers: {supplier}'s bank details are frozen.")
+                f"Suppliers: {possessive_en(supplier)} bank details are frozen.")
         elif e.app == "ai_gateway" and ("token_burst" in kinds or len(flagged) >= 3):
             seen_apps.add(e.app)
             lines.append(
