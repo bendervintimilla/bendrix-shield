@@ -35,6 +35,8 @@ REPLAY_T: dict[str, dict[str, str]] = {
         "cold_step4_title": "Guardian plan (deterministic)",
         "cold_replay_label": "REPLAY — deterministic cold-chain simulation; no model is called, no keys, no spend",
         "replay_spark_intent": "Intent read by the deterministic parser",
+        "cold_plan_reasoning": "Why this plan",
+        "cold_token_accepted": "token accepted, action blocked by policy",
     },
     "es": {
         "replay_label": "REPETICIÓN — una corrida real grabada; no se llama a ningún modelo, sin llaves y sin gasto",
@@ -68,5 +70,7 @@ REPLAY_T: dict[str, dict[str, str]] = {
         "cold_step4_title": "Plan del guardián (determinista)",
         "cold_replay_label": "REPETICIÓN — simulación determinista de cadena de frío; no se llama a ningún modelo, sin llaves y sin gasto",
         "replay_spark_intent": "Intención leída por el parser determinista",
+        "cold_plan_reasoning": "Por qué este plan",
+        "cold_token_accepted": "token aceptado, acción bloqueada por la política",
     },
 }

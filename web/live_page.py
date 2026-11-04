@@ -172,7 +172,11 @@ T: dict[str, dict[str, str]] = {
         "activate_body": "Start it with make live, then open /live again. No model is called from this screen.",
         "no_key": "No key in the vault",
         "no_key_body": "Put META_MODEL_API_KEY in the vault (environment backend) and restart with make live. The key is never shown here.",
-        "recorded_live_run": "recorded live run",
+        "recorded_live_run": "recorded live run (2 Nov)",
+        "approved": "approved",
+        "stale_page": "Another tab changed the scene or started a new run, so this page is out of date. Reload to continue.",
+        "reload": "Reload",
+        "err_own_photo": "the replay does not count your photo (the file was ignored); use live mode to count your own photo",
     },
     "es": {
         "lang_code": "es",
@@ -326,7 +330,11 @@ T: dict[str, dict[str, str]] = {
         "activate_body": "Arráncalo con make live y vuelve a abrir /live. Desde esta pantalla no se llama a ningún modelo.",
         "no_key": "Sin clave en el vault",
         "no_key_body": "Pon META_MODEL_API_KEY en el vault (backend de entorno) y reinicia con make live. La llave nunca se muestra aquí.",
-        "recorded_live_run": "corrida en vivo grabada",
+        "recorded_live_run": "corrida en vivo grabada (2 nov)",
+        "approved": "aprobado",
+        "stale_page": "Otra pestaña cambió la escena o empezó una corrida nueva, así que esta página quedó desactualizada. Recarga para seguir.",
+        "reload": "Recargar",
+        "err_own_photo": "la repetición no cuenta tu foto (el archivo se ignoró); usa el modo en vivo para contar tu propia foto",
     },
 }
 
@@ -512,6 +520,10 @@ code,.mono{font-family:var(--mono);font-size:.92em}
 .key-result[data-tone="bad"]{color:var(--bad-text)}
 .kr-num{font-size:52px;font-weight:700;letter-spacing:-.035em;line-height:1}
 .kr-unit{margin-left:12px;font-size:20px;font-weight:550;color:var(--muted);letter-spacing:-.01em}
+.key-result .recorded-run{display:inline-block;margin-left:14px;font-size:14px;font-weight:500;letter-spacing:0;vertical-align:middle}
+.cold-attack-note{margin:8px 0 0}
+.stale-notice{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 16px;background:var(--surface);border-bottom:2px solid var(--accent);font-size:15px}
+.stale-notice p{margin:0;flex:1 1 260px}
 .kr-label{display:block;margin-bottom:6px;font-size:13.5px;font-weight:600;color:var(--muted);letter-spacing:0}
 .verdict{margin:0;font-size:16.5px;font-weight:550;color:var(--text);max-width:68ch}
 /* Factura */
@@ -676,6 +688,12 @@ function startStatus(step) {
   }, 500);
 }
 function stopStatus(step, text) { clearInterval(stepTimers[step]); setStatus(step, text); }
+/* Estado de la decisión en el idioma de la página (el servidor manda «approved»). */
+function statusWord(status) {
+  if (status === "approved") return TEXT.approved;
+  if (status === "stale") return TEXT.stale_page;
+  return String(status || "");
+}
 function decisionBlock(value) {
   const raw = String(value || "").toLowerCase();
   const label = raw === "block" ? "BLOCK" : (raw === "allow" ? "ALLOW" : "ASK");
@@ -949,7 +967,7 @@ function renderVoice(r) {
   byId("voiceConfirm").hidden = !showConfirm;
   byId("voiceCancel").hidden = !showConfirm;
   byId("disagreeLine").textContent = intent.source === "disagreement" ? TEXT.disagreement : "";
-  byId("voiceStatusLine").textContent = r.status === "unknown_command" ? TEXT.voice_unknown : (r.status === "no_speech" ? TEXT.voice_no_speech : ((r.status === "error" || r.status === "replayed") ? TEXT.error + ": " + stepErrorText(r, "") : (r.status || "")));
+  byId("voiceStatusLine").textContent = r.status === "unknown_command" ? TEXT.voice_unknown : (r.status === "no_speech" ? TEXT.voice_no_speech : ((r.status === "error" || r.status === "replayed") ? TEXT.error + ": " + stepErrorText(r, "") : statusWord(r.status)));
 }
 function sdkSequenceText(statuses) {
   const parts = [];
@@ -1011,6 +1029,8 @@ function renderColdScope(r) {
 }
 function renderColdAttack(r) {
   renderAttack(r);
+  const note = byId("coldAttackNote");
+  if (note) note.textContent = (r.statuses || []).length ? TEXT.cold_token_accepted : "";
   const box = byId("coldAttempts"); clear(box);
   (r.attacks || []).forEach((att) => box.appendChild(coldAttempt(att)));
 }
@@ -1214,9 +1234,15 @@ let drawSphere = function () {};
 })();
 let lastState = null;
 let clockTimer = null;
+function isContained(state) {
+  const c = ((state && state.results) || {}).contain || {};
+  return c.status === "ok" || c.status === "contained";
+}
 function updateBand(state) {
   lastState = state || lastState;
   if (!state) return;
+  const runUntil = byId("runUntilBtn");
+  if (runUntil) runUntil.disabled = isContained(state);
   const total = Number(state.total_cost_usd || 0);
   const cap = Number(state.cap_usd || 1);
   byId("costLabel").textContent = REPLAY ? TEXT.replay_cost : "USD " + total.toFixed(4) + " " + TEXT.cost_of_cap.replace("{cap}", cap.toFixed(2));
@@ -1297,24 +1323,58 @@ function updateBand(state) {
     const node = document.querySelector("[data-status-for='" + step + "']");
     if (!node || node.dataset.state === "running") return;
     if (["error", "cost_cap_reached", "not_approved", "daily_limit"].includes(r.status)) stopStatus(step, TEXT.error + ": " + (r.error || r.status));
-    else if (step === "voice") stopStatus(step, TEXT.ok + ": " + (r.status || ""));
+    else if (step === "voice") stopStatus(step, TEXT.ok + ": " + statusWord(r.status));
     else stopStatus(step, TEXT.ok);
   });
 }
 /* «New run» aborta lo que esté en vuelo; un paso que el servidor descarta por
    corrida nueva vuelve como «stale» y no se pinta. */
 let runCtl = new AbortController();
-function apiFetch(path, opts) {
-  return fetch(API + path, {...(opts || {}), signal: runCtl.signal});
+/* Repetición: cada llamada lleva la escena de esta página y su run_id. Si otra pestaña
+   (misma cookie) cambió la escena o empezó otra corrida, el servidor responde 409
+   «stale» y aquí se pide recargar en vez de pintar datos de otra escena. */
+let RUN_ID = null;
+function replayPath(path) {
+  if (!REPLAY) return path;
+  const q = new URLSearchParams({scene: SCENE});
+  if (RUN_ID) q.set("run", RUN_ID);
+  return path + (path.indexOf("?") === -1 ? "?" : "&") + q.toString();
+}
+function showStaleNotice() {
+  if (byId("staleNotice")) return;
+  const box = el("div", null, "stale-notice");
+  box.id = "staleNotice";
+  box.setAttribute("role", "alert");
+  box.appendChild(el("p", TEXT.stale_page));
+  const btn = el("button", TEXT.reload, "btn primary");
+  btn.type = "button";
+  btn.addEventListener("click", () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("scene", SCENE);
+    window.location.href = url.toString();
+  });
+  box.appendChild(btn);
+  document.body.insertBefore(box, document.body.firstChild);
+}
+async function apiFetch(path, opts) {
+  const res = await fetch(API + replayPath(path), {...(opts || {}), signal: runCtl.signal});
+  if (REPLAY && res.status === 409) {
+    try {
+      const data = await res.clone().json();
+      if (data && (data.error_code === "scene_changed" || data.error_code === "run_changed")) showStaleNotice();
+    } catch (err) { /* sin cuerpo JSON: lo trata quien llamó */ }
+  }
+  return res;
 }
 function isAbort(err) { return err && err.name === "AbortError"; }
 async function refreshState() {
   const res = await apiFetch("/state");
   if (!res.ok) return null;
   const state = await res.json();
+  if (REPLAY && state.run_id) RUN_ID = state.run_id;
   if (state.status === "not_started") {
     const started = await apiFetch("/start", {method: "POST"});
-    if (started.ok) { const s2 = await started.json(); updateBand(s2); return s2; }
+    if (started.ok) { const s2 = await started.json(); if (REPLAY && s2.run_id) RUN_ID = s2.run_id; updateBand(s2); return s2; }
     return state;
   }
   updateBand(state);
@@ -1342,8 +1402,10 @@ function stepErrorText(data, httpStatus) {
   if (!need && (raw === "run the guardian first" || raw === "no pending approval")) need = "guardian";
   if (need && STEP_NUMBER[need]) return TEXT.err_need_step.replace("{n}", STEP_NUMBER[need]);
   if ((data && data.status === "not_approved") || raw === "the owner has not approved yet") return TEXT.err_not_approved;
+  if (data && (data.error_code === "scene_changed" || data.error_code === "run_changed")) return TEXT.stale_page;
   if (data && data.status === "stale") return TEXT.err_stale;
   if ((data && data.error_code === "contained") || raw === "this run is already contained: start a new run") return TEXT.err_contained;
+  if (data && data.error_code === "own_photo_not_counted") return TEXT.err_own_photo;
   return raw || (data && data.status) || String(httpStatus || "");
 }
 async function runStep(step) {
@@ -1352,7 +1414,7 @@ async function runStep(step) {
     await ensureStarted();
     let res;
     if (step === "count") {
-      const input = byId("ownPhoto");
+      const input = REPLAY ? null : byId("ownPhoto");
       if (input && input.files && input.files[0]) {
         byId("shelfImg").src = URL.createObjectURL(input.files[0]);
         const form = new FormData();
@@ -1390,8 +1452,10 @@ function focusApproval() {
 }
 async function runUntilOwner() {
   const done = (lastState && lastState.results) || {};
-  /* Ya corrido hasta el dueño (o contenido): no se repite el ataque ni otra aprobación. */
-  if (done.guardian || done.contain) { focusApproval(); return; }
+  /* Ya corrido hasta el dueño (o contenido): no se repite el ataque ni otra aprobación.
+     Un guardián o una contención que fallaron no cuentan: el botón vuelve a correr. */
+  if (isContained(lastState)) return;
+  if ((done.guardian || {}).status === "ok") { focusApproval(); return; }
   try { await ensureStarted(); } catch (err) { if (isAbort(err)) return; throw err; }
   let finished = true;
   for (const step of ["invoice", "count", "attack", "guardian"]) {
@@ -1457,7 +1521,7 @@ async function toggleRecord() {
       res = await apiFetch("/voice", {method: "POST", body: form});
       data = await res.json();
     } catch (err) { if (isAbort(err)) return; throw err; }
-    stopStatus("voice", data.status === "error" ? TEXT.error + ": " + (data.error || "") : TEXT.ok + ": " + (data.status || ""));
+    stopStatus("voice", data.status === "error" ? TEXT.error + ": " + (data.error || "") : TEXT.ok + ": " + statusWord(data.status));
     renderVoice(data);
     await refreshState();
     if (data.status === "approved") await runStep("contain");
@@ -1500,6 +1564,7 @@ function clearRun() {
   ["attackerBefore", "attackerAfter", "revokeResult", "invoiceResult", "countResult",
    "guardianResult"].forEach((id) => { const n = byId(id); if (n) n.replaceChildren(); });
   const typed = byId("typedText"); if (typed) typed.value = "";
+  const runUntil = byId("runUntilBtn"); if (runUntil) runUntil.disabled = false;
   ["voiceConfirm", "voiceCancel"].forEach((id) => { const n = byId(id); if (n) n.hidden = true; });
   document.querySelectorAll("[data-status-for]").forEach((n) => {
     n.textContent = TEXT.not_run; n.dataset.state = "pending";
@@ -1513,7 +1578,7 @@ document.addEventListener("DOMContentLoaded", () => {
   byId("newRunBtn").addEventListener("click", async () => {
     runCtl.abort();  // corta pasos y voz en vuelo antes de pedir la corrida nueva
     runCtl = new AbortController();
-    await fetch(API + "/reset", {method: "POST"});
+    await fetch(API + replayPath("/reset"), {method: "POST"});  // repetición: con la escena de esta página
     clearRun();
     window.location.reload();
   });
@@ -1540,7 +1605,7 @@ document.addEventListener("DOMContentLoaded", () => {
       res = await apiFetch("/voice", {method: "POST", body: form});
       data = await res.json();
     } catch (err) { if (isAbort(err)) { stopStatus("voice", TEXT.not_run); return; } throw err; }
-    stopStatus("voice", data.status === "error" ? TEXT.error + ": " + stepErrorText(data, res.status) : TEXT.ok + ": " + (data.status || ""));
+    stopStatus("voice", (data.status === "error" || data.status === "stale") ? TEXT.error + ": " + stepErrorText(data, res.status) : TEXT.ok + ": " + statusWord(data.status));
     renderVoice(data);
     await refreshState();
     if (data.status === "approved") await runStep("contain");
@@ -1548,14 +1613,14 @@ document.addEventListener("DOMContentLoaded", () => {
   byId("voiceConfirm").addEventListener("click", async () => {
     const res = await apiFetch("/voice/confirm", {method: "POST"});
     const data = await res.json();
-    byId("voiceStatusLine").textContent = data.status || "";
+    byId("voiceStatusLine").textContent = statusWord(data.status);
     await refreshState();
     if (data.status === "approved") await runStep("contain");
   });
   byId("voiceCancel").addEventListener("click", async () => {
     const res = await apiFetch("/voice/cancel", {method: "POST"});
     const data = await res.json();
-    byId("voiceStatusLine").textContent = data.status || "";
+    byId("voiceStatusLine").textContent = statusWord(data.status);
     await refreshState();
   });
   ensureStarted().catch(() => {});
@@ -1612,6 +1677,7 @@ def render_live_page(
         labels["step3_title"] = labels["cold_step3_title"]
         labels["step4_title"] = labels["cold_step4_title"]
         labels["live_off_note"] = labels["live_off_note_cold"]
+        labels["plan_reasoning"] = labels["cold_plan_reasoning"]
     if replay:
         labels["live_label"] = labels["cold_replay_label" if cold else "replay_label"]
         labels["spark_intent"] = labels["replay_spark_intent"]
@@ -1659,21 +1725,29 @@ def render_live_page(
             "<figcaption id='materialLabel' class='provenance-tag'></figcaption></figure>"
             "<div class='stack'><p class='key-result' id='countValue'></p>"
             "<p id='expectedLine' class='meta'></p>"
-            "<label class='file-pill' for='ownPhoto'><input class='file-input' id='ownPhoto' type='file' accept='image/*'>"
-            f"<span>{_e(_L('use_own_photo'))}</span></label></div></div>"
+            # En la repetición no se cuenta ninguna foto: el selector solo existe en vivo.
+            + (
+                ""
+                if replay
+                else "<label class='file-pill' for='ownPhoto'><input class='file-input' id='ownPhoto' type='file' accept='image/*'>"
+                f"<span>{_e(_L('use_own_photo'))}</span></label>"
+            )
+            + "</div></div>"
         )
     step3_inner = (
         "<div class='split'><div class='stack'>"
         f"<p class='label'>{_e(_L('attacker_attempts'))}</p>"
-        "<div id='attackStatuses' class='attempts'></div></div>"
+        "<div id='attackStatuses' class='attempts'></div>"
+        + ("<p id='coldAttackNote' class='meta cold-attack-note'></p>" if cold else "")
+        + "</div>"
         f"<div class='stack'><p class='label'>{_e(_L('anomalies'))}</p>"
         "<ul id='anomalyList' class='signal-list'></ul></div></div>"
         + ("<div id='coldAttempts' class='stack stack-gap'></div>" if cold else "")
     )
+    # En frío el plan es determinista y no consulta inventario: sin encabezado vacío.
     step4_inner = (
-        f"<p class='meta'>{_e(_L('demo_inventory'))}</p>"
-        "<div id='guardianResult' class='stack stack-gap'></div>"
-    )
+        "" if cold else f"<p class='meta'>{_e(_L('demo_inventory'))}</p>"
+    ) + "<div id='guardianResult' class='stack stack-gap'></div>"
     step5_inner = (
         "<div class='split'><div class='voice-controls'>"
         + (

@@ -88,10 +88,35 @@ def _fix_cve_redaction(node: Any) -> Any:
     return _CVE_PHONE_TITLED.sub(_sub, node).replace(_CVE_PHONE, "CVE-(id)")
 
 
+_PHONE_MARK = "[REDACTED:phone]"
+_ID_KEYS = frozenset({"response_id", "upstream_request_id"})
+
+
+def _fix_id_redaction(node: Any) -> Any:
+    """Ids de respuesta que el patrón de teléfono viejo partió: el tramo comido va «…».
+
+    No reconstruye el id (no se sabe qué dígitos eran); solo deja de mostrar
+    «[REDACTED:phone]» dentro de un id, que no era un teléfono.
+    """
+    if isinstance(node, dict):
+        return {
+            k: (
+                v.replace(_PHONE_MARK, "…")
+                if k in _ID_KEYS and isinstance(v, str)
+                else _fix_id_redaction(v)
+            )
+            for k, v in node.items()
+        }
+    if isinstance(node, list):
+        return [_fix_id_redaction(v) for v in node]
+    return node
+
+
 def _load(path: Path) -> dict[str, Any]:
     key = str(path)
     if key not in _cache:
-        _cache[key] = _fix_cve_redaction(json.loads(path.read_text(encoding="utf-8")))
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        _cache[key] = _fix_id_redaction(_fix_cve_redaction(raw))
     return copy.deepcopy(_cache[key])
 
 
@@ -192,7 +217,7 @@ class ReplayRun:
         need = needs.get(name)
         if need and need not in self.done:
             return self._error(f"first run: {need}", need=need)
-        if name in ("attack", "guardian") and "contain" in self.done:
+        if name in ("attack", "guardian", "contain") and "contain" in self.done:
             # Ya contenido: repetir el ataque crearía otra aprobación con la corrida cerrada.
             return self._error("this run is already contained: start a new run", code="contained")
         if name == "contain" and (self.results.get("voice") or {}).get("status") != "approved":
@@ -264,20 +289,22 @@ class ReplayRun:
         return out
 
     # ---- escena Bodega (corrida real grabada) ----
+    # Cada paso devuelve una copia: la grabación cargada (``self._recorded``) no se
+    # toca, así un valor grabado (p. ej. los 47.021 s) nunca se pisa con uno del visitante.
     def _bodega_invoice(self) -> dict[str, Any]:
-        return self._recorded["results"]["invoice"]
+        return copy.deepcopy(self._recorded["results"]["invoice"])
 
     def _bodega_count(self) -> dict[str, Any]:
-        return self._recorded["results"]["count"]
+        return copy.deepcopy(self._recorded["results"]["count"])
 
     def _bodega_attack(self) -> dict[str, Any]:
-        out = self._recorded["results"]["attack"]
+        out = copy.deepcopy(self._recorded["results"]["attack"])
         self.attack_started_at = _now_iso()
         out["attack_started_at"] = self.attack_started_at
         return out
 
     def _bodega_guardian(self) -> dict[str, Any]:
-        out = self._recorded["results"]["guardian"]
+        out = copy.deepcopy(self._recorded["results"]["guardian"])
         plan = out["plan"]
         self.plan = plan
         req = self.broker.request(
@@ -294,12 +321,13 @@ class ReplayRun:
         return out
 
     def _bodega_contain(self) -> dict[str, Any]:
-        out = self._recorded["results"]["contain"]
+        recorded = self._recorded["results"]["contain"]
+        out = copy.deepcopy(recorded)
         out["approval_id"] = self.approval_id
         out["attack_started_at"] = self.attack_started_at
         # «Real time to first 401» es el de este visitante (como en frío); el tiempo de la
         # corrida en vivo grabada se muestra aparte, sin hacerlo pasar por el del visitante.
-        out["recorded_contained_in_s"] = out.get("contained_in_s")
+        out["recorded_contained_in_s"] = recorded.get("contained_in_s")
         started = datetime.fromisoformat(self.attack_started_at or _now_iso())
         elapsed = round((datetime.now(UTC) - started).total_seconds(), 3)
         out["contained_in_s"] = elapsed

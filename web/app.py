@@ -1920,6 +1920,16 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
             ledger.record(chain.run_id, chain.total_cost_usd, step)
 
     # -- repetición pública: la pantalla de /live sobre grabaciones, una corrida por visitante --
+    async def _has_upload(request: Request) -> bool:
+        if "multipart/form-data" not in request.headers.get("content-type", ""):
+            return False
+        try:
+            form = await request.form()
+        except Exception:
+            return False
+        upload = form.get("file")
+        return upload is not None and not isinstance(upload, str)
+
     def _replay_run(request: Request) -> Any:
         if replay_store is None:
             return None
@@ -1937,19 +1947,57 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
                 )
         return None
 
+    def _replay_stale(request: Request, run: Any) -> JSONResponse | None:
+        """Dos pestañas comparten la corrida de la cookie: la página manda su escena y run_id.
+
+        Si otra pestaña cambió la escena o empezó otra corrida, esta página quedó vieja:
+        409 ``stale`` y la pantalla pide recargar, en vez de pintar datos de otra escena.
+        Sin parámetros (clientes viejos, pruebas) no se compara nada.
+        """
+        scene = request.query_params.get("scene")
+        rid = request.query_params.get("run")
+        if scene and scene != run.scene:
+            return JSONResponse(
+                {
+                    "status": "stale",
+                    "error_code": "scene_changed",
+                    "error": "another tab changed the scene: reload this page",
+                    "scene": run.scene,
+                },
+                status_code=409,
+            )
+        if rid and rid != run.run_id:
+            return JSONResponse(
+                {
+                    "status": "stale",
+                    "error_code": "run_changed",
+                    "error": "another tab started a new run: reload this page",
+                },
+                status_code=409,
+            )
+        return None
+
     @app.get("/replay/state")
     def replay_state(request: Request) -> Any:
         guard = _replay_guard(request)
         if guard is not None:
             return guard
-        return JSONResponse(_replay_run(request).state())
+        run = _replay_run(request)
+        stale = _replay_stale(request, run)
+        if stale is not None:
+            return stale
+        return JSONResponse(run.state())
 
     @app.post("/replay/start")
     def replay_start(request: Request) -> Any:
         guard = _replay_guard(request)
         if guard is not None:
             return guard
-        return JSONResponse(_replay_run(request).state())
+        run = _replay_run(request)
+        stale = _replay_stale(request, run)
+        if stale is not None:
+            return stale
+        return JSONResponse(run.state())
 
     @app.post("/replay/reset")
     def replay_reset(request: Request) -> Any:
@@ -1957,9 +2005,11 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         if guard is not None:
             return guard
         run = _replay_run(request)
+        # «New run» desde una página: la corrida nueva es de la escena de esa página.
+        scene = request.query_params.get("scene")
         # Bajo el candado: un paso en curso no se mezcla con la corrida nueva.
         with run.lock:
-            return JSONResponse(run.reset())
+            return JSONResponse(run.reset(scene))
 
     @app.post("/replay/step/{name}")
     async def replay_step(name: str, request: Request) -> Any:
@@ -1967,6 +2017,23 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         if guard is not None:
             return guard
         run = _replay_run(request)
+        stale = _replay_stale(request, run)
+        if stale is not None:
+            return stale
+        if name == "count" and await _has_upload(request):
+            # La repetición no cuenta fotos: devolver el conteo grabado pintaría 7 cajas
+            # sobre la foto del visitante. Se ignora el archivo y se dice por qué.
+            return JSONResponse(
+                {
+                    "status": "error",
+                    "error_code": "own_photo_not_counted",
+                    "error": (
+                        "replay does not count uploaded photos; the file was ignored. "
+                        "Use live mode to count your own photo."
+                    ),
+                },
+                status_code=409,
+            )
         rid = run.run_id  # si «New run» llega durante la espera, este paso ya no vale
         await asyncio.sleep(0.6)  # que se vea correr: la grabación no tarda nada
 
@@ -1992,6 +2059,9 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         if guard is not None:
             return guard
         run = _replay_run(request)
+        stale = _replay_stale(request, run)
+        if stale is not None:
+            return stale
         with run.lock:
             return JSONResponse(run.voice(typed or ""))
 
@@ -2001,6 +2071,9 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         if guard is not None:
             return guard
         run = _replay_run(request)
+        stale = _replay_stale(request, run)
+        if stale is not None:
+            return stale
         with run.lock:
             return JSONResponse(run.voice_confirm())
 
@@ -2010,6 +2083,9 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         if guard is not None:
             return guard
         run = _replay_run(request)
+        stale = _replay_stale(request, run)
+        if stale is not None:
+            return stale
         with run.lock:
             return JSONResponse(run.voice_cancel())
 

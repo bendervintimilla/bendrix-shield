@@ -94,8 +94,10 @@ Es el E2E en replay: anomalía (país nuevo) en Bodega → plan →
 aprobación del dueño por voz o panel (WhatsApp es un webhook en
 simulador) → rotación solo de Bodega → el atacante con el token robado
 recibe **401** mientras Bodega, con el token nuevo que el SDK refresca
-solo, sigue contando en 200. Punta a punta <10 s en replay frente a
-las ~16 h reales.
+solo, sigue contando en 200. Punta a punta <10 s en la prueba automática
+(`tests/test_actions_h6.py`, la aprobación la da la prueba) frente a las
+~16 h reales; en el replay público el reloj «Contenido en» incluye lo que
+tarda el visitante en aprobar.
 
 Si el gateway está desplegado (ver abajo), la misma escena contra la
 URL de Cloud Run: el token revocado responde 401 y `/health` sigue ok.

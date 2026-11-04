@@ -115,7 +115,9 @@ def test_page_js_aborts_on_new_run_and_restores_step_states():
         assert box in clear_run
     until = html.split("async function runUntilOwner()")[1][:700]
     assert "focusApproval()" in until
-    assert "done.guardian || done.contain" in until
+    # El atajo solo con guardián ok o contención ok/contained (un fallo vuelve a correr).
+    assert '(done.guardian || {}).status === "ok"' in until
+    assert "isContained(lastState)" in until
     # Al recargar: los pasos con resultado pasan a ok (no «not run»).
     band = html.split("function updateBand(state)")[1].split("async function refreshState()")[0]
     assert "stopStatus(step, TEXT.ok)" in band

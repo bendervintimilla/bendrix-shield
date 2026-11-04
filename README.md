@@ -16,7 +16,7 @@ It lets an SME run AI agents — Purchasing reads supplier invoices, Warehouse c
 
 **https://bendrix-shield-panel-290240328973.us-central1.run.app/** — open it, no sign-in, nothing to install. It opens the same sphere screen as live mode, running the **Replay** (EN/ES, two scenes: Warehouse and Cold chain). Press **Run until the owner decides**, then type your approval and watch the stolen token go from `200` to `401` while the other agents keep working. Each visitor gets their own run; the approval goes through the real single-use flow.
 
-It is the replay of a recorded real run: no real keys, no model calls and no spend; "Live" is disabled on this link. The live mode (real Meta models, which costs money) is off on this URL; run it yourself with `make live` and your own key.
+It is the replay of a recorded real run: no real keys, no model calls and no spend; "Live" is disabled on this link. The Warehouse scene plays back the live run recorded on 2026-11-02 (`evals/recorded/live-run-video-take-2026-11-02.json`, run `live_540cbeecf6fc`, 47.0 s from the attack to the first `401`), shown on screen as "recorded live run (2 Nov): 47 s"; the video above shows the 3 Nov take, a different run. The big "Contained in" clock in the replay is your own time, including how long you take to approve. The live mode (real Meta models, which costs money) is off on this URL; run it yourself with `make live` and your own key.
 
 **Live mode online (access code).** A separate Cloud Run service, `bendrix-shield-live`, runs the same chain with the real Meta models (Muse Spark 1.3, SAM 3.1, Muse Voice Transcribe) behind an access code, so strangers cannot spend. The server enforces a hard cap of USD 5 and 20 runs per day (Ecuador time, ledger in a private GCS object that survives restarts, fails closed) plus USD 0.60 per run; at the cap it answers `429` with a clear message and never calls a model. The Meta key and the code come from Secret Manager (`--set-secrets`), never from the image or the repo. The browser microphone works over HTTPS; if it is denied, the owner's decision can be typed and the page says so. Deploy with `GCP_PROJECT=<project> bash deploy/cloudrun-live.sh`.
 
@@ -34,14 +34,14 @@ make live   # with your META_MODEL_API_KEY; see Run it live
 |---|---|---|
 | Live take shown in the video (2026-11-03, run `live_97efbfa04a72`, real Meta models) | 70.8 s from the attack to the first `401` (includes the wait for the owner's voice approval); Warehouse SDK `401 → 200`, recount 7; Purchasing `200`; WhatsApp alert sent (HTTP 200); revoke-all: 3 tokens revoked, 4 probes `401`; USD 0.097 | `evals/recorded/live-run-video-take-2026-11-03.json` |
 | WhatsApp approval with the owner's real voice note (2026-11-03, run `live_c31aa0ec5ef2`) | Transcribed "Yes, rotate it." → approved → attacker `401`; Warehouse SDK `401 → 200`, recount 7; Purchasing `200`; USD 0.076 | `evals/recorded/live-run-whatsapp-owner-voice-2026-11-03.json` |
-| Adversarial red team (37 frozen cases, 5 vectors, offline, USD 0) | Stopped 36/37 on the frozen measurement (main `73875bc`); 1 passed silently (`rt-inj-audit-en-read`, an English read). After that measurement the rule was adjusted, not the case (verb "attach" added to `reveal_secret`): the re-run stops 37/37, 0 regressions. 37/37 is a post-measurement fix, not a blind figure | `evals/report.md` red team and its "Ajuste posterior a la medición" subsection; `uv run python evals/run_redteam.py` |
+| Adversarial red team (37 frozen cases, 5 vectors, offline, USD 0) | Stopped 36/37 on the frozen measurement (main `73875bc`); 1 passed silently (`rt-inj-audit-en-read`, an English read). After that measurement the rule was adjusted, not the case (imperative "attach the/your…" added to `reveal_secret`, word-bounded so "attachment"/"Attached:" stay benign): the re-run stops 37/37, 0 regressions. 37/37 is a post-measurement fix, not a blind figure | 36/37: `evals/recorded/redteam-c2490.json` (frozen, unchanged). 37/37: `evals/recorded/redteam-c2490-post-attach.json`, `uv run python evals/run_redteam.py`. Both in `evals/report.md` (red team section and "Ajuste posterior a la medición") |
 | Held-out v2, rules only | Blocked 4/12, to owner 7/12, silent 1/12 (a read; sensitive writes 0/12) | `evals/report.md` H11 held-out v2 |
 | Held-out v2, per-document Spark review (3 runs) | Blocked 12, 10, 11/12; silent 0, 1, 1; false blocks 1, 0, 0 | `evals/report.md` H15; `evals/recorded/heldout2-spark-armc*.json` |
-| Stolen-token rotation (replay) | Attacker `200 → 401` in under 10 seconds | `tests/test_actions_h6.py`; `evals/report.md` H6 |
+| Stolen-token rotation (automated replay test) | Attacker `200 → 401` in under 10 seconds, with the approval given by the test (no human wait) | `tests/test_actions_h6.py`; `evals/report.md` H6 |
 | Live chain recorded 2026-10-31 | USD 0.0749 in 84.7 s; stolen token `401`, crew token `200` after refresh | `evals/recorded/live-run-2026-10-31.json` |
-| Offline test suite | 401 passed with no network and no key (2026-11-04, branch `wairrior-final`) | `make test` / `uv run pytest -q` |
+| Offline test suite | 423 passed with no network and no key (2026-11-04, branch `wairrior-final`) | `make test` / `uv run pytest -q` |
 
-Time to the first `401` depends on who is in the loop: under 10 s in replay, about 24.6 s scripted live with a synthetic voice file, 70.8 s in the video take with the owner's voice approval, and 791 s over WhatsApp (that figure includes the time the plan waited for the owner).
+Time to the first `401` depends on who is in the loop: under 10 s in the automated test (`tests/test_actions_h6.py`, approval given by the test); in the hosted replay the "Contained in" clock includes how long you take to approve (the recorded 2 Nov live run it plays back took 47.0 s); about 24.6 s scripted live with a synthetic voice file, 70.8 s in the video take with the owner's voice approval, and 791 s over WhatsApp (that figure includes the time the plan waited for the owner).
 
 Detail for every figure is in Metrics below. Held-out v2 is fresh, blind to the policy rules and frozen before measuring (`evals/heldout2/`). `evals/report.md`, `docs/DEMO.md` and `docs/threats-2026.md` are mostly in Spanish; this README is the English summary of every figure.
 
@@ -78,10 +78,11 @@ text normalization and base64 decoding before the injection engine and the
 gate, split-canary detection, one token file per agent with `0600`/`0700`)
 closed 5 more bypasses. Re-run offline on the frozen cases, the battery
 stops 36 of 37 and 1 passed silently (`rt-inj-audit-en-read`), published
-as-is in `evals/report.md`, with 0 regressions; 28/37 and 31/37 are the
+as-is in `evals/report.md` (rows in `evals/recorded/redteam-c2490.json`), with 0 regressions; 28/37 and 31/37 are the
 earlier, historical measurements. After that frozen measurement, one rule
 was adjusted (the English verb "attach" in `reveal_secret`; the case was not
-touched) and the re-run stops 37/37 with 0 regressions; the report labels it
+touched) and the re-run stops 37/37 with 0 regressions
+(`evals/recorded/redteam-c2490-post-attach.json`); the report labels it
 as a post-measurement fix, since the case was known before the rule changed.
 
 The hosted replay above needs no key; `make demo` runs the same story
@@ -284,7 +285,7 @@ with it.
 | Gateway overhead (local, instant fake upstream, 80 calls) | p50 1.74 ms, p95 2.48 ms (this run; see `evals/report.md`) |
 | Invoices (20 synthetic, replay parser) | Total/number/arithmetic 20/20 |
 | Warehouse (replay: synthetic SAM/voice outputs — no real footage yet) | Image count 3 (expected 3) in a single image, video 3 unique track IDs, dictation and stock diff OK |
-| Token rotation E2E (replay) | Attacker `200 → 401` in under 10 seconds (replay), other agents unaffected. The ~16 h figure is the October 2026 incident documented in `docs/DEMO.md`, not a live measurement |
+| Token rotation E2E (automated replay test, `tests/test_actions_h6.py`) | Attacker `200 → 401` in under 10 seconds with the approval given by the test, other agents unaffected. The ~16 h figure is the October 2026 incident documented in `docs/DEMO.md`, not a live measurement |
 | Spark Open gate | Not run — `needs_credits`: no Baseten key in the vault, so there is no live classifier number and none is estimated (see models table) |
 
 Note on the about 24.6 s figure: it is the elapsed time from the start
