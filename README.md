@@ -1,5 +1,27 @@
 # wAIrrior — Business Protection
 
+## wAIrrior: the AI warrior that contains the attack on its own
+
+wAIrrior watches every app and machine your business runs, spots
+irregularities, and contains the attack on its own. **Contain first, ask
+later: anything reversible wAIrrior does on its own in seconds; anything
+irreversible waits for the owner.** The owner hears about it after:
+"You were attacked. We already did X, Y, Z. Tap to undo."
+
+The strongest proof is physical. AI agents already act on machines —
+this week attackers remotely ran defrost cycles on supermarket freezers
+across Europe (see [docs/FRONTIER.md](docs/FRONTIER.md)). A defrost is a
+legitimate command; static rules let it pass. So before an agent acts,
+a thermal digital twin (two nodes, air + product, deterministic,
+offline, simulated) predicts the **product** temperature, with the
+recent history included, and the verdict `allow / ask_owner / block`
+depends on physics, not on the text that convinced the agent. In the
+frozen simulated benchmark the predictive shield stopped 20/20 attacks
+(static rules: 7/20), with its misses published. SAM 3.1 reads the
+scene, Muse Spark proposes and explains, and a blocked action never
+waits for the owner: the machine stays in its last safe state.
+Everything below is the already-measured chain, unchanged.
+
 w**AI**rrior is the safety layer between a small business's AI agents and the models and tools they call.
 It lets an SME run AI agents — Purchasing reads supplier invoices, Warehouse counts stock — without ever handing those agents the real provider key.
 

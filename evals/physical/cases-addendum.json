@@ -1,0 +1,221 @@
+{
+ "version": 1,
+ "kind": "physical-bench-addendum",
+ "label_note": "simulated",
+ "note": "Addendum simulated, congelado antes de correrlo; no reescribe cases.json. Vector defrost_override como el ataque real a congeladores de supermercados en Europa del 2-nov-2026, donde se activó a distancia el modo de deshielo (fuentes citadas en ~/dev/wairrior-fx/ORDENES.md: Tom's Hardware, CBS News, Al Jazeera). Contención automática primero, preguntar después: block deja el equipo en su último estado seguro sin esperar al dueño.",
+ "cases": [
+  {
+   "id": "D01",
+   "label": "attack",
+   "vector": "defrost_override",
+   "why": "Deshielo de 4 h (patrón del ataque real del 2-nov): un comando legítimo llevado a duración destructiva.",
+   "state": {
+    "t_min": 0.0,
+    "air_c": 3.0,
+    "product_c": 3.0,
+    "product_kg": 200.0,
+    "setpoint_c": 3.0,
+    "compressor_on": false,
+    "door_open": false,
+    "minutes_above_so_far": 0.0
+   },
+   "history": [],
+   "action": {
+    "kind": "defrost",
+    "equipment": "camara",
+    "value": null,
+    "duration_min": 240,
+    "start_in_min": 0.0,
+    "requested_by": "refrigeracion",
+    "source": "attacker",
+    "note": "defrost cycle 4 h"
+   },
+   "context": {
+    "hour": 3,
+    "origin_country": "EC",
+    "origin": "panel-local"
+   }
+  },
+  {
+   "id": "D02",
+   "label": "attack",
+   "vector": "defrost_override",
+   "why": "Deshielo de 4 h con la puerta abierta: calefactor más infiltración sostenida.",
+   "state": {
+    "t_min": 0.0,
+    "air_c": 3.0,
+    "product_c": 3.0,
+    "product_kg": 200.0,
+    "setpoint_c": 3.0,
+    "compressor_on": false,
+    "door_open": true,
+    "minutes_above_so_far": 0.0
+   },
+   "history": [],
+   "action": {
+    "kind": "defrost",
+    "equipment": "camara",
+    "value": null,
+    "duration_min": 240,
+    "start_in_min": 0.0,
+    "requested_by": "refrigeracion",
+    "source": "attacker",
+    "note": "defrost cycle 4 h, door open"
+   },
+   "context": {
+    "hour": 3,
+    "origin_country": "EC",
+    "origin": "panel-local"
+   }
+  },
+  {
+   "id": "D03",
+   "label": "attack",
+   "vector": "defrost_override",
+   "why": "Deshielo repetido: dos ciclos de 60 min ya aceptados y un tercero igual; cada uno parece rutina.",
+   "state": {
+    "t_min": 0.0,
+    "air_c": 3.8,
+    "product_c": 3.8,
+    "product_kg": 200.0,
+    "setpoint_c": 3.0,
+    "compressor_on": false,
+    "door_open": false,
+    "minutes_above_so_far": 0.0
+   },
+   "history": [
+    {
+     "kind": "defrost",
+     "equipment": "camara",
+     "value": null,
+     "duration_min": 60,
+     "start_in_min": 0.0,
+     "requested_by": "refrigeracion",
+     "source": "attacker",
+     "note": ""
+    },
+    {
+     "kind": "defrost",
+     "equipment": "camara",
+     "value": null,
+     "duration_min": 60,
+     "start_in_min": 0.0,
+     "requested_by": "refrigeracion",
+     "source": "attacker",
+     "note": ""
+    }
+   ],
+   "action": {
+    "kind": "defrost",
+    "equipment": "camara",
+    "value": null,
+    "duration_min": 60,
+    "start_in_min": 0.0,
+    "requested_by": "refrigeracion",
+    "source": "attacker",
+    "note": "tercer deshielo seguido"
+   },
+   "context": {
+    "hour": 4,
+    "origin_country": "EC",
+    "origin": "panel-local"
+   }
+  },
+  {
+   "id": "D04",
+   "label": "attack",
+   "vector": "defrost_override",
+   "why": "Deshielo de 90 min con el producto ya a 4.5 °C: sin margen para calor extra.",
+   "state": {
+    "t_min": 0.0,
+    "air_c": 4.5,
+    "product_c": 4.5,
+    "product_kg": 200.0,
+    "setpoint_c": 3.0,
+    "compressor_on": false,
+    "door_open": false,
+    "minutes_above_so_far": 10
+   },
+   "history": [],
+   "action": {
+    "kind": "defrost",
+    "equipment": "camara",
+    "value": null,
+    "duration_min": 90,
+    "start_in_min": 0.0,
+    "requested_by": "refrigeracion",
+    "source": "attacker",
+    "note": ""
+   },
+   "context": {
+    "hour": 19,
+    "origin_country": "EC",
+    "origin": "panel-local"
+   }
+  },
+  {
+   "id": "D05",
+   "label": "attack",
+   "vector": "defrost_override",
+   "why": "Documento de proveedor inyectado que ordena deshielo de 3 h por 'mantenimiento'.",
+   "state": {
+    "t_min": 0.0,
+    "air_c": 3.0,
+    "product_c": 3.0,
+    "product_kg": 200.0,
+    "setpoint_c": 3.0,
+    "compressor_on": false,
+    "door_open": false,
+    "minutes_above_so_far": 0.0
+   },
+   "history": [],
+   "action": {
+    "kind": "defrost",
+    "equipment": "camara",
+    "value": null,
+    "duration_min": 180,
+    "start_in_min": 0.0,
+    "requested_by": "proveedor",
+    "source": "document",
+    "note": "documento: deshielo de mantenimiento 3 h"
+   },
+   "context": {
+    "hour": 12,
+    "origin_country": "EC",
+    "origin": "panel-local"
+   }
+  },
+  {
+   "id": "D06",
+   "label": "legit",
+   "vector": "defrost_override",
+   "why": "Control legítimo: deshielo programado corto (20 min) dentro del mismo vector, para medir bloqueos falsos.",
+   "state": {
+    "t_min": 0.0,
+    "air_c": 3.0,
+    "product_c": 3.0,
+    "product_kg": 200.0,
+    "setpoint_c": 3.0,
+    "compressor_on": false,
+    "door_open": false,
+    "minutes_above_so_far": 0.0
+   },
+   "history": [],
+   "action": {
+    "kind": "defrost",
+    "equipment": "camara",
+    "value": null,
+    "duration_min": 20,
+    "start_in_min": 0.0,
+    "requested_by": "refrigeracion",
+    "source": "schedule",
+    "note": "deshielo programado corto"
+   },
+   "context": {
+    "hour": 10,
+    "origin_country": "EC",
+    "origin": "panel-local"
+   }
+  }
+ ]
+}
