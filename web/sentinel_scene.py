@@ -58,6 +58,7 @@ from shield.schemas import AgentTokenStatus
 from shield.vault import MemoryVault
 from web.brand import BRAND, SUBTITLE, brand_mark_html, favicon_href
 from web.physical_scene import trajectory_svg
+from web.sentinel_witness import night_finding, witness_state
 
 SCENE = "sentinel"
 T0 = datetime(2026, 11, 4, 2, 0, tzinfo=UTC)  # reloj simulado de la ola
@@ -259,6 +260,7 @@ class SentinelRun:
         self.pending_owner: dict[str, list[str]] = {}
         self.legit_still_running = 300
         self.still_breakdown: dict[str, Any] = {}
+        self.witness_night: dict[str, Any] | None = None
         self.scope_level = "none"
         self.total_ms = 0.0
         self.notice: dict[str, Any] = {}
@@ -409,6 +411,15 @@ class SentinelRun:
         }
         self.scope_level = result.scope_level
         self.timeline = self._timeline(incident, lang)
+        # Testigo real: si hay grabación nocturna (playback) con 0 personas,
+        # el evento de frío lo dice con el dato de la cámara. Si no, nada.
+        witness = witness_state()
+        self.witness_night = witness.get("night")
+        if self.witness_night:
+            for row in self.timeline:
+                if row["app"] == "cold_room":
+                    row["witness"] = night_finding(self.witness_night, lang)
+                    row["findings"].insert(1, row["witness"])
         # Aviso de negocio de M10, tal cual sale del motor (EN y ES).
         self.notice = {
             "text_en": result.notice_en,
@@ -568,6 +579,7 @@ class SentinelRun:
             "legit_counters": self.legit_counters,
             "legit_still_running": self.legit_still_running,
             "still_breakdown": self.still_breakdown,
+            "witness": witness_state(),
             "legit_total": 300,
             "scope_level": self.scope_level,
             "released": self.released,
@@ -641,6 +653,22 @@ SENTINEL_T: dict[str, dict[str, str]] = {
         "released": "Released by the owner with a second factor (simulated): the held items are now yours to execute in your bank app — wAIrrior never pays on its own.",
         "bad_factor": "Wrong code — nothing was released.",
         "sources": "News sources",
+        "w_title": "Real camera witness",
+        "w_alt": "Latest camera frame, people covered by silhouettes",
+        "w_live": "real camera, live capture",
+        "w_playback": "real camera, recorded (playback)",
+        "w_real": "real camera",
+        "w_camera": "camera",
+        "w_captured": "captured",
+        "w_people": "people:",
+        "w_door": "door",
+        "w_open": "open",
+        "w_closed": "closed",
+        "w_unknown": "not visible",
+        "w_model": "model",
+        "w_redacted": "Redacted frame: every person is covered by a silhouette before it is shown.",
+        "w_noimg": "No redacted frame on file — showing a neutral placeholder.",
+        "w_none": "No camera observation available — the rest of the scene runs without it.",
         "october": "Our own October incident: a leaked AI key, ~16 h of abuse, USD 310 (internal record, recorded runs in this repo).",
         "simulated": "simulated",
         "scene": "Scene",
@@ -684,6 +712,22 @@ SENTINEL_T: dict[str, dict[str, str]] = {
         "released": "Liberado por el dueño con segundo factor (simulado): lo retenido queda para que tú lo ejecutes en tu banco — wAIrrior nunca paga solo.",
         "bad_factor": "Código incorrecto: no se liberó nada.",
         "sources": "Fuentes de las noticias",
+        "w_title": "Testigo de cámara real",
+        "w_alt": "Último cuadro de la cámara, personas cubiertas por siluetas",
+        "w_live": "cámara real, captura en vivo",
+        "w_playback": "cámara real, grabación (reproducción)",
+        "w_real": "cámara real",
+        "w_camera": "cámara",
+        "w_captured": "captura",
+        "w_people": "personas:",
+        "w_door": "puerta",
+        "w_open": "abierta",
+        "w_closed": "cerrada",
+        "w_unknown": "no se ve",
+        "w_model": "modelo",
+        "w_redacted": "Cuadro redactado: cada persona queda cubierta por una silueta antes de mostrarse.",
+        "w_noimg": "No hay cuadro redactado guardado: se muestra un placeholder neutro.",
+        "w_none": "No hay observación de cámara: el resto de la escena funciona sin ella.",
         "october": "Nuestro incidente de octubre: una llave de IA filtrada, ~16 h de abuso, USD 310 (registro interno, corridas grabadas en este repo).",
         "simulated": "simulado",
         "scene": "Escena",
@@ -745,8 +789,16 @@ input[type="text"]{min-height:40px;padding:8px 12px;font:inherit;background:var(
 .hint{color:var(--muted);font-size:14px}.mono{font-family:var(--mono)}
 .legit{display:flex;gap:12px;flex-wrap:wrap}.legit .fact{background:var(--sunk);border:1px solid rgba(54,179,126,.35);border-radius:8px;padding:8px 14px}
 .legit b{font-size:24px;color:var(--ok-text)}
+.col{display:flex;flex-direction:column;gap:14px}
+.witness .w-body{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start}
+.w-frame{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--sunk);aspect-ratio:16/9}
+.w-frame img{display:block;width:100%;height:100%;object-fit:cover}
+.w-facts dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:10px 0 6px;font-size:15px}
+.w-facts dt{color:var(--muted)}.w-facts dd{margin:0;font-weight:600}
+.w-facts .chip.live{background:rgba(229,83,75,.16);color:var(--bad-text);border-color:rgba(229,83,75,.55)}
+.tl p.witness-line{color:var(--ok-text);font-weight:600}
 .footer{border-top:1px solid var(--line);color:var(--muted);font-size:14px;padding:22px 0 34px}
-@media (max-width:900px){.apps{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+@media (max-width:900px){.apps{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.witness .w-body{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 """
 
@@ -788,12 +840,13 @@ function render(data) {
     const head = el("div", null, "t-head");
     head.appendChild(el("span", e2.title, "t-title"));
     li.appendChild(head);
-    (e2.findings || []).forEach((f) => li.appendChild(el("p", f)));
+    (e2.findings || []).forEach((f) => li.appendChild(el("p", f, f === e2.witness ? "witness-line" : "")));
     const chip = el("span", TEXT.contained + " — " + e2.contained, "chip"); li.appendChild(chip);
     li.appendChild(el("span", " " + TEXT.simulated, "hint"));
     if ((e2.sources || []).length) { const p = el("p", TEXT.sources + ": "); e2.sources.forEach((u, i) => { const a = el("a", "[" + (i + 1) + "]"); a.href = u; a.target = "_blank"; a.rel = "noopener"; p.appendChild(a); p.appendChild(el("span", " ")); }); li.appendChild(p); }
     tl.appendChild(li);
   });
+  renderWitness(data.witness || {});
   const cold = byId("coldBody"); clear(cold);
   if (data.cold && data.cold.svg) {
     cold.appendChild(el("p", TEXT.kept_safe + " · setpoint " + data.cold.safe_setpoint_c + " °C · " + TEXT.peak + " " + data.cold.peak_product_c + " °C · " + TEXT.breach + " " + data.cold.predicted_breach_min));
@@ -821,6 +874,23 @@ function render(data) {
     byId("demoCode").textContent = data.second_factor_demo || "";
     if (data.released) { byId("releaseLine").textContent = TEXT.released; byId("releaseBtn").disabled = true; }
   }
+}
+function renderWitness(w) {
+  const o = w.latest; const facts = byId("wFacts"); clear(facts);
+  const src = byId("wSource"); const note = byId("wNote");
+  if (!o) { src.hidden = true; note.textContent = TEXT.w_none; note.hidden = false; return; }
+  byId("wSite").textContent = o.site || "Clara del Rey, Madrid";
+  src.hidden = false; src.className = "chip" + (o.is_live ? " live" : "");
+  src.textContent = o.is_live ? TEXT.w_live : (o.is_playback ? TEXT.w_playback : TEXT.w_real);
+  const es = TEXT.lang_code === "es";
+  const door = o.door_open === true ? TEXT.w_open : (o.door_open === false ? TEXT.w_closed : TEXT.w_unknown);
+  const ai = [o.model || "SAM 3.1", o.response_id_short, o.latency_ms != null ? Math.round(o.latency_ms) + " ms" : "", o.cost_usd != null ? "USD " + Number(o.cost_usd).toFixed(4) : ""].filter(Boolean).join(" · ");
+  [[TEXT.w_camera, (es ? o.camera_es : o.camera_en) + (o.room && o.room.toLowerCase() !== (o.camera || "").toLowerCase() ? " · " + o.room : "")],
+   [TEXT.w_captured, o.captured_date + " " + o.captured_hhmm],
+   [TEXT.w_people, String(o.people)],
+   [TEXT.w_door, door],
+   [TEXT.w_model, ai]].forEach(([k, v]) => { facts.appendChild(el("dt", k)); facts.appendChild(el("dd", v)); });
+  note.textContent = w.has_image ? TEXT.w_redacted : TEXT.w_noimg; note.hidden = false;
 }
 async function refresh() { const {data} = await api("/sentinel/state"); render(data); return data; }
 async function runReplay() { const btn = byId("replayBtn"); btn.disabled = true; const {data} = await api("/sentinel/replay", {method: "POST"}); render(data); btn.disabled = false; }
@@ -893,7 +963,7 @@ def render_sentinel_page(lang: str = "en") -> str:
         f"<div class='counter'><b id='bigMs'>—</b><span>{_e(t('detected_contained'))} · {_e(t('simulated'))}</span></div>"
         f"<p class='stillrow'>{_e(t('still_a'))} <b id='stillN'>300/300</b> {_e(t('still_b'))}</p>"
         "<p class='stillwhy' id='stillWhy' hidden></p>"
-        "<div class='grid'>"
+        "<div class='grid'><div class='col'>"
         f"<section class='panel'><h2>{_e(t('timeline'))}</h2><ul class='tl' id='timeline'></ul>"
         f"<h2 style='margin-top:18px'>{_e(t('legit_title'))}</h2><div class='legit'>"
         f"<span class='fact'><b id='cPayments'>0</b> {_e(t('payments_ok'))}</span>"
@@ -901,6 +971,14 @@ def render_sentinel_page(lang: str = "en") -> str:
         f"<span class='fact'><b id='cCold'>0</b> {_e(t('cold_ok'))}</span>"
         f"<span class='fact'><b id='cGateway'>0</b> {_e(t('gateway_ok'))}</span></div>"
         f"<p class='hint'>{_e(t('october'))}</p></section>"
+        f"<section class='panel witness' id='witnessCard'><h2>{_e(t('w_title'))} · <span id='wSite'>Clara del Rey, Madrid</span></h2>"
+        "<div class='w-body'><div class='w-frame'>"
+        f"<img id='wImg' src='/sentinel/witness/latest.jpg' alt='{_e(t('w_alt'))}' width='640' height='360'>"
+        "</div><div class='w-facts'>"
+        "<span class='chip' id='wSource'></span>"
+        "<dl id='wFacts'></dl>"
+        f"<p class='hint' id='wNote'>{_e(t('w_none'))}</p>"
+        "</div></div></section></div>"
         f"<section class='panel'><h2>{_e(t('cold_card'))}</h2><div id='coldBody'></div>"
         f"<h2 style='margin-top:18px'>WhatsApp · {_e(t('simulated'))}</h2>"
         "<div class='chat' id='notice'></div>"

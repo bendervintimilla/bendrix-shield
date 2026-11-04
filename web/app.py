@@ -60,6 +60,8 @@ from web.physical_scene import PhysicalStore, render_physical_page
 from web.replay_run import FIXTURES as REPLAY_FIXTURES
 from web.replay_run import ReplayStore
 from web.sentinel_scene import SentinelStore, render_sentinel_page
+from web.sentinel_witness import PLACEHOLDER_SVG as SENTINEL_WITNESS_PLACEHOLDER
+from web.sentinel_witness import latest_image as sentinel_witness_latest_image
 
 UPSTREAM_KEY = "upstream-demo-key-0000"
 
@@ -2222,6 +2224,17 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
     @app.get("/sentinel/state")
     def sentinel_state(request: Request) -> Any:
         return JSONResponse(_sentinel_run(request).state())
+
+    @app.get("/sentinel/witness/latest.jpg")
+    def sentinel_witness_image(request: Request) -> Any:
+        # Solo el último cuadro YA redactado de SHIELD_WITNESS_DIR; si no hay,
+        # un placeholder neutro sin foto. Ruta fija: nada viene del cliente.
+        data = sentinel_witness_latest_image()
+        headers = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
+        if data is None:
+            return Response(SENTINEL_WITNESS_PLACEHOLDER, media_type="image/svg+xml",
+                            headers=headers)
+        return Response(data, media_type="image/jpeg", headers=headers)
 
     @app.post("/sentinel/reset")
     def sentinel_reset(request: Request) -> Any:

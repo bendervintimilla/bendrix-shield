@@ -181,7 +181,8 @@ def test_deshacer_otro_agente_no_revive_la_llave_robada(client):
     state = _replay(client)
     other = next(m for m in state["measures"]
                  if m["kind"] == "revoke_tokens" and m["target"] == "payments-bot")
-    assert client.post("/sentinel/undo", data={"undo_id": other["undo_id"]}).json()["status"] == "ok"
+    undone = client.post("/sentinel/undo", data={"undo_id": other["undo_id"]})
+    assert undone.json()["status"] == "ok"
     store = client.app.state.sentinel_store
     run = next(r for _, r in store._items.values() if r.run_id == state["run_id"])
     assert run._gw_call(run._stolen_raw) == 401
