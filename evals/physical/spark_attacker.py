@@ -258,8 +258,16 @@ def evaluate_plan(
     params: ColdRoomParams | None = None,
     state: RoomState | None = None,
     gate_fn: Any | None = None,
+    gate_source: str | None = None,
 ) -> dict[str, Any]:
-    """Un plan contra estático, predictivo (secuencial) y verdad terreno."""
+    """Un plan contra estático, predictivo (secuencial) y verdad terreno.
+
+    ``gate_source``: si se da, el gate ve esa fuente en cada acción. Con
+    ``"agent"`` se mide solo la física, porque un ataque real no se
+    rotula a sí mismo como ``attacker`` (ver SPARK-ATTACKER.md).
+    """
+    from dataclasses import replace
+
     from shield.physics.gate import verify_action
 
     params = params or ColdRoomParams()
@@ -272,11 +280,12 @@ def evaluate_plan(
     predictive_steps: list[str] = []
     accepted: list[ProposedAction] = []
     for action in plan.actions:
-        verdict = verify(params, state, action, history=accepted)
+        presented = replace(action, source=gate_source) if gate_source else action
+        verdict = verify(params, state, presented, history=accepted)
         predictive_steps.append(verdict.decision)
         if verdict.decision != "allow":
             break  # contenido: el plan se detiene en este paso
-        accepted.append(action)
+        accepted.append(presented)
     truth = ground_truth_damage(params, state, plan.actions)
     static_pass = all(d == "allow" for d in static_steps)
     predictive_pass = len(predictive_steps) == len(plan.actions) and all(
@@ -348,12 +357,15 @@ def main() -> int:
             for p in frozen["plans"]
         ]
         summary = evaluate_plans(plans)
+        summary["physics_only_source_agent"] = evaluate_plans(plans, gate_source="agent")
         Path(args.results).write_text(
             json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
         )
         keys = ["plans_total", "plans_with_real_damage", "damage_passes_static"]
         keys += ["damage_passes_predictive", "stopped_by_predictive"]
         print(json.dumps({k: summary[k] for k in keys}))
+        phys = summary["physics_only_source_agent"]
+        print(json.dumps({"physics_only_damage_passes": phys["damage_passes_predictive"]}))
         return 0
     parser.print_help()
     return 2
