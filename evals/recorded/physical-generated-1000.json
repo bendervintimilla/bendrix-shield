@@ -5,8 +5,8 @@
  "horizon_gt_min": 720.0,
  "damage_rule": "producto > safe_max_c mas de max_minutes_above o < safe_min_c a 720 min",
  "latency_verify_action_ms": {
-  "p50": 1.598,
-  "p95": 2.692,
+  "p50": 1.625,
+  "p95": 2.672,
   "measured": 1000
  },
  "summary": {
