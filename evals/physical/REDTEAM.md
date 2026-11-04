@@ -221,6 +221,31 @@ recibe `block` y la contención reversible no se aplica.
 simulación a las acciones activas que cancela (o una vía de contención
 reversible que no pase por el gate, coherente con «contain first»).
 
+## Antes / después del arreglo R2 (M1 829d43b, FIXED-BYPASS-R2)
+
+Re-corrida de los tres archivos sin tocarlos (`git diff` vacío en los tres
+JSON). M1 agregó destino frío simétrico (setpoint permanente bajo
+`safe_min_c` es block) y cancelación del deshielo/apagado activo cuando la
+acción es la contención del autopiloto (`wairrior-autopilot`).
+
+| Ronda | Métrica | Antes (e54bbea) | Después (829d43b) |
+|---|---|---|---|
+| redteam.json (19 ataques) | BYPASS / HELD / STOPPED | 0 / 1 / 13 | 0 / 1 / 13 (sin cambios) |
+| redteam-addendum.json (9 ataques) | BYPASS / STOPPED | 0 / 9 | 0 / 9 (sin cambios) |
+| redteam-r2.json (11 ataques) | BYPASS | 2 (R2-01, R2-02 frío lento) | **0** |
+| redteam-r2.json | STOPPED | 7 | 9 (R2-01/R2-02 ahora block) |
+| redteam-r2.json | HELD | 2 (borde del tope 1440) | 2 (sin cambio, por diseño: ask) |
+| redteam-r2.json | controles bloqueados | 3 (R2-08, R2-09, R2-10) | **1** (solo R2-08) |
+
+- **Destino frío cerrado:** R2-01 y R2-02 pasan de `allow` a `block`.
+- **Contención desbloqueada:** R2-09 y R2-10 pasan de `block` a `allow`;
+  el `last_safe_action` ya no queda frenado por el ataque que cancela.
+- **Lo que queda, honesto:** R2-08 sigue bloqueado (carga congelada sin
+  campo de temperatura en el contrato: es límite del contrato, no del fix),
+  R2-03/R2-04 siguen HELD porque sobre el tope de 1440 min el diseño baja a
+  `ask_owner` (no es contención automática), y RT-18 sigue HELD (sensor
+  falsificado: procedencia del estado, trabajo de M6).
+
 ## Arreglos propuestos (para M1/orquestador, M7 no toca gate.py)
 
 1. Cubrir o escalar toda acción cuyo inicio o fin caiga fuera del horizonte.
