@@ -4,7 +4,13 @@ Uso: ``uv run python evals/run_cold_chain.py``
 Sin red ni créditos. Corre el escenario replay de
 ``crew/refrigeracion/scenario.py``, guarda la grabación pública en
 ``evals/recorded/cold-chain-replay.json`` (sin tokens en claro) y
-agrega su sección a ``evals/report.md`` sin borrar las demás.
+reemplaza su sección de ``evals/report.md`` en el mismo lugar, sin borrar
+las demás.
+
+Idempotente: si lo medido no cambió (solo cambian la duración y el
+``token_id`` nuevo, que son aleatorios en cada corrida), la grabación y el
+informe quedan intactos byte a byte. Así ``make demo`` no deja cambios en
+el árbol de trabajo.
 
 Mide: cambio legítimo aplicado, alcance mínimo (token ajeno no mueve
 setpoint), 2 ataques de setpoint bloqueados sin mutar el equipo,
@@ -25,20 +31,68 @@ from crew.refrigeracion.scenario import run_scenario  # noqa: E402
 REPORT = Path(__file__).parent / "report.md"
 RECORDING = Path(__file__).parent / "recorded" / "cold-chain-replay.json"
 MARKER = "## Cadena de frío (IoT) — C2489-2"
+# Campos que cambian en cada corrida sin que cambie lo medido.
+VOLATILE_KEYS = frozenset({"elapsed_s", "new_token_id"})
 
 
-def _append_report(section: str) -> None:
-    existing = REPORT.read_text(encoding="utf-8") if REPORT.is_file() else ""
+def _stable(obj: object) -> object:
+    """Copia sin los campos volátiles, para comparar dos corridas."""
+    if isinstance(obj, dict):
+        return {k: _stable(v) for k, v in obj.items() if k not in VOLATILE_KEYS}
+    if isinstance(obj, list):
+        return [_stable(v) for v in obj]
+    return obj
+
+
+def _save_recording(result: dict, path: Path = RECORDING) -> tuple[dict, bool]:
+    """Escribe la grabación solo si lo medido cambió.
+
+    Devuelve la grabación vigente (la nueva o la que ya estaba) y si se
+    escribió. Con lo medido igual se conserva el archivo tal cual.
+    """
+    if path.is_file():
+        try:
+            old = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            old = None
+        if isinstance(old, dict) and _stable(old) == _stable(result):
+            return old, False
+    path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return result, True
+
+
+def _replace_report_section(section: str, report: Path = REPORT) -> None:
+    """Reemplaza la sección en su lugar (o la agrega al final si no está).
+
+    La sección termina donde empieza el siguiente título ``## `` o el
+    siguiente marcador ``<!-- ``, para no comerse los marcadores de otras
+    secciones. Si el texto resultante es igual, no reescribe el archivo.
+    """
+    existing = report.read_text(encoding="utf-8") if report.is_file() else ""
     if MARKER in existing:
         start = existing.index(MARKER)
-        nxt = existing.find("\n## ", start + len(MARKER))
-        existing = (existing[:start] + (existing[nxt + 1 :] if nxt >= 0 else "")).rstrip() + "\n"
-    REPORT.write_text(existing.rstrip() + "\n\n" + section, encoding="utf-8")
+        ends = [
+            i
+            for i in (
+                existing.find("\n## ", start + len(MARKER)),
+                existing.find("\n<!-- ", start + len(MARKER)),
+            )
+            if i >= 0
+        ]
+        if ends:
+            end = min(ends) + 1
+            updated = existing[:start] + section + "\n" + existing[end:]
+        else:
+            updated = existing[:start] + section
+    else:
+        updated = existing.rstrip() + "\n\n" + section
+    if updated != existing:
+        report.write_text(updated, encoding="utf-8")
 
 
 def main() -> int:
-    result = run_scenario()
-    RECORDING.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    measured = run_scenario()
+    result, written = _save_recording(measured)
     s = result["statuses"]
     blocked = sum(
         1
@@ -65,12 +119,14 @@ def main() -> int:
         f"- Duración del escenario en esta corrida: {result['elapsed_s']} s.\n"
         "- Costo en créditos real: USD 0 (sin llamadas a modelos).\n"
     )
-    _append_report(section)
+    _replace_report_section(section)
+    rel = RECORDING.resolve().relative_to(Path(__file__).resolve().parents[1])
     print(
         f"cold-chain: ataques bloqueados {blocked}/2, atacante "
         f"{s['attacker_before']}->{s['attacker_after']}, cocina "
         f"{s['refrigeracion_after']}/{s['bodega_after']}/{s['compras_after']} "
-        f"-> {RECORDING}"
+        f"-> {rel} ({'actualizada' if written else 'sin cambios en lo medido'}; "
+        f"esta corrida {measured['elapsed_s']} s)"
     )
     return 0 if result["ok"] and blocked == 2 else 1
 
