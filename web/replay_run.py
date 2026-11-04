@@ -75,8 +75,9 @@ class ReplayRun:
     # -- ciclo de vida -----------------------------------------------------------
     def _reset(self) -> None:
         self.run_id = "replay_" + secrets.token_hex(6)
-        self.started = time.monotonic()
-        self.started_at = _now_iso()
+        # El reloj «Chain duration» arranca con el primer paso, no al abrir la página.
+        self.started: float | None = None
+        self.started_at: str | None = None
         self.results: dict[str, Any] = {}
         self.done: list[str] = []
         self.broker = ApprovalBroker()
@@ -112,7 +113,9 @@ class ReplayRun:
             "replay": True,
             "scene": self.scene,
             "started_at": self.started_at,
-            "duration_s": round(time.monotonic() - self.started, 3),
+            "duration_s": (
+                0.0 if self.started is None else round(time.monotonic() - self.started, 3)
+            ),
             "cap_usd": 0.0,
             "total_cost_usd": 0.0,
             "gateway_logged_cost_usd": 0.0,
@@ -144,8 +147,14 @@ class ReplayRun:
         need = needs.get(name)
         if need and need not in self.done:
             return self._error(f"first run: {need}")
+        if name in ("attack", "guardian") and "contain" in self.done:
+            # Ya contenido: repetir el ataque crearía otra aprobación con la corrida cerrada.
+            return self._error("this run is already contained: start a new run")
         if name == "contain" and (self.results.get("voice") or {}).get("status") != "approved":
             return {"status": "not_approved", "error": "the owner has not approved yet"}
+        if self.started is None:
+            self.started = time.monotonic()
+            self.started_at = _now_iso()
         if name == "revoke":
             builder = self._revoke
         else:
@@ -239,7 +248,13 @@ class ReplayRun:
         out = self._recorded["results"]["contain"]
         out["approval_id"] = self.approval_id
         out["attack_started_at"] = self.attack_started_at
-        self.contained_in_s = out.get("contained_in_s")
+        # «Real time to first 401» es el de este visitante (como en frío); el tiempo de la
+        # corrida en vivo grabada se muestra aparte, sin hacerlo pasar por el del visitante.
+        out["recorded_contained_in_s"] = out.get("contained_in_s")
+        started = datetime.fromisoformat(self.attack_started_at or _now_iso())
+        elapsed = round((datetime.now(UTC) - started).total_seconds(), 3)
+        out["contained_in_s"] = elapsed
+        self.contained_in_s = elapsed
         return out
 
     # ---- escena Cadena de frío (escenario determinista grabado) ----
@@ -427,5 +442,6 @@ class ReplayStore:
             while len(self._items) > self.max_sessions:
                 self._items.popitem(last=False)
         if scene in SCENES and run.scene != scene:
-            run.reset(scene)
+            with run.lock:
+                run.reset(scene)
         return run

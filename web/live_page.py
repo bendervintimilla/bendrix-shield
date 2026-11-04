@@ -162,6 +162,7 @@ T: dict[str, dict[str, str]] = {
         "activate_body": "Start it with make live, then open /live again. No model is called from this screen.",
         "no_key": "No key in the vault",
         "no_key_body": "Put META_MODEL_API_KEY in the vault (environment backend) and restart with make live. The key is never shown here.",
+        "recorded_live_run": "recorded live run",
     },
     "es": {
         "lang_code": "es",
@@ -305,6 +306,7 @@ T: dict[str, dict[str, str]] = {
         "activate_body": "Arráncalo con make live y vuelve a abrir /live. Desde esta pantalla no se llama a ningún modelo.",
         "no_key": "Sin clave en el vault",
         "no_key_body": "Pon META_MODEL_API_KEY en el vault (backend de entorno) y reinicia con make live. La llave nunca se muestra aquí.",
+        "recorded_live_run": "corrida en vivo grabada",
     },
 }
 
@@ -936,7 +938,11 @@ function setContained(r) {
   const node = byId("containedLine"); clear(node);
   if (r.contained_in_s == null) return;
   node.appendChild(el("span", TEXT.contained_in, "kr-label"));
-  node.appendChild(el("span", r.contained_in_s + "s", "kr-num"));
+  node.appendChild(el("span", Number(r.contained_in_s).toFixed(1) + "s", "kr-num"));
+  /* Bodega: el tiempo de la corrida en vivo grabada va aparte, no como el del visitante. */
+  if (r.recorded_contained_in_s != null) {
+    node.appendChild(el("span", TEXT.recorded_live_run + ": " + Math.round(Number(r.recorded_contained_in_s)) + " s", "meta recorded-run"));
+  }
 }
 function renderContain(r, state) {
   const before = ((state && state.results && state.results.attack) || {}).statuses || [];
@@ -1227,7 +1233,9 @@ function updateBand(state) {
     const contained = snapshot.contained_in_s != null;
     byId("bigClock").dataset.state = contained ? "contained" : (results.attack ? "attack" : "calm");
     const elapsed = (Date.now() - snapshot.receivedAt) / 1000;
-    byId("chainDuration").textContent = fmtClock(contained ? snapshot.duration_s : snapshot.duration_s + elapsed);
+    /* Antes del primer paso no hay cadena que medir: el reloj se queda en 00:00. */
+    const anyStep = Object.keys(results).length > 0;
+    byId("chainDuration").textContent = !anyStep ? fmtClock(0) : fmtClock(contained ? snapshot.duration_s : snapshot.duration_s + elapsed);
     const label = byId("clockLabel");
     if (contained) {
       if (label) label.textContent = TEXT.time_to_401;
@@ -1247,22 +1255,52 @@ function updateBand(state) {
   tickClock();
   clockTimer = setInterval(tickClock, 1000);
   Object.keys(results).forEach((key) => renderResult(key === "voice_confirm" || key === "voice_cancel" ? "voice" : key, results[key], state));
+  /* Al recargar, los pasos con resultado muestran su estado, no «sin correr». */
+  Object.keys(results).forEach((key) => {
+    const step = key === "voice_confirm" || key === "voice_cancel" ? "voice" : key;
+    const r = results[key] || {};
+    const node = document.querySelector("[data-status-for='" + step + "']");
+    if (!node || node.dataset.state === "running") return;
+    if (["error", "cost_cap_reached", "not_approved", "daily_limit"].includes(r.status)) stopStatus(step, TEXT.error + ": " + (r.error || r.status));
+    else if (step === "voice") stopStatus(step, TEXT.ok + ": " + (r.status || ""));
+    else stopStatus(step, TEXT.ok);
+  });
 }
+/* «New run» aborta lo que esté en vuelo; un paso que el servidor descarta por
+   corrida nueva vuelve como «stale» y no se pinta. */
+let runCtl = new AbortController();
+function apiFetch(path, opts) {
+  return fetch(API + path, {...(opts || {}), signal: runCtl.signal});
+}
+function isAbort(err) { return err && err.name === "AbortError"; }
 async function refreshState() {
-  const res = await fetch(API + "/state");
+  const res = await apiFetch("/state");
   if (!res.ok) return null;
   const state = await res.json();
   if (state.status === "not_started") {
-    const started = await fetch(API + "/start", {method: "POST"});
+    const started = await apiFetch("/start", {method: "POST"});
     if (started.ok) { const s2 = await started.json(); updateBand(s2); return s2; }
     return state;
   }
   updateBand(state);
   return state;
 }
+/* Un solo arranque por página: los pasos esperan a que /live/start termine
+   (antes, un clic durante el arranque daba 409 «chain not started»). */
+let bootPromise = null;
+function ensureStarted() {
+  if (!bootPromise) {
+    bootPromise = refreshState().then((s) => {
+      if (!s || s.status === "not_started") bootPromise = null;
+      return s;
+    }, (err) => { bootPromise = null; throw err; });
+  }
+  return bootPromise;
+}
 async function runStep(step) {
   startStatus(step);
   try {
+    await ensureStarted();
     let res;
     if (step === "count") {
       const input = byId("ownPhoto");
@@ -1270,14 +1308,16 @@ async function runStep(step) {
         byId("shelfImg").src = URL.createObjectURL(input.files[0]);
         const form = new FormData();
         form.append("file", input.files[0]);
-        res = await fetch(API + "/step/count", {method: "POST", body: form});
+        res = await apiFetch("/step/count", {method: "POST", body: form});
       } else {
-        res = await fetch(API + "/step/count", {method: "POST"});
+        res = await apiFetch("/step/count", {method: "POST"});
       }
     } else {
-      res = await fetch(API + "/step/" + step, {method: "POST"});
+      res = await apiFetch("/step/" + step, {method: "POST"});
     }
     const data = await res.json();
+    if (data.status === "stale") { stopStatus(step, TEXT.not_run); return data; }
+    if (!res.ok && !data.status) data.status = "error";
     if (!res.ok || data.status === "error" || data.status === "cost_cap_reached" || data.status === "not_approved") {
       stopStatus(step, TEXT.error + ": " + (data.error || data.status || res.status));
     } else {
@@ -1287,15 +1327,29 @@ async function runStep(step) {
     await refreshState();
     return data;
   } catch (err) {
+    if (isAbort(err)) { stopStatus(step, TEXT.not_run); return {status: "aborted"}; }
     stopStatus(step, TEXT.error + ": " + err.message);
     return {status: "error", error: err.message};
   }
 }
+/* La decisión del dueño queda a la vista: centra la caja de aprobación y le da foco. */
+function focusApproval() {
+  const typed = byId("typedText");
+  if (!typed) return;
+  typed.scrollIntoView({block: "center", behavior: "smooth"});
+  typed.focus({preventScroll: true});
+}
 async function runUntilOwner() {
+  const done = (lastState && lastState.results) || {};
+  /* Ya corrido hasta el dueño (o contenido): no se repite el ataque ni otra aprobación. */
+  if (done.guardian || done.contain) { focusApproval(); return; }
+  try { await ensureStarted(); } catch (err) { if (isAbort(err)) return; throw err; }
+  let finished = true;
   for (const step of ["invoice", "count", "attack", "guardian"]) {
     const data = await runStep(step);
-    if (!data || data.status === "error" || data.status === "cost_cap_reached") break;
+    if (!data || ["error", "cost_cap_reached", "daily_limit", "stale", "aborted"].includes(data.status)) { finished = false; break; }
   }
+  if (finished) focusApproval();
 }
 // mono PCM16 16 kHz WAV
 function buildWav(samples, sampleRate) {
@@ -1349,8 +1403,11 @@ async function toggleRecord() {
     const form = new FormData();
     form.append("file", wav, "voz.wav");
     startStatus("voice");
-    const res = await fetch(API + "/voice", {method: "POST", body: form});
-    const data = await res.json();
+    let res, data;
+    try {
+      res = await apiFetch("/voice", {method: "POST", body: form});
+      data = await res.json();
+    } catch (err) { if (isAbort(err)) return; throw err; }
     stopStatus("voice", data.status === "error" ? TEXT.error + ": " + (data.error || "") : TEXT.ok + ": " + (data.status || ""));
     renderVoice(data);
     await refreshState();
@@ -1391,7 +1448,8 @@ function clearRun() {
    "comprasLine", "countValue", "expectedLine", "approvedLine"].forEach((id) => {
     const node = byId(id); if (node) node.textContent = "";
   });
-  ["attackerBefore", "attackerAfter", "revokeResult"].forEach((id) => { const n = byId(id); if (n) n.replaceChildren(); });
+  ["attackerBefore", "attackerAfter", "revokeResult", "invoiceResult", "countResult",
+   "guardianResult"].forEach((id) => { const n = byId(id); if (n) n.replaceChildren(); });
   const typed = byId("typedText"); if (typed) typed.value = "";
   ["voiceConfirm", "voiceCancel"].forEach((id) => { const n = byId(id); if (n) n.hidden = true; });
   document.querySelectorAll("[data-status-for]").forEach((n) => {
@@ -1404,6 +1462,8 @@ function clearRun() {
 document.addEventListener("DOMContentLoaded", () => {
   byId("runUntilBtn").addEventListener("click", runUntilOwner);
   byId("newRunBtn").addEventListener("click", async () => {
+    runCtl.abort();  // corta pasos y voz en vuelo antes de pedir la corrida nueva
+    runCtl = new AbortController();
     await fetch(API + "/reset", {method: "POST"});
     clearRun();
     window.location.reload();
@@ -1426,27 +1486,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const form = new FormData();
     form.append("typed", byId("typedText").value);
     startStatus("voice");
-    const res = await fetch(API + "/voice", {method: "POST", body: form});
-    const data = await res.json();
+    let res, data;
+    try {
+      res = await apiFetch("/voice", {method: "POST", body: form});
+      data = await res.json();
+    } catch (err) { if (isAbort(err)) { stopStatus("voice", TEXT.not_run); return; } throw err; }
     stopStatus("voice", data.status === "error" ? TEXT.error + ": " + (data.error || "") : TEXT.ok + ": " + (data.status || ""));
     renderVoice(data);
     await refreshState();
     if (data.status === "approved") await runStep("contain");
   });
   byId("voiceConfirm").addEventListener("click", async () => {
-    const res = await fetch(API + "/voice/confirm", {method: "POST"});
+    const res = await apiFetch("/voice/confirm", {method: "POST"});
     const data = await res.json();
     byId("voiceStatusLine").textContent = data.status || "";
     await refreshState();
     if (data.status === "approved") await runStep("contain");
   });
   byId("voiceCancel").addEventListener("click", async () => {
-    const res = await fetch(API + "/voice/cancel", {method: "POST"});
+    const res = await apiFetch("/voice/cancel", {method: "POST"});
     const data = await res.json();
     byId("voiceStatusLine").textContent = data.status || "";
     await refreshState();
   });
-  refreshState();
+  ensureStarted().catch(() => {});
 });
 """
 
