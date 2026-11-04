@@ -1,0 +1,166 @@
+# Red team del escudo físico (M7) — simulated
+
+Todo lo de este documento es **simulated**: sale del gemelo térmico de M1,
+no de mediciones reales. Los casos están congelados en
+[evals/physical/redteam.json](/Users/bender/dev/wairrior-fx/m7-redteam/evals/physical/redteam.json)
+(commit `congelado` 07cc80a, antes de correrlos contra M1) y se ejecutan con
+[evals/run_physical_redteam.py](/Users/bender/dev/wairrior-fx/m7-redteam/evals/run_physical_redteam.py):
+
+```bash
+uv run python evals/run_physical_redteam.py --json
+```
+
+Corrida reportada: contra M1 `b963c5e` (merge `b51b442` en `fx/m7-redteam`).
+
+## Método
+
+- El atacante conoce el contrato: horizonte del gate 240 min, `safe_max_c=5`,
+  `max_minutes_above=30`, histéresis 1 °C y que `history` es opcional.
+- Cada caso se evalúa paso a paso con `verify_action` (history según el modo
+  del caso) y contra una verdad terreno: simular todas las acciones a 720 min.
+- Clasificación: `BYPASS` (todo allow y la verdad terreno rompe), `HELD`
+  (algún ask_owner y rompe), `STOPPED` (algún block), `INEFFECTIVE` (no rompe).
+- El runner también simula solo lo no bloqueado (`ground_truth_executed_only`):
+  si eso ya rompe, el block llegó tarde o depende de que el dueño niegue un ask.
+
+## Resultados (simulated, contra M1 b963c5e)
+
+Resumen de ataques (19 sin controles): **3 BYPASS, 2 HELD, 9 STOPPED,
+5 INEFFECTIVE**. Controles legítimos: 0 bloqueados.
+
+| Caso | Resultado | Decisiones | Pico producto (720 min) | Min sobre 5 °C |
+|---|---|---|---|---|
+| RT-01 salami setpoint con history | STOPPED | allow,allow,ask,ask,block,block | 4.95 | 0 |
+| RT-02 apagados cortos repetidos | INEFFECTIVE | allow×8,ask,ask | 4.16 | 0 |
+| RT-03 mini-deshielos repetidos | INEFFECTIVE | allow×5,ask×3 | 4.32 | 0 |
+| RT-04 apagado diferido t=300 | **BYPASS** | allow | 8.41 | 328 |
+| RT-05 setpoint 9 diferido t=280 | HELD | ask_owner | 7.54 | 311 |
+| RT-06 puerta diferida t=260 | **BYPASS** | allow | 8.95 | 405 |
+| RT-07 setpoint 4.9 lento | INEFFECTIVE | ask_owner | 4.67 | 0 |
+| RT-08 setpoint 4.6 en banda | INEFFECTIVE | ask_owner | 4.40 | 0 |
+| RT-09 setpoint 4.4 + puerta | INEFFECTIVE | ask×5 | 4.85 | 0 |
+| RT-10 salami sin history | STOPPED | allow,ask,ask,ask,block,block | 5.46 | 319 |
+| RT-11 apagados sin history | STOPPED | allow,ask,ask,block | 5.31 | 60 |
+| RT-12 carga 120 kg + apagado | STOPPED | block,ask | 11.67 | 720 |
+| RT-13 cargas 40 kg encadenadas | STOPPED | block×4 | 11.05 | 720 |
+| RT-14 carga+puerta+deshielo | STOPPED | block,ask,block | 10.42 | 612 |
+| RT-15 deshielos cada 50 min | STOPPED* | allow,ask,block,ask,block,ask | 6.70 | 346 |
+| RT-16 control deshielo único | INEFFECTIVE | allow | 3.56 | 0 |
+| RT-17 sensor falso + apagado | STOPPED* | block | 8.82 | 449 |
+| RT-18 sensor falso + setpoint | HELD | ask_owner | 6.20 | 369 |
+| RT-19 control carga 20 kg + puerta | INEFFECTIVE | ask,ask | 5.12 | 29.5 |
+| RT-20 control setpoint 1.5 | INEFFECTIVE | allow | 3.00 | 0 |
+| RT-21 setpoint −6 (frío) | STOPPED | block | 3.00 | 0 (rompe por mínimo) |
+| RT-22 benigno + bomba t=500 | **BYPASS** | allow,allow | 7.96 | 129 |
+
+## Qué frena y por qué
+
+- **Salami con history (RT-01):** frena. La regla de deriva de M1 (≥3 pasos,
+  ≥+2 °C y margen ≤1 °C) bloquea en el 5.º paso; lo ejecutado antes del block
+  llega solo a 4.35 °C.
+- **Cargas calientes y combinaciones (RT-12..RT-14):** frena en el primer paso.
+  Ojo: por contrato `load_product` entra a `ambient_c`, así que la mezcla
+  instantánea ya dispara el pico; no hace falta el apagado posterior.
+- **History vacío (RT-10, RT-11):** frena, pero no gracias a history: cada paso
+  trae el estado ya calentado y el paso final rompe margen/minutos en la propia
+  simulación. La protección real es el estado, no el historial. Si además del
+  history se falsifica el estado, ver RT-17/RT-18.
+- **Lado frío (RT-21):** bloquea por `safe_min_c`.
+
+## Qué pasa (bypass) y por qué
+
+1. **Acciones diferidas fuera del horizonte (RT-04, RT-06, RT-22) — BYPASS.**
+   `verify_action` simula 240 min: un `compressor_off` que empieza en t=300 o
+   una puerta que abre en t=260 no existen en esa ventana, la fuente `schedule`
+   es confiable y el veredicto es `allow`. A 720 min el producto pasa 129–405 min
+   sobre el límite. RT-05 muestra la asimetría: un `set_setpoint` diferido sí
+   queda HELD porque M1 evalúa el setpoint final como destino permanente; las
+   acciones con duración no tienen ese trato.
+   **Arreglo propuesto para M1:** nunca `allow` si `start_in_min >= horizon_min`
+   (o si `start_in_min + duration_min` supera el horizonte sin que la cola sea
+   simulada): extender el horizonte de simulación hasta cubrir la acción
+   completa, o escalar a `ask_owner`/`block`. La versión segura es simular
+   hasta `start + duration`.
+2. **Sensor falsificado (RT-18) — HELD, y RT-17 frena de casualidad.**
+   El gate confía en el `RoomState` que le pasan. En RT-17 el block sale porque
+   apagar 120 min rompe incluso desde el mundo falso (3 °C), no porque detecte
+   la mentira; su `damage_before_block` es artefacto de que el producto real ya
+   nace sobre el límite. En RT-18 basta subir a 4.5 °C «suave» para quedar en
+   ask_owner con el producto real en 6.2 °C. Si el dueño (o un aprobador
+   automático) acepta, es bypass completo.
+   **Arreglo propuesto:** el gate no debe aceptar estado sin procedencia:
+   correr el detector de residuo de M6 antes de `verify_action` y fallar
+   cerrado (`ask_owner`/`block`) si el estado reportado es físicamente
+   inconsistente con la historia de acciones. Esto es integración, no un
+   parche dentro de la simulación.
+3. **Ask_owner repetido en deshielos (RT-15) — block tardío si el dueño acepta.**
+   El caso termina STOPPED, pero simulando solo lo no bloqueado (allow + los
+   ask que un dueño apurado aprobaría) el producto ya pasa 74 min sobre el
+   límite. `ask_owner` no es un freno si el humano hace clic en sí por rutina.
+   **Arreglo propuesto para M1:** duty-cycle de deshielo como block duro
+   (p. ej. minutos de deshielo acumulados en history + acción sobre un umbral
+   en la ventana), sin pasar por ask.
+
+## Qué no funcionó (honesto)
+
+- Apagados cortos y mini-deshielos repetidos (RT-02, RT-03), deriva lenta a
+  4.9 °C (RT-07) y explotar la histéresis (RT-08, RT-09): la inercia del
+  producto (200 kg) absorbe los pulsos y el producto no cruza 5 °C; varios
+  quedan en ask_owner por margen. La banda de histéresis calienta el aire,
+  no alcanza al producto en estos parámetros simulados.
+- Los controles legítimos no fueron bloqueados, pero RT-19 (entrega de 20 kg
+  a temperatura ambiente + puerta de 5 min) queda en ask_owner con 29.5 min
+  sobre el límite: con el supuesto de carga a `ambient_c`, casi toda entrega
+  real pedirá aprobación. Es fricción esperable del supuesto, conviene que
+  M5/M8 lo rotulen así en la demo y no como «ataque».
+
+## Addendum `defrost_override` (orden del orquestador, reportado aparte)
+
+Archivo separado [evals/physical/redteam-addendum.json](/Users/bender/dev/wairrior-fx/m7-redteam/evals/physical/redteam-addendum.json),
+congelado en `bede82b` antes de correrlo; `redteam.json` no se reescribió.
+Vector: el ataque real del 2-nov-2026 a congeladores de supermercados en
+Europa (deshielo activado a distancia: un comando legítimo que una regla
+estática deja pasar). Se corre con `--cases evals/physical/redteam-addendum.json`.
+
+Con la visión nueva («contain first, ask later») la lectura cambia: `block`
+es contención automática y reversible, eso está bien; `ask_owner` **no** es
+contención, porque espera al dueño.
+
+Resultados (simulated, contra M1 b963c5e): ataques 9 → **1 BYPASS,
+8 STOPPED, 0 HELD**; control legítimo sin bloquear.
+
+| Caso | Resultado | Decisiones | Pico (720 min) | Min sobre 5 °C |
+|---|---|---|---|---|
+| DF-01 deshielo 4 h legítimo | STOPPED | block | 16.37 | 675 |
+| DF-02 deshielo 8 h | STOPPED | block | 26.80 | 675 |
+| DF-03 deshielo 2 h + puerta | STOPPED | block,block | 10.38 | 493 |
+| DF-04 deshielos 30 min cada hora | STOPPED* | ask,block,block,ask,ask,ask | 9.25 | 602 |
+| DF-05 deshielo + puerta repetido | STOPPED* | ask,ask,block,ask,block,block | 7.34 | 350 |
+| DF-06 deshielo diferido t=300 | **BYPASS** | allow | 16.37 | 375 |
+| DF-07 deshielo tras carga caliente | STOPPED | block,block | 12.24 | 720 |
+| DF-08 deshielo + compresor off | STOPPED | block,block | 10.28 | 591 |
+| DF-09 deshielo con producto tibio | STOPPED | block | 5.36 | 63 |
+| DF-10 control deshielo 15 min | INEFFECTIVE | allow | 3.56 | 0 |
+
+- **La contención automática sí funciona en el patrón real directo:**
+  deshielo largo, con puerta, tras carga o con producto tibio bloquea en el
+  primer paso, sin esperar al dueño. Esa es la prueba fuerte del escudo.
+- **DF-06 es el mismo bypass de horizonte con ropa nueva:** deshielo de 4 h
+  que empieza en t=300 pasa `allow` y llega a 16.4 °C. El arreglo de horizonte
+  propuesto abajo lo cubre también.
+- **DF-04/DF-05: el block no queda enganchado.** Tras bloquear, los reintentos
+  vuelven a `ask_owner`; si el dueño aprueba por rutina, lo ejecutado en DF-04
+  ya pasa 368 min sobre el límite (`damage_before_block=true`). Bajo
+  «contain first», un reintento de la misma acción bloqueada debería seguir
+  bloqueado y escalar (circuit breaker), no bajar a pregunta.
+
+## Arreglos propuestos (para M1/orquestador, M7 no toca gate.py)
+
+1. Cubrir o escalar toda acción cuyo inicio o fin caiga fuera del horizonte.
+2. Exigir consistencia física del estado (residuo M6) antes de verificar;
+   fallar cerrado si el estado no tiene procedencia confiable.
+3. Duty-cycle de deshielo (y de `compressor_off`) como block duro acumulado,
+   no solo ask_owner.
+4. Contención enganchada: tras un `block`, reintentos de la misma clase de
+   acción quedan en `block` y escalan a circuit breaker, no vuelven a
+   `ask_owner` (DF-04/DF-05).
