@@ -204,6 +204,11 @@ def detect(events: list[SecurityEvent],
             e, witness_state(e, cameras, witness, max_age_s=witness_max_age_s)
             if e.action in PHYSICAL_ACTIONS else None)
         findings.extend(w_findings)
+        if e.app == "camera" and e.values.get("alert_severity") in ("medium", "high", "critical"):
+            # Alertas de vigilancia (shield.witness.surveillance): ya explicadas y graduadas.
+            add(e.action, str(e.values["alert_severity"]),
+                f"vigilancia ({e.values.get('alert_app')}): {e.action} en {e.target}"
+                + (" [simulado]" if e.values.get("simulated") else ""), e)
         if e.actor == "wairrior-autopilot":
             add("forged_autopilot_actor", "high",
                 "actor auto-declarado 'wairrior-autopilot' en un evento "

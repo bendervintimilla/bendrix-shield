@@ -77,6 +77,20 @@ def load_labels(path: Path) -> dict[str, dict[str, Any]]:
     return {k: dict(v) for k, v in data.items() if not k.startswith("_")}
 
 
+def recorded_at(name: str, captured_at: str) -> str | None:
+    """Hora que marca la cámara: en vivo = captura (Madrid); playback = la del nombre."""
+    if not captured_at:
+        return None
+    from zoneinfo import ZoneInfo
+
+    from shield.witness.surveillance import playback_time
+
+    madrid = datetime.fromisoformat(captured_at).astimezone(ZoneInfo("Europe/Madrid"))
+    if source_for(name) == "playback":
+        return playback_time(Path(name).stem, madrid.isoformat()) or madrid.isoformat()
+    return madrid.isoformat()
+
+
 def source_for(name: str) -> str:
     """Cuadros nocturnos grabados = ``playback``; el resto, captura en vivo."""
     return "playback" if "noche" in Path(name).stem.lower() else "live_capture"
@@ -127,6 +141,7 @@ def run_eval(
     redact_out: Path | None = None,
     sam_fn: Any = None,
     meta_client: Any = None,
+    budget_usd: float = 1.0,
 ) -> dict[str, Any]:
     """Corre ``observe`` en cada cuadro etiquetado y arma el reporte (sin imágenes)."""
     frames_dir = Path(frames_dir).expanduser()
@@ -139,10 +154,17 @@ def run_eval(
     if limit is not None:
         names = names[:limit]
     owns = sam_fn is None and meta_client is None
+    guard = None
     if owns:
-        from shield.meta_client import MetaClient
+        import os
 
-        meta_client = MetaClient()
+        from shield.meta_client import MetaClient
+        from shield.witness.surveillance import BudgetGuard
+
+        replay = os.environ.get("SHIELD_REPLAY_DIR") or str(
+            frames_dir.parent / "replay-cache-privado")
+        guard = BudgetGuard(MetaClient(replay_dir=replay), budget_usd)
+        meta_client = guard
     rows: list[dict[str, Any]] = []
     missing: list[str] = []
     observations: list[dict[str, Any]] = []
@@ -160,7 +182,7 @@ def run_eval(
                 door_concepts=DEFAULT_DOOR_CONCEPTS if door else (),
                 source=source_for(name),
             )
-            observations.append(obs.public())
+            observations.append({**obs.public(), "recorded_at": recorded_at(name, captured_at)})
             if redact_out is not None and obs.redacted_image:
                 (redact_out / f"{Path(name).stem}.redacted.jpg").write_bytes(obs.redacted_image)
             label = labels[name]
@@ -188,8 +210,11 @@ def run_eval(
         if redact_out is not None:  # fuera del repo: puede llevar cajas
             (redact_out / "observations.json").write_text(
                 json.dumps(observations, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return {"meta": _meta(site, door, len(labels), missing), "summary": summarize(rows),
-            "frames": rows}
+    meta = _meta(site, door, len(labels), missing)
+    if guard is not None:
+        meta["billed_usd"] = round(guard.spent, 6)
+        meta["calls"] = dict(guard.calls)
+    return {"meta": meta, "summary": summarize(rows), "frames": rows}
 
 
 def _meta(site: str, door: bool, n_labels: int, missing: list[str]) -> dict[str, Any]:
@@ -254,6 +279,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--redact-out", default=None, help="carpeta para JPEG redactados (fuera)")
     ap.add_argument("--out", default=None, help="JSON de salida (por defecto evals/recorded)")
+    ap.add_argument("--budget", type=float, default=1.0, help="tope facturado en USD")
     args = ap.parse_args(argv)
 
     frames = Path(args.frames).expanduser()
@@ -265,7 +291,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"sin etiquetas en {Path(args.labels).name}: llénalo primero", file=sys.stderr)
         return 2
     report = run_eval(frames, labels, site=args.site, door=not args.no_door, limit=args.limit,
-                      redact_out=Path(args.redact_out) if args.redact_out else None)
+                      redact_out=Path(args.redact_out) if args.redact_out else None,
+                      budget_usd=args.budget)
     out = Path(args.out).expanduser().resolve() if args.out else (
         RECORDED / f"witness-eval-{datetime.now(UTC).strftime('%Y-%m-%d')}.json")
     out.parent.mkdir(parents=True, exist_ok=True)

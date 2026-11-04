@@ -1,0 +1,1829 @@
+{
+  "stock_watch": {
+    "status": "expected",
+    "summary": "SAM 3.1 'box': 18 boxes at the 03:00 reference vs 12 live (-6). During opening hours -> expected, no alert. The same drop after hours would be a HIGH alert.",
+    "summary_es": "SAM 3.1 'box': 18 cajas en la referencia de las 03:00 frente a 12 en vivo (-6). Durante el horario de apertura -> esperado, sin alerta. La misma caída fuera de horario sería alerta alta.",
+    "metric": "18 → 12 boxes",
+    "image": "almacen_20261104-205749.redacted.jpg",
+    "model": "sam-3.1",
+    "response_ids": [
+      "resp_6aeb90011e00a78080fe43e5",
+      "resp_6aeb9004e2c1545bf90147ff",
+      "resp_6aeb900625e2a46628c54cb6",
+      "resp_6aeb9008c88f2f4ba1ae46c3",
+      "resp_6aeb900af273ba4bb6764f73",
+      "resp_6aeb900b8d83cd3685fb4e0e",
+      "resp_6aeb900d156bd324bc9f4ce9",
+      "resp_6aeb90101ffc4ed56f8b45a8",
+      "resp_6aeb9013389dbf97f4354b04",
+      "resp_6aeb9014cf3d65591d484276",
+      "resp_6aeb901726009a7b48474144",
+      "resp_6aeb9019df808a3241a04cb6"
+    ],
+    "latency_ms": 1947.162,
+    "cost_usd": 0.09,
+    "concept": "box",
+    "counterfactual_status": "alert",
+    "hours": "12:00-00:30 Europe/Madrid"
+  },
+  "cash_desk": {
+    "status": "alert",
+    "summary": "Cash drawer opened (SIMULATED POS event) with 0 people at the cash desk: irregularity (6 of 16 simulated openings).",
+    "summary_es": "Cajón abierto (evento POS SIMULADO) con 0 personas en la Caja: irregularidad (6 de 16 aperturas simuladas).",
+    "metric": "0 people + drawer_open (simulated)",
+    "image": "caja1_noche-0300_20261104-205833.redacted.jpg",
+    "model": "sam-3.1",
+    "response_ids": [
+      "resp_6aeb8f72517b094caf684b2d"
+    ],
+    "latency_ms": 148.753,
+    "cost_usd": 0.0025,
+    "simulated": true
+  },
+  "after_hours": {
+    "status": "all_clear",
+    "summary": "22 frames outside opening hours (12:00-00:30 Europe/Madrid): 0 with people.",
+    "summary_es": "22 cuadros fuera del horario de apertura (12:00-00:30 Europe/Madrid): 0 con personas.",
+    "metric": "0/22 after-hours frames with people",
+    "image": "almacen_noche-0300_20261104-205909.redacted.jpg",
+    "model": "sam-3.1",
+    "response_ids": [
+      "resp_6aeb8f5600d2ea071b364748"
+    ],
+    "latency_ms": 142.16,
+    "cost_usd": 0.0025
+  },
+  "security_log": {
+    "status": "all_clear",
+    "summary": "Shift log by muse-spark-1.3 from 5 redacted frames + counts (validated).",
+    "summary_es": "Parte de turno de muse-spark-1.3 con 5 cuadros redactados + conteos (validado).",
+    "metric": "6 lines EN / 6 ES",
+    "image": "almacen_20261104-205759.redacted.jpg",
+    "model": "muse-spark-1.3",
+    "response_ids": [
+      "chatcmpl-01a1a82c-4ebd-727f-af65-f7b005be5445",
+      "chatcmpl-01a1a82d-4508-7722-90cf-5e7c869c0e34"
+    ],
+    "latency_ms": 137199.587,
+    "cost_usd": 0.06286,
+    "text": {
+      "en": [
+        "Site madrid occupancy live capture counts recorded.",
+        "Almacen count 0 from 16 frames, cash desk count 3 from 16 frames.",
+        "Kitchen areas counts 1 and 1 from 20 frames and 11 frames.",
+        "Corridor count 7 from 15 frames.",
+        "Simulated drawer open events at cash desk 16, with unattended 6.",
+        "Alerts include 56 open hours and 22 after hours all clear, 10 attended and 6 unattended, 1 stock drop, high alerts 6, stock boxes from 18 to 12 difference -6."
+      ],
+      "es": [
+        "Sitio madrid con conteos de ocupación registrados en captura en directo.",
+        "Conteo en almacén 0 de 16 cuadros, conteo en caja 3 de 16 cuadros.",
+        "Conteos en cocinas 1 y 1 de 20 cuadros y 11 cuadros.",
+        "Conteo en pasillo 7 de 15 cuadros.",
+        "Eventos simulados de apertura de cajón en caja 16, con 6 sin atención.",
+        "Alertas con 56 en horario y 22 con todo despejado, 10 con atención y 6 sin atención, 1 por stock, alertas prioritarias 6, cajas de stock de 18 a 12 diferencia -6."
+      ]
+    },
+    "images": [
+      "almacen_20261104-205759.redacted.jpg",
+      "caja1_20261104-205707.redacted.jpg",
+      "cocina1_20261104-204400.redacted.jpg",
+      "cocina2_20261104-204453.redacted.jpg",
+      "pasillo_20261104-205002.redacted.jpg"
+    ]
+  },
+  "meta": {
+    "run_at": "2026-11-04T21:08:21+01:00",
+    "site": "madrid",
+    "opening_hours": "12:00-00:30 Europe/Madrid",
+    "models": [
+      "sam-3.1",
+      "muse-spark-1.3"
+    ],
+    "frames": 78,
+    "privacy": "sin imágenes, cajas ni rutas absolutas; Spark solo recibió imágenes redactadas; eventos POS simulados y rotulados"
+  },
+  "occupancy_latest": {
+    "almacen": {
+      "room": "almacen",
+      "people": 0,
+      "captured_at": "2026-11-04T20:57:59+01:00",
+      "source": "live_capture"
+    },
+    "caja1": {
+      "room": "caja1",
+      "people": 3,
+      "captured_at": "2026-11-04T20:57:07+01:00",
+      "source": "live_capture"
+    },
+    "cocina1": {
+      "room": "cocina1",
+      "people": 1,
+      "captured_at": "2026-11-04T20:44:00+01:00",
+      "source": "live_capture"
+    },
+    "cocina2": {
+      "room": "cocina2",
+      "people": 1,
+      "captured_at": "2026-11-04T20:44:53+01:00",
+      "source": "live_capture"
+    },
+    "pasillo": {
+      "room": "pasillo",
+      "people": 7,
+      "captured_at": "2026-11-04T20:50:02+01:00",
+      "source": "live_capture"
+    }
+  },
+  "occupancy_by_camera": {
+    "almacen:live_capture": {
+      "frames": 10,
+      "people_max": 0,
+      "frames_with_people": 0
+    },
+    "almacen:playback": {
+      "frames": 6,
+      "people_max": 0,
+      "frames_with_people": 0
+    },
+    "caja1:live_capture": {
+      "frames": 10,
+      "people_max": 3,
+      "frames_with_people": 10
+    },
+    "caja1:playback": {
+      "frames": 6,
+      "people_max": 0,
+      "frames_with_people": 0
+    },
+    "cocina1:playback": {
+      "frames": 10,
+      "people_max": 0,
+      "frames_with_people": 0
+    },
+    "cocina1:live_capture": {
+      "frames": 10,
+      "people_max": 1,
+      "frames_with_people": 10
+    },
+    "cocina2:live_capture": {
+      "frames": 11,
+      "people_max": 1,
+      "frames_with_people": 11
+    },
+    "pasillo:live_capture": {
+      "frames": 15,
+      "people_max": 7,
+      "frames_with_people": 15
+    }
+  },
+  "alerts_by_kind": {
+    "open_hours": 56,
+    "after_hours_all_clear": 22,
+    "stock_drop_open_hours": 1,
+    "drawer_open_attended": 10,
+    "drawer_open_unattended": 6
+  },
+  "alerts_actionable": [
+    {
+      "app": "unattended_cash_desk",
+      "kind": "drawer_open_unattended",
+      "severity": "high",
+      "camera": "caja1",
+      "room": "caja1",
+      "at": "2026-11-04T03:00:05+01:00",
+      "reason": "cajón abierto con 0 personas en la Caja",
+      "values": {
+        "pos_action": "drawer_open",
+        "terminal": "pos-sim-1",
+        "witness_age_s": 5.0,
+        "people": 0
+      },
+      "simulated": true
+    },
+    {
+      "app": "unattended_cash_desk",
+      "kind": "drawer_open_unattended",
+      "severity": "high",
+      "camera": "caja1",
+      "room": "caja1",
+      "at": "2026-11-04T03:00:05+01:00",
+      "reason": "cajón abierto con 0 personas en la Caja",
+      "values": {
+        "pos_action": "drawer_open",
+        "terminal": "pos-sim-1",
+        "witness_age_s": 5.0,
+        "people": 0
+      },
+      "simulated": true
+    },
+    {
+      "app": "unattended_cash_desk",
+      "kind": "drawer_open_unattended",
+      "severity": "high",
+      "camera": "caja1",
+      "room": "caja1",
+      "at": "2026-11-04T03:00:05+01:00",
+      "reason": "cajón abierto con 0 personas en la Caja",
+      "values": {
+        "pos_action": "drawer_open",
+        "terminal": "pos-sim-1",
+        "witness_age_s": 5.0,
+        "people": 0
+      },
+      "simulated": true
+    },
+    {
+      "app": "unattended_cash_desk",
+      "kind": "drawer_open_unattended",
+      "severity": "high",
+      "camera": "caja1",
+      "room": "caja1",
+      "at": "2026-11-04T03:00:05+01:00",
+      "reason": "cajón abierto con 0 personas en la Caja",
+      "values": {
+        "pos_action": "drawer_open",
+        "terminal": "pos-sim-1",
+        "witness_age_s": 5.0,
+        "people": 0
+      },
+      "simulated": true
+    },
+    {
+      "app": "unattended_cash_desk",
+      "kind": "drawer_open_unattended",
+      "severity": "high",
+      "camera": "caja1",
+      "room": "caja1",
+      "at": "2026-11-04T03:00:05+01:00",
+      "reason": "cajón abierto con 0 personas en la Caja",
+      "values": {
+        "pos_action": "drawer_open",
+        "terminal": "pos-sim-1",
+        "witness_age_s": 5.0,
+        "people": 0
+      },
+      "simulated": true
+    },
+    {
+      "app": "unattended_cash_desk",
+      "kind": "drawer_open_unattended",
+      "severity": "high",
+      "camera": "caja1",
+      "room": "caja1",
+      "at": "2026-11-04T03:00:05+01:00",
+      "reason": "cajón abierto con 0 personas en la Caja",
+      "values": {
+        "pos_action": "drawer_open",
+        "terminal": "pos-sim-1",
+        "witness_age_s": 5.0,
+        "people": 0
+      },
+      "simulated": true
+    }
+  ],
+  "stock_detail": {
+    "camera_prefix": "almacen",
+    "frames": 16,
+    "mode": "reference=playback 03:00, current=live",
+    "concept_choice": {
+      "chosen": "box",
+      "table": {
+        "cardboard box": {
+          "n": 12,
+          "mean": 13.417,
+          "std": 3.2,
+          "cv_within_scene": 0.0567,
+          "groups": {
+            "reference": {
+              "counts": [
+                17,
+                18,
+                17,
+                15,
+                15,
+                17
+              ],
+              "mean": 16.5,
+              "std": 1.118
+            },
+            "current": {
+              "counts": [
+                10,
+                10,
+                10,
+                11,
+                11,
+                10
+              ],
+              "mean": 10.333,
+              "std": 0.471
+            }
+          }
+        },
+        "box": {
+          "n": 12,
+          "mean": 14.917,
+          "std": 3.121,
+          "cv_within_scene": 0.0318,
+          "groups": {
+            "reference": {
+              "counts": [
+                18,
+                19,
+                18,
+                18,
+                18,
+                17
+              ],
+              "mean": 18.0,
+              "std": 0.577
+            },
+            "current": {
+              "counts": [
+                12,
+                12,
+                11,
+                12,
+                12,
+                12
+              ],
+              "mean": 11.833,
+              "std": 0.373
+            }
+          }
+        },
+        "crate": {
+          "n": 12,
+          "mean": 0.833,
+          "std": 0.898,
+          "cv_within_scene": 0.2828,
+          "groups": {
+            "reference": {
+              "counts": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "mean": 0.0,
+              "std": 0.0
+            },
+            "current": {
+              "counts": [
+                2,
+                2,
+                1,
+                1,
+                2,
+                2
+              ],
+              "mean": 1.667,
+              "std": 0.471
+            }
+          }
+        }
+      },
+      "why": "'box': conteo medio 14.917 y variación dentro de escena (CV) 0.0318 sobre 12 cuadros; criterio: media > 0, menor variación con la escena quieta (menos falsas caídas), luego mayor media"
+    },
+    "drop_threshold": 0.3,
+    "reference_frames": 6,
+    "reference_counts": [
+      17,
+      18,
+      18,
+      18,
+      18,
+      19
+    ],
+    "reference_median": 18,
+    "current_frames": 6,
+    "current_counts": [
+      11,
+      12,
+      12,
+      12,
+      12,
+      12
+    ],
+    "current_median": 12,
+    "measured_difference": -6,
+    "actual": {
+      "app": "stock_watch",
+      "kind": "stock_drop_open_hours",
+      "severity": "low",
+      "camera": "almacen",
+      "room": "almacen",
+      "at": "2026-11-04T20:57:49+01:00",
+      "reason": "stock bajó de 18 a 12 durante el horario de apertura -> esperado, sin alerta",
+      "values": {
+        "reference": 18,
+        "current": 12,
+        "drop_ratio": 0.3333,
+        "threshold": 0.3,
+        "concept": "box",
+        "open": true
+      },
+      "simulated": false
+    },
+    "counterfactual_after_hours": {
+      "app": "stock_watch",
+      "kind": "stock_drop_after_hours",
+      "severity": "high",
+      "camera": "almacen",
+      "room": "almacen",
+      "at": "2026-11-05T00:30:00+01:00",
+      "reason": "stock bajó de 18 a 12 fuera de horario",
+      "values": {
+        "reference": 18,
+        "current": 12,
+        "drop_ratio": 0.3333,
+        "threshold": 0.3,
+        "concept": "box",
+        "open": false
+      },
+      "simulated": false,
+      "counterfactual": true,
+      "autopilot_findings": [
+        {
+          "kind": "stock_drop_after_hours",
+          "severity": "high",
+          "reason": "vigilancia (stock_watch): stock_drop_after_hours en almacen",
+          "event_ids": [
+            "evt_963b62cb4128"
+          ],
+          "apps": [
+            "camera"
+          ],
+          "actors": [
+            "camera:almacen"
+          ]
+        }
+      ]
+    }
+  },
+  "cash_desk_detail": [
+    {
+      "frame": "caja1_20261104-205645.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T20:56:50+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_attended",
+      "severity": "info"
+    },
+    {
+      "frame": "caja1_20261104-205647.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T20:56:52+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_attended",
+      "severity": "info"
+    },
+    {
+      "frame": "caja1_20261104-205650.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T20:56:55+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_attended",
+      "severity": "info"
+    },
+    {
+      "frame": "caja1_20261104-205652.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T20:56:57+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_attended",
+      "severity": "info"
+    },
+    {
+      "frame": "caja1_20261104-205654.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T20:56:59+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_attended",
+      "severity": "info"
+    },
+    {
+      "frame": "caja1_20261104-205657.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T20:57:02+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_attended",
+      "severity": "info"
+    },
+    {
+      "frame": "caja1_20261104-205659.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T20:57:04+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_attended",
+      "severity": "info"
+    },
+    {
+      "frame": "caja1_20261104-205702.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T20:57:07+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_attended",
+      "severity": "info"
+    },
+    {
+      "frame": "caja1_20261104-205704.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T20:57:09+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_attended",
+      "severity": "info"
+    },
+    {
+      "frame": "caja1_20261104-205707.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T20:57:12+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_attended",
+      "severity": "info"
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205833.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T03:00:05+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_unattended",
+      "severity": "high"
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205836.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T03:00:05+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_unattended",
+      "severity": "high"
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205838.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T03:00:05+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_unattended",
+      "severity": "high"
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205840.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T03:00:05+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_unattended",
+      "severity": "high"
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205843.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T03:00:05+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_unattended",
+      "severity": "high"
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205845.jpg",
+      "pos_event": {
+        "action": "drawer_open",
+        "ts": "2026-11-04T03:00:05+01:00",
+        "terminal": "pos-sim-1",
+        "camera": "caja1",
+        "room": "caja1",
+        "simulated": true
+      },
+      "kind": "drawer_open_unattended",
+      "severity": "high"
+    }
+  ],
+  "autopilot": {
+    "events": 6,
+    "incident_severity": "high",
+    "findings_by_kind": {
+      "drawer_open_unattended": 6
+    },
+    "scope_level": "app",
+    "detect_to_contain_ms": 0.331
+  },
+  "security_log_detail": {
+    "en": [
+      "Site madrid occupancy live capture counts recorded.",
+      "Almacen count 0 from 16 frames, cash desk count 3 from 16 frames.",
+      "Kitchen areas counts 1 and 1 from 20 frames and 11 frames.",
+      "Corridor count 7 from 15 frames.",
+      "Simulated drawer open events at cash desk 16, with unattended 6.",
+      "Alerts include 56 open hours and 22 after hours all clear, 10 attended and 6 unattended, 1 stock drop, high alerts 6, stock boxes from 18 to 12 difference -6."
+    ],
+    "es": [
+      "Sitio madrid con conteos de ocupación registrados en captura en directo.",
+      "Conteo en almacén 0 de 16 cuadros, conteo en caja 3 de 16 cuadros.",
+      "Conteos en cocinas 1 y 1 de 20 cuadros y 11 cuadros.",
+      "Conteo en pasillo 7 de 15 cuadros.",
+      "Eventos simulados de apertura de cajón en caja 16, con 6 sin atención.",
+      "Alertas con 56 en horario y 22 con todo despejado, 10 con atención y 6 sin atención, 1 por stock, alertas prioritarias 6, cajas de stock de 18 a 12 diferencia -6."
+    ],
+    "source": "muse-spark-1.3",
+    "valid": true,
+    "problems": [],
+    "response_ids": [
+      "chatcmpl-01a1a82c-4ebd-727f-af65-f7b005be5445",
+      "chatcmpl-01a1a82d-4508-7722-90cf-5e7c869c0e34"
+    ],
+    "cost_usd": 0.06286,
+    "images_sent": 5,
+    "attempts": 2,
+    "latency_ms": 137199.587
+  },
+  "verified_empty": {
+    "frames": 12,
+    "written": 12,
+    "withheld": 0
+  },
+  "latency_ms_p50": 316.772,
+  "latency_ms_p95": 449.558,
+  "costs": {
+    "sam_nominal_usd": 0.285,
+    "spark_usd": 0.06286,
+    "nominal_total_usd": 0.34786,
+    "billed_usd": 0.15286,
+    "budget_usd": 0.7,
+    "calls": {
+      "sam_replay": 78,
+      "sam_billed": 36,
+      "spark_billed": 2
+    },
+    "note": "nominal = precio de lista por llamada; billed = sin replays/caché"
+  },
+  "frames": [
+    {
+      "frame": "almacen_20261104-205737.jpg",
+      "camera": "almacen",
+      "source": "live_capture",
+      "at": "2026-11-04T20:57:37+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 321.025,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f435014b6c1d1234b17"
+      ]
+    },
+    {
+      "frame": "almacen_20261104-205739.jpg",
+      "camera": "almacen",
+      "source": "live_capture",
+      "at": "2026-11-04T20:57:39+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 299.466,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f45e3a4dfd58d1e4b79"
+      ]
+    },
+    {
+      "frame": "almacen_20261104-205742.jpg",
+      "camera": "almacen",
+      "source": "live_capture",
+      "at": "2026-11-04T20:57:42+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 300.388,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f470db95ce443eb493a"
+      ]
+    },
+    {
+      "frame": "almacen_20261104-205744.jpg",
+      "camera": "almacen",
+      "source": "live_capture",
+      "at": "2026-11-04T20:57:44+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 310.057,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f498c32703396794137"
+      ]
+    },
+    {
+      "frame": "almacen_20261104-205747.jpg",
+      "camera": "almacen",
+      "source": "live_capture",
+      "at": "2026-11-04T20:57:47+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 301.162,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f4a13816896b5dd4531"
+      ]
+    },
+    {
+      "frame": "almacen_20261104-205749.jpg",
+      "camera": "almacen",
+      "source": "live_capture",
+      "at": "2026-11-04T20:57:49+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 313.055,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f4d51c096cec4014cef"
+      ]
+    },
+    {
+      "frame": "almacen_20261104-205752.jpg",
+      "camera": "almacen",
+      "source": "live_capture",
+      "at": "2026-11-04T20:57:52+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 320.204,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f4e4217db0e62f74d20"
+      ]
+    },
+    {
+      "frame": "almacen_20261104-205754.jpg",
+      "camera": "almacen",
+      "source": "live_capture",
+      "at": "2026-11-04T20:57:54+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 323.896,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f507c7afc8d34424274"
+      ]
+    },
+    {
+      "frame": "almacen_20261104-205757.jpg",
+      "camera": "almacen",
+      "source": "live_capture",
+      "at": "2026-11-04T20:57:57+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 304.259,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f5316bb3bd10f6a498d"
+      ]
+    },
+    {
+      "frame": "almacen_20261104-205759.jpg",
+      "camera": "almacen",
+      "source": "live_capture",
+      "at": "2026-11-04T20:57:59+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 316.772,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f548df950f7bf484224"
+      ]
+    },
+    {
+      "frame": "almacen_noche-0300_20261104-205909.jpg",
+      "camera": "almacen",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 142.16,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f5600d2ea071b364748"
+      ]
+    },
+    {
+      "frame": "almacen_noche-0300_20261104-205911.jpg",
+      "camera": "almacen",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 139.102,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f574ccdf827751e4961"
+      ]
+    },
+    {
+      "frame": "almacen_noche-0300_20261104-205914.jpg",
+      "camera": "almacen",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 158.252,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f5829ad4e1688424624"
+      ]
+    },
+    {
+      "frame": "almacen_noche-0300_20261104-205916.jpg",
+      "camera": "almacen",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 155.072,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f59eecef3e43a964f7b"
+      ]
+    },
+    {
+      "frame": "almacen_noche-0300_20261104-205918.jpg",
+      "camera": "almacen",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 171.244,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f5b60e92fead0394219"
+      ]
+    },
+    {
+      "frame": "almacen_noche-0300_20261104-205921.jpg",
+      "camera": "almacen",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 171.861,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f5cf790a89a8c8f4809"
+      ]
+    },
+    {
+      "frame": "caja1_20261104-205645.jpg",
+      "camera": "caja1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:56:45+01:00",
+      "people": 3,
+      "ok": true,
+      "error": null,
+      "latency_ms": 358.016,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f5ea4910667a856413f"
+      ]
+    },
+    {
+      "frame": "caja1_20261104-205647.jpg",
+      "camera": "caja1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:56:47+01:00",
+      "people": 3,
+      "ok": true,
+      "error": null,
+      "latency_ms": 347.467,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f60a649705ef5a14fb1"
+      ]
+    },
+    {
+      "frame": "caja1_20261104-205650.jpg",
+      "camera": "caja1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:56:50+01:00",
+      "people": 3,
+      "ok": true,
+      "error": null,
+      "latency_ms": 372.594,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f623ae7294a813c4ced"
+      ]
+    },
+    {
+      "frame": "caja1_20261104-205652.jpg",
+      "camera": "caja1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:56:52+01:00",
+      "people": 3,
+      "ok": true,
+      "error": null,
+      "latency_ms": 360.94,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f64398f9b8633b54c4f"
+      ]
+    },
+    {
+      "frame": "caja1_20261104-205654.jpg",
+      "camera": "caja1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:56:54+01:00",
+      "people": 3,
+      "ok": true,
+      "error": null,
+      "latency_ms": 382.93,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f6680d628f34d8044ba"
+      ]
+    },
+    {
+      "frame": "caja1_20261104-205657.jpg",
+      "camera": "caja1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:56:57+01:00",
+      "people": 3,
+      "ok": true,
+      "error": null,
+      "latency_ms": 374.48,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f676f525f27e8894df0"
+      ]
+    },
+    {
+      "frame": "caja1_20261104-205659.jpg",
+      "camera": "caja1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:56:59+01:00",
+      "people": 3,
+      "ok": true,
+      "error": null,
+      "latency_ms": 383.264,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f6a9729fe134b48499a"
+      ]
+    },
+    {
+      "frame": "caja1_20261104-205702.jpg",
+      "camera": "caja1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:57:02+01:00",
+      "people": 3,
+      "ok": true,
+      "error": null,
+      "latency_ms": 376.565,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f6deb7198904cec4419"
+      ]
+    },
+    {
+      "frame": "caja1_20261104-205704.jpg",
+      "camera": "caja1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:57:04+01:00",
+      "people": 3,
+      "ok": true,
+      "error": null,
+      "latency_ms": 371.147,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f6f9f6e7a361aad4a4f"
+      ]
+    },
+    {
+      "frame": "caja1_20261104-205707.jpg",
+      "camera": "caja1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:57:07+01:00",
+      "people": 3,
+      "ok": true,
+      "error": null,
+      "latency_ms": 358.747,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f71d1b7052dba8e423d"
+      ]
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205833.jpg",
+      "camera": "caja1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 148.753,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f72517b094caf684b2d"
+      ]
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205836.jpg",
+      "camera": "caja1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 152.105,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f7370ae280b57d34a40"
+      ]
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205838.jpg",
+      "camera": "caja1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 182.393,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f75a5ad3b5d903c49c8"
+      ]
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205840.jpg",
+      "camera": "caja1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 190.323,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f76ec1fce0ed5b74678"
+      ]
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205843.jpg",
+      "camera": "caja1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 211.789,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f77aa3f2da2a32c431b"
+      ]
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205845.jpg",
+      "camera": "caja1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 200.743,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f798cd5efe62ac843cc"
+      ]
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204645.jpg",
+      "camera": "cocina1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 290.688,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cc686bb3921e64041ee"
+      ]
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204647.jpg",
+      "camera": "cocina1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 182.503,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cc9da26c40bbbc844ae"
+      ]
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204649.jpg",
+      "camera": "cocina1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 200.409,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ccb3888410f19674e91"
+      ]
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204651.jpg",
+      "camera": "cocina1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 290.641,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ccd516a5817853e4062"
+      ]
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204653.jpg",
+      "camera": "cocina1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 175.548,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ccf191eac33bc0d4fc2"
+      ]
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204655.jpg",
+      "camera": "cocina1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 193.01,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cd060a83e3084b64e1b"
+      ]
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204658.jpg",
+      "camera": "cocina1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 257.482,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cd21544ce8c13544257"
+      ]
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204700.jpg",
+      "camera": "cocina1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 169.098,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cd3e9041fbe5e584deb"
+      ]
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204702.jpg",
+      "camera": "cocina1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 187.554,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cd4216271218e5c4ce7"
+      ]
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204704.jpg",
+      "camera": "cocina1",
+      "source": "playback",
+      "at": "2026-11-04T03:00:00+01:00",
+      "people": 0,
+      "ok": true,
+      "error": null,
+      "latency_ms": 224.618,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cd6ef0c438a2c224850"
+      ]
+    },
+    {
+      "frame": "cocina1_20261104-204341.jpg",
+      "camera": "cocina1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:43:41+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 436.26,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cd7ef1cf3a5047d44c3"
+      ]
+    },
+    {
+      "frame": "cocina1_20261104-204343.jpg",
+      "camera": "cocina1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:43:43+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 449.558,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cd940338963e5f04b73"
+      ]
+    },
+    {
+      "frame": "cocina1_20261104-204345.jpg",
+      "camera": "cocina1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:43:45+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 446.538,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cdbcbbfba7c60dd44f8"
+      ]
+    },
+    {
+      "frame": "cocina1_20261104-204348.jpg",
+      "camera": "cocina1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:43:48+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 452.006,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cddd21a51d7ccf5441f"
+      ]
+    },
+    {
+      "frame": "cocina1_20261104-204350.jpg",
+      "camera": "cocina1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:43:50+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 446.715,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cdf36f43773c7514480"
+      ]
+    },
+    {
+      "frame": "cocina1_20261104-204352.jpg",
+      "camera": "cocina1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:43:52+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 459.214,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ce1ec7a5c71c6db41d5"
+      ]
+    },
+    {
+      "frame": "cocina1_20261104-204354.jpg",
+      "camera": "cocina1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:43:54+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 438.679,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ce3b8f765c8d34c4691"
+      ]
+    },
+    {
+      "frame": "cocina1_20261104-204356.jpg",
+      "camera": "cocina1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:43:56+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 430.436,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ce57efe6f98d8b34d6c"
+      ]
+    },
+    {
+      "frame": "cocina1_20261104-204358.jpg",
+      "camera": "cocina1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:43:58+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 427.852,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ce813b15c27a08b4234"
+      ]
+    },
+    {
+      "frame": "cocina1_20261104-204400.jpg",
+      "camera": "cocina1",
+      "source": "live_capture",
+      "at": "2026-11-04T20:44:00+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 454.615,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ce96601efd1e0b34bdd"
+      ]
+    },
+    {
+      "frame": "cocina2_20261104-204423.jpg",
+      "camera": "cocina2",
+      "source": "live_capture",
+      "at": "2026-11-04T20:44:23+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 296.897,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cec5086b82766fe4d43"
+      ]
+    },
+    {
+      "frame": "cocina2_20261104-204425.jpg",
+      "camera": "cocina2",
+      "source": "live_capture",
+      "at": "2026-11-04T20:44:25+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 298.533,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cee19c3821b8a774347"
+      ]
+    },
+    {
+      "frame": "cocina2_20261104-204427.jpg",
+      "camera": "cocina2",
+      "source": "live_capture",
+      "at": "2026-11-04T20:44:27+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 304.891,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cef411d1a4d789949b3"
+      ]
+    },
+    {
+      "frame": "cocina2_20261104-204429.jpg",
+      "camera": "cocina2",
+      "source": "live_capture",
+      "at": "2026-11-04T20:44:29+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 303.695,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cf1fe661216e5bc4134"
+      ]
+    },
+    {
+      "frame": "cocina2_20261104-204432.jpg",
+      "camera": "cocina2",
+      "source": "live_capture",
+      "at": "2026-11-04T20:44:32+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 297.339,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cf2151cf832e6974085"
+      ]
+    },
+    {
+      "frame": "cocina2_20261104-204434.jpg",
+      "camera": "cocina2",
+      "source": "live_capture",
+      "at": "2026-11-04T20:44:34+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 259.118,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cf348caaf1970f9474f"
+      ]
+    },
+    {
+      "frame": "cocina2_20261104-204436.jpg",
+      "camera": "cocina2",
+      "source": "live_capture",
+      "at": "2026-11-04T20:44:36+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 274.24,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cf539f4311c9438454e"
+      ]
+    },
+    {
+      "frame": "cocina2_20261104-204446.jpg",
+      "camera": "cocina2",
+      "source": "live_capture",
+      "at": "2026-11-04T20:44:46+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 293.977,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cf74b9f917d6bed45a6"
+      ]
+    },
+    {
+      "frame": "cocina2_20261104-204448.jpg",
+      "camera": "cocina2",
+      "source": "live_capture",
+      "at": "2026-11-04T20:44:48+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 287.191,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cf8eba843b61f1942f6"
+      ]
+    },
+    {
+      "frame": "cocina2_20261104-204451.jpg",
+      "camera": "cocina2",
+      "source": "live_capture",
+      "at": "2026-11-04T20:44:51+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 294.356,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cf9c6a075738a87422f"
+      ]
+    },
+    {
+      "frame": "cocina2_20261104-204453.jpg",
+      "camera": "cocina2",
+      "source": "live_capture",
+      "at": "2026-11-04T20:44:53+01:00",
+      "people": 1,
+      "ok": true,
+      "error": null,
+      "latency_ms": 317.972,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cfb57a7c76fb44e4eda"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-204928.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:49:28+01:00",
+      "people": 6,
+      "ok": true,
+      "error": null,
+      "latency_ms": 406.168,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cfd7c3c45a521fb4b32"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-204930.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:49:30+01:00",
+      "people": 6,
+      "ok": true,
+      "error": null,
+      "latency_ms": 397.33,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cfed43b9e3f43c846f8"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-204933.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:49:33+01:00",
+      "people": 5,
+      "ok": true,
+      "error": null,
+      "latency_ms": 418.357,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d006c6aaf30b0f04cda"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-204935.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:49:35+01:00",
+      "people": 4,
+      "ok": true,
+      "error": null,
+      "latency_ms": 410.966,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d022ba8df176d9849c1"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-204937.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:49:37+01:00",
+      "people": 3,
+      "ok": true,
+      "error": null,
+      "latency_ms": 412.319,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d04517c91edda6d4c71"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-204940.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:49:40+01:00",
+      "people": 5,
+      "ok": true,
+      "error": null,
+      "latency_ms": 399.929,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d0512d092b1d9a747b2"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-204942.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:49:42+01:00",
+      "people": 4,
+      "ok": true,
+      "error": null,
+      "latency_ms": 404.508,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d07ce3f410f27084542"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-204945.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:49:45+01:00",
+      "people": 3,
+      "ok": true,
+      "error": null,
+      "latency_ms": 391.906,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d086ef5f631916b45af"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-204947.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:49:47+01:00",
+      "people": 3,
+      "ok": true,
+      "error": null,
+      "latency_ms": 409.154,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d0ad281adaa25de4dcd"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-204950.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:49:50+01:00",
+      "people": 3,
+      "ok": true,
+      "error": null,
+      "latency_ms": 409.766,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d0c8a54eff8d5674d4a"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-204952.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:49:52+01:00",
+      "people": 5,
+      "ok": true,
+      "error": null,
+      "latency_ms": 410.839,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d0e9e14878def6244d9"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-204954.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:49:54+01:00",
+      "people": 4,
+      "ok": true,
+      "error": null,
+      "latency_ms": 409.138,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d10558532b5e33d41b6"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-204957.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:49:57+01:00",
+      "people": 7,
+      "ok": true,
+      "error": null,
+      "latency_ms": 394.011,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d125c72e81b29ee4b8a"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-204959.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:49:59+01:00",
+      "people": 7,
+      "ok": true,
+      "error": null,
+      "latency_ms": 399.778,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d143daefda5d80e4091"
+      ]
+    },
+    {
+      "frame": "pasillo_20261104-205002.jpg",
+      "camera": "pasillo",
+      "source": "live_capture",
+      "at": "2026-11-04T20:50:02+01:00",
+      "people": 7,
+      "ok": true,
+      "error": null,
+      "latency_ms": 392.433,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d16625e1ef39af74543"
+      ]
+    }
+  ]
+}
