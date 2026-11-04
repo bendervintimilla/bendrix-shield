@@ -1,0 +1,225 @@
+{
+  "simulated": true,
+  "label": "SIMULACIÓN — sin datos reales, tiempos locales en ms",
+  "sources": {
+    "defrost_2nov": [
+      "https://www.tomshardware.com/tech-industry/cyber-security/supermarket-freezers-across-europe-struck-in-second-crippling-cyberattack-hackers-raise-temperatures-to-50-degrees-celsius-in-belgium-and-sweden-destroying-food-stocks",
+      "https://www.cbsnews.com/news/europe-grocery-store-refrigerator-freezer-cyberattack-hack-food-wasted/"
+    ],
+    "arkea_4nov": [
+      "https://www.euronews.com/2026/11/04/credit-mutuel-arkea-reports-cyberattack-says-clients-will-be-fully-protected"
+    ],
+    "stolen_token_oct": [
+      "ORDENES.md: incidente propio de octubre (llave filtrada, ~16 h)"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "defrost_forced_2nov",
+      "title": "Deshielo forzado remoto (patrón real 2-nov, Europa)",
+      "simulated": true,
+      "severity": "critical",
+      "correlated": false,
+      "circuit_breaker": true,
+      "findings": [
+        "defrost_anomaly",
+        "physics_block"
+      ],
+      "detect_to_contain_ms": 7.302,
+      "measures": [
+        "block_action",
+        "safe_state",
+        "revoke_tokens",
+        "circuit_breaker"
+      ],
+      "pending_owner": [],
+      "notice_en": "You were attacked. We already did: block_action (cold_room:camara), safe_state (cold_room:camara), revoke_tokens (*:unknown-remote), circuit_breaker (*:cold_room). Tap to undo / release with your second factor.",
+      "comparison": {
+        "no_shield": {
+          "malicious_succeed": 1,
+          "legitimate_write_ok": 2,
+          "legitimate_read_ok": 4
+        },
+        "suspend_all_arkea_style": {
+          "malicious_succeed": 0,
+          "legitimate_write_ok": 0,
+          "legitimate_read_ok": 0
+        },
+        "wairrior_fine_containment": {
+          "malicious_blocked": 1,
+          "malicious_succeed": 0,
+          "legitimate_events_ok": 0,
+          "legitimate_write_ok": 0,
+          "legitimate_read_ok": 4,
+          "writes_paused_by_circuit_breaker": true
+        }
+      }
+    },
+    {
+      "id": "arkea_iban_fraud_4nov",
+      "title": "Fraude de transferencias con cambio de IBAN por documento inyectado (patrón Arkéa 4-nov)",
+      "simulated": true,
+      "severity": "critical",
+      "correlated": true,
+      "circuit_breaker": true,
+      "findings": [
+        "payment_anomaly",
+        "iban_then_payment"
+      ],
+      "detect_to_contain_ms": 0.067,
+      "measures": [
+        "block_action",
+        "block_action",
+        "hold_payment",
+        "revoke_tokens",
+        "circuit_breaker"
+      ],
+      "pending_owner": [
+        "cambio definitivo de IBAN de supplier:acme (requiere tu OK)",
+        "pagar a supplier:acme (retenido, requiere tu OK)"
+      ],
+      "notice_en": "You were attacked. We already did: block_action (pos_erp:supplier:acme), block_action (payments:supplier:acme), hold_payment (payments:supplier:acme), revoke_tokens (*:payments-bot), circuit_breaker (*:payments,pos_erp). Tap to undo / release with your second factor. Waiting for your decision (never automatic): cambio definitivo de IBAN de supplier:acme (requiere tu OK); pagar a supplier:acme (retenido, requiere tu OK).",
+      "comparison": {
+        "no_shield": {
+          "malicious_succeed": 2,
+          "legitimate_write_ok": 3,
+          "legitimate_read_ok": 6
+        },
+        "suspend_all_arkea_style": {
+          "malicious_succeed": 0,
+          "legitimate_write_ok": 0,
+          "legitimate_read_ok": 0
+        },
+        "wairrior_fine_containment": {
+          "malicious_blocked": 2,
+          "malicious_succeed": 0,
+          "legitimate_events_ok": 0,
+          "legitimate_write_ok": 0,
+          "legitimate_read_ok": 6,
+          "writes_paused_by_circuit_breaker": true
+        }
+      }
+    },
+    {
+      "id": "stolen_token_oct",
+      "title": "Token de IA robado (incidente propio de octubre): ráfaga desde el gateway",
+      "simulated": true,
+      "severity": "high",
+      "correlated": false,
+      "circuit_breaker": false,
+      "findings": [
+        "token_burst"
+      ],
+      "detect_to_contain_ms": 0.069,
+      "measures": [
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "rotate_token"
+      ],
+      "pending_owner": [],
+      "notice_en": "You were attacked. We already did: block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), rotate_token (ai_gateway:crew-bot). Tap to undo / release with your second factor.",
+      "comparison": {
+        "no_shield": {
+          "malicious_succeed": 12,
+          "legitimate_write_ok": 2,
+          "legitimate_read_ok": 5
+        },
+        "suspend_all_arkea_style": {
+          "malicious_succeed": 0,
+          "legitimate_write_ok": 0,
+          "legitimate_read_ok": 0
+        },
+        "wairrior_fine_containment": {
+          "malicious_blocked": 12,
+          "malicious_succeed": 0,
+          "legitimate_events_ok": 0,
+          "legitimate_write_ok": 2,
+          "legitimate_read_ok": 5,
+          "writes_paused_by_circuit_breaker": false
+        }
+      }
+    },
+    {
+      "id": "legit_recurring_payment",
+      "title": "Legítimo: pago normal recurrente a proveedor conocido",
+      "simulated": true,
+      "severity": "low",
+      "correlated": false,
+      "circuit_breaker": false,
+      "findings": [],
+      "detect_to_contain_ms": 0.016,
+      "measures": [
+        "log"
+      ],
+      "pending_owner": [
+        "pagar a supplier:known (retenido, requiere tu OK)"
+      ],
+      "notice_en": "You were attacked. We already did: logged the event. Tap to undo / release with your second factor. Waiting for your decision (never automatic): pagar a supplier:known (retenido, requiere tu OK).",
+      "comparison": {
+        "no_shield": {
+          "malicious_succeed": 0,
+          "legitimate_write_ok": 2,
+          "legitimate_read_ok": 4
+        },
+        "suspend_all_arkea_style": {
+          "malicious_succeed": 0,
+          "legitimate_write_ok": 0,
+          "legitimate_read_ok": 0
+        },
+        "wairrior_fine_containment": {
+          "malicious_blocked": 0,
+          "malicious_succeed": 0,
+          "legitimate_events_ok": 1,
+          "legitimate_write_ok": 2,
+          "legitimate_read_ok": 4,
+          "writes_paused_by_circuit_breaker": false
+        }
+      }
+    },
+    {
+      "id": "legit_scheduled_defrost",
+      "title": "Legítimo: deshielo programado en calendario",
+      "simulated": true,
+      "severity": "low",
+      "correlated": false,
+      "circuit_breaker": false,
+      "findings": [],
+      "detect_to_contain_ms": 1.352,
+      "measures": [
+        "log"
+      ],
+      "pending_owner": [],
+      "notice_en": "You were attacked. We already did: logged the event. Tap to undo / release with your second factor.",
+      "comparison": {
+        "no_shield": {
+          "malicious_succeed": 0,
+          "legitimate_write_ok": 1,
+          "legitimate_read_ok": 3
+        },
+        "suspend_all_arkea_style": {
+          "malicious_succeed": 0,
+          "legitimate_write_ok": 0,
+          "legitimate_read_ok": 0
+        },
+        "wairrior_fine_containment": {
+          "malicious_blocked": 0,
+          "malicious_succeed": 0,
+          "legitimate_events_ok": 1,
+          "legitimate_write_ok": 1,
+          "legitimate_read_ok": 3,
+          "writes_paused_by_circuit_breaker": false
+        }
+      }
+    }
+  ]
+}
