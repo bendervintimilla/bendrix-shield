@@ -124,8 +124,10 @@ def main() -> int:
     """Corre todos los casos y resume; --json emite el detalle completo."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true", help="emitir JSON completo")
+    parser.add_argument("--cases", type=Path, default=CASES_PATH,
+                        help="archivo de casos (default: redteam.json congelado)")
     args = parser.parse_args()
-    data = json.loads(CASES_PATH.read_text(encoding="utf-8"))
+    data = json.loads(args.cases.read_text(encoding="utf-8"))
     loaded = _load_gate()
     if loaded is None:
         print("PENDING_M1: shield.physics.gate/thermal aun no estan en esta rama.")
@@ -145,6 +147,7 @@ def main() -> int:
     controls = [r for r in results if r["is_control"]]
     summary = {
         "label": "simulated",
+        "cases_file": args.cases.name,
         "attacks_total": len(attacks),
         "bypass": sum(r["result"] == "BYPASS" for r in attacks),
         "held": sum(r["result"] == "HELD" for r in attacks),

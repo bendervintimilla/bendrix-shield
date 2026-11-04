@@ -114,6 +114,46 @@ Resumen de ataques (19 sin controles): **3 BYPASS, 2 HELD, 9 STOPPED,
   real pedirá aprobación. Es fricción esperable del supuesto, conviene que
   M5/M8 lo rotulen así en la demo y no como «ataque».
 
+## Addendum `defrost_override` (orden del orquestador, reportado aparte)
+
+Archivo separado [evals/physical/redteam-addendum.json](/Users/bender/dev/wairrior-fx/m7-redteam/evals/physical/redteam-addendum.json),
+congelado en `bede82b` antes de correrlo; `redteam.json` no se reescribió.
+Vector: el ataque real del 2-nov-2026 a congeladores de supermercados en
+Europa (deshielo activado a distancia: un comando legítimo que una regla
+estática deja pasar). Se corre con `--cases evals/physical/redteam-addendum.json`.
+
+Con la visión nueva («contain first, ask later») la lectura cambia: `block`
+es contención automática y reversible, eso está bien; `ask_owner` **no** es
+contención, porque espera al dueño.
+
+Resultados (simulated, contra M1 b963c5e): ataques 9 → **1 BYPASS,
+8 STOPPED, 0 HELD**; control legítimo sin bloquear.
+
+| Caso | Resultado | Decisiones | Pico (720 min) | Min sobre 5 °C |
+|---|---|---|---|---|
+| DF-01 deshielo 4 h legítimo | STOPPED | block | 16.37 | 675 |
+| DF-02 deshielo 8 h | STOPPED | block | 26.80 | 675 |
+| DF-03 deshielo 2 h + puerta | STOPPED | block,block | 10.38 | 493 |
+| DF-04 deshielos 30 min cada hora | STOPPED* | ask,block,block,ask,ask,ask | 9.25 | 602 |
+| DF-05 deshielo + puerta repetido | STOPPED* | ask,ask,block,ask,block,block | 7.34 | 350 |
+| DF-06 deshielo diferido t=300 | **BYPASS** | allow | 16.37 | 375 |
+| DF-07 deshielo tras carga caliente | STOPPED | block,block | 12.24 | 720 |
+| DF-08 deshielo + compresor off | STOPPED | block,block | 10.28 | 591 |
+| DF-09 deshielo con producto tibio | STOPPED | block | 5.36 | 63 |
+| DF-10 control deshielo 15 min | INEFFECTIVE | allow | 3.56 | 0 |
+
+- **La contención automática sí funciona en el patrón real directo:**
+  deshielo largo, con puerta, tras carga o con producto tibio bloquea en el
+  primer paso, sin esperar al dueño. Esa es la prueba fuerte del escudo.
+- **DF-06 es el mismo bypass de horizonte con ropa nueva:** deshielo de 4 h
+  que empieza en t=300 pasa `allow` y llega a 16.4 °C. El arreglo de horizonte
+  propuesto abajo lo cubre también.
+- **DF-04/DF-05: el block no queda enganchado.** Tras bloquear, los reintentos
+  vuelven a `ask_owner`; si el dueño aprueba por rutina, lo ejecutado en DF-04
+  ya pasa 368 min sobre el límite (`damage_before_block=true`). Bajo
+  «contain first», un reintento de la misma acción bloqueada debería seguir
+  bloqueado y escalar (circuit breaker), no bajar a pregunta.
+
 ## Arreglos propuestos (para M1/orquestador, M7 no toca gate.py)
 
 1. Cubrir o escalar toda acción cuyo inicio o fin caiga fuera del horizonte.
@@ -121,3 +161,6 @@ Resumen de ataques (19 sin controles): **3 BYPASS, 2 HELD, 9 STOPPED,
    fallar cerrado si el estado no tiene procedencia confiable.
 3. Duty-cycle de deshielo (y de `compressor_off`) como block duro acumulado,
    no solo ask_owner.
+4. Contención enganchada: tras un `block`, reintentos de la misma clase de
+   acción quedan en `block` y escalan a circuit breaker, no vuelven a
+   `ask_owner` (DF-04/DF-05).
