@@ -2164,6 +2164,16 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         status = 409 if isinstance(out, dict) and out.get("status") in ("error", "stale") else 200
         return JSONResponse(out, status_code=status)
 
+    @app.post("/physical/undo")
+    def physical_undo(request: Request) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _physical_run(request)
+        with run.lock:
+            out = run.undo_containment()
+        return JSONResponse(out, status_code=409 if out.get("status") == "error" else 200)
+
     @app.post("/physical/voice")
     async def physical_voice(request: Request, typed: str | None = Form(None)) -> Any:
         guard = _physical_guard(request)
