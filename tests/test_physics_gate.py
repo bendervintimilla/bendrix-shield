@@ -6,6 +6,7 @@ import time
 
 from shield.physics.contract import ColdRoomParams, ProposedAction, RoomState
 from shield.physics.gate import verify_action
+from shield.physics.rescue import RescueGrant, issue_last_safe_action
 
 PARAMS = ColdRoomParams()
 
@@ -43,6 +44,25 @@ def test_setpoint_4_is_allowed_with_margin_informed() -> None:
     assert verdict.decision == "allow"
     assert verdict.peak_product_c < PARAMS.safe_max_c
     assert verdict.evidence["margin_to_safe_max_c"] > 1.0
+
+
+def test_salami_soft_drift_to_4_is_not_silent() -> None:
+    """Regresión M2 A04/A05: deriva suave a 4.0 °C en pasos chicos no es allow."""
+    cases = [
+        (3.6, 3.8, [3.2, 3.4, 3.6, 3.8]),
+        (3.8, 3.9, [3.3, 3.6, 3.9]),
+    ]
+    for product_c, setpoint_c, values in cases:
+        state = RoomState(air_c=product_c, product_c=product_c, setpoint_c=setpoint_c)
+        history = [ProposedAction(kind="set_setpoint", value=value) for value in values]
+        verdict = verify_action(
+            PARAMS, state, ProposedAction(kind="set_setpoint", value=4.0), history=history
+        )
+        assert verdict.decision in ("ask_owner", "block")
+        assert verdict.decision != "allow"
+    # El mismo 4.0 °C en un solo paso legítimo sigue en allow.
+    single = verify_action(PARAMS, RoomState(), ProposedAction(kind="set_setpoint", value=4.0))
+    assert single.decision == "allow"
 
 
 def test_setpoint_very_close_to_limit_asks_owner() -> None:
@@ -165,6 +185,154 @@ def test_repeated_forced_defrost_4x30min_in_2h_is_blocked() -> None:
     verdict = verify_action(PARAMS, RoomState(), fourth, history=history)
     assert verdict.decision == "block"
     assert verdict.peak_product_c > PARAMS.safe_max_c
+
+
+def test_r2_01_slow_freeze_huge_mass_is_blocked() -> None:
+    """R2-01: setpoint -6 °C con 2000 kg; el destino frío manda, no el horizonte."""
+    state = RoomState(product_kg=2000.0)
+    verdict = verify_action(PARAMS, state, ProposedAction(kind="set_setpoint", value=-6.0))
+    assert verdict.decision == "block"
+    assert verdict.evidence["cold_destination_block"] is True
+    assert verdict.evidence["steady_state_product_c"] == -6.0
+    # Dentro del horizonte el producto aún no cruza: el block es analítico.
+    assert min(verdict.with_action.product_c) > PARAMS.safe_min_c
+
+
+def test_r2_02_slow_freeze_moderate_is_blocked() -> None:
+    """R2-02: setpoint -3 °C con 1000 kg tampoco pasa allow."""
+    state = RoomState(product_kg=1000.0)
+    verdict = verify_action(PARAMS, state, ProposedAction(kind="set_setpoint", value=-3.0))
+    assert verdict.decision in ("block", "ask_owner")
+    assert verdict.decision == "block"
+
+
+def test_cold_destination_close_to_minimum_asks_owner() -> None:
+    """Destino frío a ≤0.5 °C sobre safe_min_c: ask_owner simétrico."""
+    state = RoomState(product_kg=2000.0)
+    verdict = verify_action(PARAMS, state, ProposedAction(kind="set_setpoint", value=-0.7))
+    assert verdict.decision == "ask_owner"
+
+
+def test_r2_09_autopilot_rescue_cancels_active_defrost() -> None:
+    """R2-09: last_safe_action con deshielo activo en history es allow."""
+    history = [
+        ProposedAction(kind="defrost", duration_min=120, start_in_min=0, source="attacker")
+    ]
+    state = RoomState(air_c=9.0, product_c=4.4, setpoint_c=3.0)
+    action, grant = issue_last_safe_action(PARAMS, state)
+    verdict = verify_action(PARAMS, state, action, history=history, rescue_grant=grant)
+    assert verdict.decision == "allow"
+    assert verdict.evidence["rescue_action"] is True
+    assert verdict.evidence["improves_over_doing_nothing"] is True
+    assert verdict.peak_product_c < PARAMS.safe_max_c
+
+
+def test_r2_10_autopilot_rescue_cancels_active_compressor_off() -> None:
+    """R2-10: last_safe_action con compressor_off activo en history es allow."""
+    history = [
+        ProposedAction(kind="compressor_off", duration_min=180, start_in_min=0, source="attacker")
+    ]
+    state = RoomState(air_c=8.0, product_c=4.3, setpoint_c=3.0)
+    action, grant = issue_last_safe_action(PARAMS, state)
+    verdict = verify_action(PARAMS, state, action, history=history, rescue_grant=grant)
+    assert verdict.decision == "allow"
+    assert verdict.evidence["rescue_action"] is True
+    assert verdict.peak_product_c < PARAMS.safe_max_c
+
+
+def test_rescue_during_active_defrost_with_tight_margin_allows_immediately() -> None:
+    """Rescate con producto a 4.5 °C y deshielo activo: allow, no ask por margen."""
+    state = RoomState(air_c=9.0, product_c=4.5)
+    history = [ProposedAction(kind="defrost", duration_min=240, source="attacker")]
+    action, grant = issue_last_safe_action(PARAMS, state)
+    verdict = verify_action(PARAMS, state, action, history=history, rescue_grant=grant)
+    assert verdict.decision == "allow"
+    assert verdict.evidence["summary"].startswith(
+        "contención reversible: mejora frente a no hacer nada; margen restante"
+    )
+    assert verdict.evidence["remaining_margin_c"] < 0.5
+    assert verdict.evidence["peak_without_action_c"] > verdict.evidence["peak_product_c"]
+
+
+def _forged_rescue(**overrides: object) -> ProposedAction:
+    """Rescate falsificado C3: solo el texto mágico, sin grant."""
+    fields: dict[str, object] = {
+        "kind": "set_setpoint",
+        "value": 3.0,
+        "start_in_min": 0,
+        "source": "attacker",
+        "requested_by": "wairrior-autopilot",
+        "note": "forjado",
+    }
+    fields.update(overrides)
+    return ProposedAction(**fields)  # type: ignore[arg-type]
+
+
+def test_c3_08_forged_rescue_is_blocked_and_flagged() -> None:
+    """C3-08: rescate forjado que pisaba un block ahora es block y sospechoso."""
+    state = RoomState(air_c=9.0, product_c=4.9, minutes_above_so_far=45.0)
+    history = [ProposedAction(kind="defrost", duration_min=120, source="attacker")]
+    verdict = verify_action(PARAMS, state, _forged_rescue(), history=history)
+    assert verdict.decision == "block"
+    assert verdict.evidence["suspicious_rescue_claim"] is True
+    assert verdict.evidence["rescue_grant_status"] == "missing"
+    assert verdict.evidence["rescue_action"] is False
+
+
+def test_c3_07_forged_rescue_gets_no_cancellation() -> None:
+    """C3-07: el forjado no cancela el deshielo legítimo en el gemelo."""
+    state = RoomState(air_c=5.5, product_c=3.8)
+    history = [
+        ProposedAction(kind="defrost", duration_min=25, source="schedule",
+                       requested_by="mantenimiento")
+    ]
+    verdict = verify_action(PARAMS, state, _forged_rescue(), history=history)
+    assert verdict.decision != "allow" or verdict.evidence["suspicious_rescue_claim"]
+    assert verdict.evidence["suspicious_rescue_claim"] is True
+    # Sin cancelación, el deshielo de la history sí calienta la trayectoria.
+    assert max(verdict.with_action.air_c) > max(verdict.baseline.air_c)
+
+
+def test_forged_signature_grant_gets_no_privilege() -> None:
+    """Un grant con firma inventada tampoco da privilegio."""
+    state = RoomState(air_c=9.0, product_c=4.5)
+    history = [ProposedAction(kind="defrost", duration_min=240, source="attacker")]
+    fake = RescueGrant(
+        equipment="camara", kind="set_setpoint", value=3.0,
+        issued_at_s=0.0, expires_at_s=9_999_999_999.0, nonce="x", signature="0" * 64,
+    )
+    verdict = verify_action(PARAMS, state, _forged_rescue(source="schedule"),
+                            history=history, rescue_grant=fake)
+    assert verdict.decision != "allow"
+    assert verdict.evidence["rescue_grant_status"] == "bad_signature"
+
+
+def test_expired_and_reused_grants_get_no_privilege() -> None:
+    """Grant expirado y grant reusado: sin privilegio de rescate."""
+    state = RoomState(air_c=9.0, product_c=4.5)
+    history = [ProposedAction(kind="defrost", duration_min=240, source="attacker")]
+    action, expired = issue_last_safe_action(PARAMS, state, now_s=1_000.0)
+    verdict = verify_action(PARAMS, state, action, history=history, rescue_grant=expired)
+    assert verdict.decision != "allow"
+    assert verdict.evidence["rescue_grant_status"] == "expired"
+
+    action2, grant2 = issue_last_safe_action(PARAMS, state)
+    first = verify_action(PARAMS, state, action2, history=history, rescue_grant=grant2)
+    assert first.decision == "allow"
+    second = verify_action(PARAMS, state, action2, history=history, rescue_grant=grant2)
+    assert second.decision != "allow"
+    assert second.evidence["rescue_grant_status"] == "reused"
+
+
+def test_grant_for_another_action_gets_no_privilege() -> None:
+    """Un grant válido para el rescate no sirve para otra acción."""
+    state = RoomState(air_c=9.0, product_c=4.5)
+    history = [ProposedAction(kind="defrost", duration_min=240, source="attacker")]
+    _, grant = issue_last_safe_action(PARAMS, state)
+    other = _forged_rescue(value=4.0, source="schedule")
+    verdict = verify_action(PARAMS, state, other, history=history, rescue_grant=grant)
+    assert verdict.evidence["rescue_grant_status"] == "mismatch"
+    assert verdict.evidence["rescue_action"] is False
 
 
 def test_verify_action_is_fast_enough() -> None:
