@@ -1,6 +1,6 @@
-# Guía de la demo — Wairrior — Business Protection
+# Guía de la demo — wAIrrior — Business Protection
 
-Nombre público: «Wairrior, Business Protection». Aviso de no afiliación:
+Nombre público: «wAIrrior, Business Protection». Aviso de no afiliación:
 *Built on Meta's Muse models; independent project, not affiliated with
 or endorsed by Meta.* Portadas: `docs/brand/slides/`.
 
@@ -8,8 +8,11 @@ Dos modos con los mismos comandos: **replay** (sin red ni créditos) y
 **en vivo** (con créditos Meta y, opcionalmente, la llave de Baseten en
 el vault). En replay todo lo que necesite un modelo responde
 `needs_credits` o sale de la caché por hash, y la demo no se cae.
-WhatsApp es un webhook en modo simulador, sin credenciales reales; la
-cadena viva usa voz.
+WhatsApp funciona en modo simulador sin credenciales reales y se probó
+en vivo con la nota de voz real del dueño el 3-nov-2026
+(`evals/recorded/live-run-whatsapp-owner-voice-2026-11-03.json`); la
+toma del video aprueba por voz en el navegador
+(`evals/recorded/live-run-video-take-2026-11-03.json`).
 
 ## Antes de empezar
 
@@ -43,7 +46,7 @@ security find-generic-password -s baseten-api-key -a hackathon -w >/dev/null \
 
 El 21-oct-2026 las llaves de IA fueron el botín (paquete troyanizado,
 variables de nube expuestas, ~16 h de abuso, USD 310). Las apps tenían
-la llave real; con Wairrior solo tienen un token revocable por agente.
+la llave real; con wAIrrior solo tienen un token revocable por agente.
 
 ### 2. Conectar cualquier app en 2 líneas
 
