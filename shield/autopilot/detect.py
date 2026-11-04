@@ -63,12 +63,15 @@ class Incident:
     actors: tuple[str, ...]
     event_ids: tuple[str, ...]
     correlated: bool = False
+    correlation_reasons: tuple[str, ...] = ()
     triage: str | None = None  # solo explicación opcional de Muse Spark
 
     def to_dict(self) -> dict[str, Any]:
         return {"severity": self.severity, "apps": list(self.apps),
                 "actors": list(self.actors), "event_ids": list(self.event_ids),
-                "correlated": self.correlated, "triage": self.triage,
+                "correlated": self.correlated,
+                "correlation_reasons": list(self.correlation_reasons),
+                "triage": self.triage,
                 "findings": [f.to_dict() for f in self.findings]}
 
 
@@ -83,14 +86,22 @@ def detect(events: list[SecurityEvent],
            baseline: ActorBaseline | list[SecurityEvent] | None = None) -> list[Finding]:
     """Reglas explicables sobre eventos normalizados (ordenados por hora)."""
     evs = sorted(events, key=lambda e: e.ts)
-    base = baseline if isinstance(baseline, ActorBaseline) else ActorBaseline.from_events(
-        list(baseline) if baseline else [e for e in evs if e.source != "attacker"])
+    if isinstance(baseline, ActorBaseline):
+        base = baseline
+    elif baseline:
+        base = ActorBaseline.from_events(list(baseline))
+    else:
+        base = ActorBaseline()  # sin historia: todo beneficiario es desconocido
     findings: list[Finding] = []
 
     def add(kind, severity, reason, hit):
         findings.append(Finding(kind, severity, reason, (hit.event_id,), (hit.app,), (hit.actor,)))
 
     for e in evs:
+        if e.actor == "wairrior-autopilot":
+            add("forged_autopilot_actor", "high",
+                "actor auto-declarado 'wairrior-autopilot' en un evento "
+                "entrante: canal no autenticado, sospechoso", e)
         amount = float(e.values.get("amount") or 0)
         atypical = base.median_amount > 0 and amount > base.median_amount * 3
         new_bene = bool(e.values.get("beneficiary")) and str(
@@ -149,20 +160,54 @@ def detect(events: list[SecurityEvent],
     return findings
 
 
+def _campaign_keys(event: SecurityEvent) -> dict[str, set[str]]:
+    """Claves de campaña de un evento: objetivo, beneficiario/IBAN, equipo, patrón."""
+    keys: dict[str, set[str]] = {"target": set(), "beneficiary": set(),
+                                "pattern": {"anomalous_write"}}
+    if event.target:
+        keys["target"].add(event.target)
+    for name in ("beneficiary", "iban_last4", "iban", "supplier"):
+        if event.values.get(name):
+            keys["beneficiary"].add(str(event.values[name]))
+    if event.app == "cold_room":
+        keys["target"].add(f"equipment:{event.target}")
+    return keys
+
+
 def correlate(events: list[SecurityEvent], findings: list[Finding],
               *, window_min: float = 10.0) -> Incident:
-    """Correlación: mismo actor/token o misma ventana tocando >=2 apps."""
+    """Correlación por campaña en 24 h, no solo por actor en 10 min.
+
+    Espaciar 90 min y rotar actores/tokens (C3-13) ya no evade: dos o más
+    apps marcadas correlacionan si en 24 h comparten actor, token,
+    OBJETIVO (mismo proveedor/equipo), beneficiario/IBAN o la firma de
+    campaña (escrituras anómalas del mismo patrón). La ventana corta de
+    ``window_min`` sigue correlacionando por sí sola.
+    """
     evs = sorted(events, key=lambda e: e.ts)
     flagged_ids = {eid for f in findings for eid in f.event_ids}
     flagged = [e for e in evs if e.event_id in flagged_ids]
-    correlated = False
-    if len({e.app for e in flagged}) >= 2:
-        same_actor = len({e.actor for e in flagged}) < len(flagged)
-        same_token = len({e.token_id for e in flagged if e.token_id}) == 1 and any(
-            e.token_id for e in flagged)
-        in_window = bool(flagged) and (flagged[-1].ts - flagged[0].ts) <= timedelta(
-            minutes=window_min)
-        correlated = bool(same_actor or same_token or in_window)
+    reasons: list[str] = []
+    if len({e.app for e in flagged}) >= 2 and flagged:
+        span = flagged[-1].ts - flagged[0].ts
+        if span <= timedelta(minutes=window_min):
+            reasons.append(f"window_{window_min:g}m")
+        if span <= timedelta(hours=24):
+            if len({e.actor for e in flagged}) < len(flagged) or len(flagged) == 1:
+                if len({e.actor for e in flagged}) == 1:
+                    reasons.append("same_actor_24h")
+            tokens = [e.token_id for e in flagged if e.token_id]
+            if tokens and len(set(tokens)) < len(tokens):
+                reasons.append("same_token_24h")
+            for kind in ("target", "beneficiary", "pattern"):
+                seen: set[str] = set()
+                for e in flagged:
+                    values = _campaign_keys(e)[kind]
+                    if seen & values:
+                        reasons.append(f"same_{kind}_24h")
+                        break
+                    seen |= values
+    correlated = bool(reasons)
     severity = "low"
     for f in findings:
         if SEVERITY_ORDER[f.severity] > SEVERITY_ORDER[severity]:
@@ -173,7 +218,8 @@ def correlate(events: list[SecurityEvent], findings: list[Finding],
         findings=tuple(findings), severity=severity if findings else "low",
         apps=tuple(sorted({e.app for e in flagged or evs})),
         actors=tuple(sorted({e.actor for e in flagged or evs})),
-        event_ids=tuple(e.event_id for e in (flagged or evs)), correlated=correlated)
+        event_ids=tuple(e.event_id for e in (flagged or evs)), correlated=correlated,
+        correlation_reasons=tuple(dict.fromkeys(reasons)))
 
 
 def triage_incident(incident: Incident,
