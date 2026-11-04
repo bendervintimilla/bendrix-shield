@@ -101,3 +101,10 @@ def test_phone_sigue_redactando_telefonos():
         redacted, kinds = redact_text(f"llamar al {tel}.")
         assert tel not in redacted, tel
         assert "phone" in {f.kind for f in kinds}, tel
+
+
+def test_cve_seguido_de_digitos_no_protege_un_telefono():
+    # Revisión final (4-nov): forma de CVE seguida de más dígitos se redacta como en main.
+    for text in ("CVE-2026-099123 4567", "CVE-2026-12345 6789"):
+        assert "[REDACTED:phone]" in redact_text(text)[0], text
+    assert redact_text("Parche para CVE-2026-1234 hoy")[0] == "Parche para CVE-2026-1234 hoy"

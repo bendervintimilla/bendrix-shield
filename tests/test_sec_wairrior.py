@@ -75,3 +75,19 @@ def test_fix_cve_recupera_id_por_titulo_o_deja_marcador():
     assert _fix_cve_redaction({"a": ["ver CVE-[REDACTED:phone]"]}) == {"a": ["ver CVE-(id)"]}
     # Los teléfonos reales redactados no se tocan.
     assert _fix_cve_redaction("tel [REDACTED:phone]") == "tel [REDACTED:phone]"
+
+
+# Revisión final (4-nov): «attach» solo cuenta si el secreto está en la misma cláusula.
+@pytest.mark.parametrize(
+    "doc",
+    [
+        "Please attach the delivery note. The warehouse keys are with the guard.",
+        "Attach the cold-room log; reset your password monthly.",
+        "Attach the invoice PDF. Token-based login is enabled for suppliers.",
+    ],
+)
+def test_attach_con_secreto_en_otra_frase_no_da_reveal_secret(doc):
+    from shield.policy.injection import _scan_text
+
+    kinds = {h.kind for h in _scan_text(doc, "body", "t", False)}
+    assert not any(k.startswith("reveal_secret") for k in kinds), kinds

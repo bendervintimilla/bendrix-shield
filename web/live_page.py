@@ -175,6 +175,7 @@ T: dict[str, dict[str, str]] = {
         "recorded_live_run": "recorded live run (2 Nov)",
         "approved": "approved",
         "stale_page": "Another tab changed the scene or started a new run, so this page is out of date. Reload to continue.",
+        "stale_short": "page out of date, reload",
         "reload": "Reload",
         "err_own_photo": "the replay does not count your photo (the file was ignored); use live mode to count your own photo",
     },
@@ -333,6 +334,7 @@ T: dict[str, dict[str, str]] = {
         "recorded_live_run": "corrida en vivo grabada (2 nov)",
         "approved": "aprobado",
         "stale_page": "Otra pestaña cambió la escena o empezó una corrida nueva, así que esta página quedó desactualizada. Recarga para seguir.",
+        "stale_short": "página desactualizada, recarga",
         "reload": "Recargar",
         "err_own_photo": "la repetición no cuenta tu foto (el archivo se ignoró); usa el modo en vivo para contar tu propia foto",
     },
@@ -495,7 +497,7 @@ code,.mono{font-family:var(--mono);font-size:.92em}
 .step[data-state="error"] .step-card,.step[data-state="blocked"] .step-card{border-color:rgba(229,83,75,.7)}
 .step-head{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;min-height:40px}
 .step h2{font-size:21px;margin:0;flex:1 1 260px;min-width:0;line-height:1.2}
-.step-status{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:4px 11px 4px 9px;background:var(--sunk);color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;transition:color .3s ease,border-color .3s ease}
+.step-status{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:4px 11px 4px 9px;background:var(--sunk);color:var(--muted);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;transition:color .3s ease,border-color .3s ease}
 .step-status::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.8}
 .step-status[data-state="running"]{color:var(--warn-text);border-color:rgba(239,168,58,.6)}
 .step-status[data-state="ok"]{color:var(--ok-text);border-color:rgba(54,179,126,.55)}
@@ -522,7 +524,7 @@ code,.mono{font-family:var(--mono);font-size:.92em}
 .kr-unit{margin-left:12px;font-size:20px;font-weight:550;color:var(--muted);letter-spacing:-.01em}
 .key-result .recorded-run{display:inline-block;margin-left:14px;font-size:14px;font-weight:500;letter-spacing:0;vertical-align:middle}
 .cold-attack-note{margin:8px 0 0}
-.stale-notice{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 16px;background:var(--surface);border-bottom:2px solid var(--accent);font-size:15px}
+.stale-notice{position:sticky;top:0;z-index:70;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 16px;background:var(--surface);border-bottom:2px solid var(--accent);font-size:15px}
 .stale-notice p{margin:0;flex:1 1 260px}
 .kr-label{display:block;margin-bottom:6px;font-size:13.5px;font-weight:600;color:var(--muted);letter-spacing:0}
 .verdict{margin:0;font-size:16.5px;font-weight:550;color:var(--text);max-width:68ch}
@@ -1367,6 +1369,8 @@ async function apiFetch(path, opts) {
   return res;
 }
 function isAbort(err) { return err && err.name === "AbortError"; }
+/* La página quedó vieja (otra pestaña cambió la escena o la corrida): solo el aviso. */
+function isStaleData(data) { return !!(data && (data.error_code === "scene_changed" || data.error_code === "run_changed")); }
 async function refreshState() {
   const res = await apiFetch("/state");
   if (!res.ok) return null;
@@ -1402,7 +1406,7 @@ function stepErrorText(data, httpStatus) {
   if (!need && (raw === "run the guardian first" || raw === "no pending approval")) need = "guardian";
   if (need && STEP_NUMBER[need]) return TEXT.err_need_step.replace("{n}", STEP_NUMBER[need]);
   if ((data && data.status === "not_approved") || raw === "the owner has not approved yet") return TEXT.err_not_approved;
-  if (data && (data.error_code === "scene_changed" || data.error_code === "run_changed")) return TEXT.stale_page;
+  if (isStaleData(data)) return TEXT.stale_short;
   if (data && data.status === "stale") return TEXT.err_stale;
   if ((data && data.error_code === "contained") || raw === "this run is already contained: start a new run") return TEXT.err_contained;
   if (data && data.error_code === "own_photo_not_counted") return TEXT.err_own_photo;
@@ -1521,6 +1525,7 @@ async function toggleRecord() {
       res = await apiFetch("/voice", {method: "POST", body: form});
       data = await res.json();
     } catch (err) { if (isAbort(err)) return; throw err; }
+    if (isStaleData(data)) { stopStatus("voice", TEXT.error + ": " + TEXT.stale_short); return; }
     stopStatus("voice", data.status === "error" ? TEXT.error + ": " + (data.error || "") : TEXT.ok + ": " + statusWord(data.status));
     renderVoice(data);
     await refreshState();
@@ -1605,6 +1610,7 @@ document.addEventListener("DOMContentLoaded", () => {
       res = await apiFetch("/voice", {method: "POST", body: form});
       data = await res.json();
     } catch (err) { if (isAbort(err)) { stopStatus("voice", TEXT.not_run); return; } throw err; }
+    if (isStaleData(data)) { stopStatus("voice", TEXT.error + ": " + TEXT.stale_short); return; }
     stopStatus("voice", (data.status === "error" || data.status === "stale") ? TEXT.error + ": " + stepErrorText(data, res.status) : TEXT.ok + ": " + statusWord(data.status));
     renderVoice(data);
     await refreshState();
@@ -1744,9 +1750,9 @@ def render_live_page(
         "<ul id='anomalyList' class='signal-list'></ul></div></div>"
         + ("<div id='coldAttempts' class='stack stack-gap'></div>" if cold else "")
     )
-    # En frío el plan es determinista y no consulta inventario: sin encabezado vacío.
+    # En replay el plan es grabado o determinista: sin encabezado de inventario vacío.
     step4_inner = (
-        "" if cold else f"<p class='meta'>{_e(_L('demo_inventory'))}</p>"
+        "" if (cold or replay) else f"<p class='meta'>{_e(_L('demo_inventory'))}</p>"
     ) + "<div id='guardianResult' class='stack stack-gap'></div>"
     step5_inner = (
         "<div class='split'><div class='voice-controls'>"

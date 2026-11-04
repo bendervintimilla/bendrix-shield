@@ -36,7 +36,7 @@ PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 # Única excepción a los patrones: identificadores CVE (``CVE-2026-1234``), que
 # el patrón de teléfono confundía. Se apartan antes de redactar y se reponen
 # después; todo lo demás (``tel-0991 2345``, ``WA-+593…``, ids) sigue igual.
-_CVE = re.compile(r"\bCVE-(?:19|20)\d{2}-\d{4,}\b")
+_CVE = re.compile(r"\bCVE-(?:19|20)\d{2}-\d{4,7}\b(?![ \-]?\d)")
 _HOLD = "\ue000"
 
 
