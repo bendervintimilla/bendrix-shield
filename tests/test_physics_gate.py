@@ -37,9 +37,17 @@ def test_slow_setpoint_drift_in_history_is_blocked() -> None:
     assert verdict.evidence["setpoint_steps"] == 5
 
 
-def test_single_setpoint_near_limit_asks_owner_not_blocks() -> None:
-    """Un solo salto a 4 °C reduce el margen: ask_owner, no block."""
+def test_setpoint_4_is_allowed_with_margin_informed() -> None:
+    """Setpoint 4.0 °C (en rango): allow, con el margen en la evidencia."""
     verdict = verify_action(PARAMS, RoomState(), ProposedAction(kind="set_setpoint", value=4.0))
+    assert verdict.decision == "allow"
+    assert verdict.peak_product_c < PARAMS.safe_max_c
+    assert verdict.evidence["margin_to_safe_max_c"] > 1.0
+
+
+def test_setpoint_very_close_to_limit_asks_owner() -> None:
+    """Un setpoint destino a ≤0.5 °C del límite sí escala al dueño."""
+    verdict = verify_action(PARAMS, RoomState(), ProposedAction(kind="set_setpoint", value=4.6))
     assert verdict.decision == "ask_owner"
     assert verdict.peak_product_c < PARAMS.safe_max_c
 
@@ -89,6 +97,74 @@ def test_baseline_and_with_action_trajectories_differ() -> None:
     )
     assert max(verdict.with_action.product_c) > max(verdict.baseline.product_c)
     assert verdict.evidence["baseline_peak_product_c"] < verdict.evidence["peak_product_c"]
+
+
+def test_rt04_deferred_compressor_off_not_allowed() -> None:
+    """RT-04: apagado que empieza en t=300 (fuera de 240) no pasa allow."""
+    action = ProposedAction(
+        kind="compressor_off", duration_min=240, start_in_min=300, source="schedule"
+    )
+    verdict = verify_action(PARAMS, RoomState(), action)
+    assert verdict.decision == "block"
+    assert verdict.evidence["effective_horizon_min"] >= 300 + 240
+
+
+def test_rt06_deferred_door_open_not_allowed() -> None:
+    """RT-06: puerta que abre en t=260 por 180 min no pasa allow."""
+    action = ProposedAction(kind="door_open", duration_min=180, start_in_min=260, source="schedule")
+    verdict = verify_action(PARAMS, RoomState(), action)
+    assert verdict.decision in ("block", "ask_owner")
+    assert verdict.decision != "allow"
+
+
+def test_rt22_benign_history_plus_deferred_bomb_not_allowed() -> None:
+    """RT-22: historial benigno + apagado en t=500 no pasa allow."""
+    history = [ProposedAction(kind="door_open", duration_min=5, start_in_min=0)]
+    action = ProposedAction(
+        kind="compressor_off", duration_min=300, start_in_min=500, source="schedule"
+    )
+    verdict = verify_action(PARAMS, RoomState(), action, history=history)
+    assert verdict.decision in ("block", "ask_owner")
+    assert verdict.decision != "allow"
+
+
+def test_deferred_beyond_simulable_horizon_never_allows() -> None:
+    """Si ni extendiendo se puede simular, el techo es ask_owner."""
+    action = ProposedAction(
+        kind="compressor_off", duration_min=60, start_in_min=100_000, source="schedule"
+    )
+    verdict = verify_action(PARAMS, RoomState(), action)
+    assert verdict.decision == "ask_owner"
+    assert verdict.evidence["horizon_capped"] is True
+
+
+def test_rt15_repeated_defrosts_block_when_approved_go_to_history() -> None:
+    """RT-15: lo que el dueño aprueba entra a history y el 3.er deshielo bloquea."""
+    history: list[ProposedAction] = []
+    decisions = []
+    for start in (0, 50, 100):
+        action = ProposedAction(
+            kind="defrost", duration_min=20, start_in_min=start, source="schedule"
+        )
+        verdict = verify_action(PARAMS, RoomState(), action, history=list(history))
+        decisions.append(verdict.decision)
+        history.append(action)  # aprobado/ejecutado: pasa a la history
+    assert decisions[0] == "allow"
+    assert decisions[-1] == "block"
+
+
+def test_repeated_forced_defrost_4x30min_in_2h_is_blocked() -> None:
+    """Ataque 2-nov: 4 deshielos de 30 min en 2 h; cada uno solo parecería normal."""
+    single = verify_action(PARAMS, RoomState(), ProposedAction(kind="defrost", duration_min=30))
+    assert single.decision == "allow"
+    history = [
+        ProposedAction(kind="defrost", duration_min=30, start_in_min=start)
+        for start in (0, 30, 60)
+    ]
+    fourth = ProposedAction(kind="defrost", duration_min=30, start_in_min=90)
+    verdict = verify_action(PARAMS, RoomState(), fourth, history=history)
+    assert verdict.decision == "block"
+    assert verdict.peak_product_c > PARAMS.safe_max_c
 
 
 def test_verify_action_is_fast_enough() -> None:

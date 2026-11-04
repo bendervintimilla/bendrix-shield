@@ -5,6 +5,9 @@ from __future__ import annotations
 import pytest
 
 from shield.physics.contract import ColdRoomParams, ProposedAction, RoomState
+from shield.physics.gate import verify_action
+from shield.physics.presets import CHILLER_PARAMS, FREEZER_PARAMS
+from shield.physics.safe_state import factory_setpoint_c, last_safe_action
 from shield.physics.thermal import simulate
 
 PARAMS = ColdRoomParams()
@@ -73,6 +76,41 @@ def test_setpoint_change_is_permanent_and_delayed_start_works() -> None:
     traj = simulate(PARAMS, RoomState(), [action], horizon_min=240)
     assert traj.product_c[-1] < 2.6
     assert traj.product_c[-1] < traj.product_c[0]
+
+
+def test_freezer_preset_holds_minus18_and_forced_defrost_breaks() -> None:
+    """Congelador: estable a -18 °C; un deshielo forzado largo rompe -15 °C."""
+    state = RoomState(air_c=-18.0, product_c=-18.0, setpoint_c=-18.0)
+    traj = simulate(FREEZER_PARAMS, state, [], horizon_min=240)
+    assert max(traj.product_c) < FREEZER_PARAMS.safe_max_c
+    assert abs(traj.product_c[-1] - (-18.0)) < 1.5
+    verdict = verify_action(
+        FREEZER_PARAMS, state, ProposedAction(kind="defrost", duration_min=240)
+    )
+    assert verdict.decision == "block"
+    assert verdict.peak_product_c > FREEZER_PARAMS.safe_max_c
+
+
+def test_chiller_preset_holds_2c() -> None:
+    """Chiller: estable cerca de su setpoint de fábrica de 2 °C."""
+    state = RoomState(air_c=2.0, product_c=2.0, setpoint_c=2.0)
+    traj = simulate(CHILLER_PARAMS, state, [], horizon_min=240)
+    assert abs(traj.product_c[-1] - 2.0) < 1.0
+    assert max(traj.product_c) < CHILLER_PARAMS.safe_max_c
+
+
+def test_last_safe_action_restores_factory_setpoint() -> None:
+    """Estado seguro: setpoint de fábrica, reversible y verificable en allow."""
+    drifted = RoomState(air_c=-18.0, product_c=-18.0, setpoint_c=-10.0)
+    action = last_safe_action(FREEZER_PARAMS, drifted)
+    assert action.kind == "set_setpoint"
+    assert action.value == -18.0
+    assert action.equipment == "congelador"
+    assert "reversible" in action.note
+    assert verify_action(FREEZER_PARAMS, drifted, action).decision == "allow"
+    assert factory_setpoint_c(PARAMS) == 3.0
+    assert factory_setpoint_c(CHILLER_PARAMS) == 2.0
+    assert last_safe_action(PARAMS, RoomState(setpoint_c=4.5)).value == 3.0
 
 
 def test_invalid_inputs_raise() -> None:
