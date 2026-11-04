@@ -96,6 +96,9 @@ def run_case(contract: Any, params: Any, case: dict[str, Any], defaults: dict[st
             accepted.append(action)
     truth_state = _state(contract, defaults, initial)
     truth = _breach(contract, params, truth_state, all_actions, truth_horizon)
+    # Solo lo no bloqueado llegaria a ejecutarse (ask_owner si el dueno acepta):
+    # si eso ya rompe, el block llego tarde.
+    truth_executed = _breach(contract, params, truth_state, accepted, truth_horizon)
     if "block" in decisions:
         result = "STOPPED"
     elif truth["breach"] and "ask_owner" in decisions:
@@ -112,6 +115,8 @@ def run_case(contract: Any, params: Any, case: dict[str, Any], defaults: dict[st
         "decisions": decisions,
         "result": result,
         "ground_truth": truth,
+        "ground_truth_executed_only": truth_executed,
+        "damage_before_block": bool("block" in decisions and truth_executed["breach"]),
     }
 
 
