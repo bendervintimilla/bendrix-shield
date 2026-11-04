@@ -11,12 +11,16 @@ Justificación de cada nivel (el daño colateral manda):
   sola app (un deshielo forzado) no puede congelar pagos ni el gateway;
   el resto de operaciones de la misma app tampoco, si no son del tipo
   atacado.
-- ``global``: congela escrituras en todas las apps conectadas y revoca
-  los tokens de la campaña. SOLO si hay correlación del mismo
-  actor/token/campaña en >=2 apps (``Incident.correlated``). Justificación:
-  ahí el atacante ya saltó de app; contener por partes deja la campaña
-  viva. Es el equivalente al «suspender todo» de Arkéa, pero acotado a
-  las apps conectadas, con lecturas vivas y undo del dueño.
+- ``campaign``: una misma campaña en 2 apps (ej. IBAN en ERP +
+  transferencia en pagos) congela el actor, el proveedor afectado y las
+  transferencias a beneficiarios nuevos o cambiados en 24 h. Los pagos
+  recurrentes a beneficiarios conocidos siguen: es UN flujo de fraude,
+  no el negocio entero (eso fue lo que Arkéa no pudo hacer).
+- ``global``: congela escrituras de agentes en todas las apps. SOLO si
+  la correlación toca >=3 apps o hay compromiso de plataforma (varios
+  actores). Aun ahí, las operaciones humanas recurrentes a
+  beneficiarios conocidos siguen, con aviso. Justificación: solo una
+  campaña que ya saltó por todo el negocio justifica pausar agentes.
 
 Lo irreversible (pagar, IBAN definitivo) nunca es automático. Cada medida
 tiene ``undo``. El aviso se arma DESPUÉS de contener; no se envía de
@@ -31,7 +35,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from shield.autopilot.detect import Incident
-from shield.autopilot.events import SecurityEvent
+from shield.autopilot.events import SecurityEvent, cold_room_physics_verdict
 
 
 class TokenOps(Protocol):
@@ -153,6 +157,8 @@ class ContainmentEngine:
         self.frozen_scopes: set[tuple[str, str]] = set()  # (app, operación)
         self.global_breaker: bool = False
         self.revoked_actors: set[str] = set()
+        self.campaign_actors: set[str] = set()
+        self.campaign_suppliers: set[str] = set()
         self.safe_states: dict[str, str] = {}
         self.held_payments: set[str] = set()
         self.blocked_actions: set[str] = set()
@@ -177,10 +183,28 @@ class ContainmentEngine:
         """¿Esta escritura legítima seguiría funcionando tras la contención?"""
         if event.event_id in self.blocked_actions or event.event_id in self.held_payments:
             return False
+        if self.global_breaker:
+            # Aun en global: la operación humana recurrente a un
+            # beneficiario conocido sigue (con aviso ya enviado).
+            if event.source == "human":
+                return event.app != "payments" or bool(
+                    event.values.get("beneficiary_known"))
+            return False
+        if event.actor in self.campaign_actors:
+            # Actor de la campaña congelado: solo sobrevive su pago
+            # recurrente a beneficiario conocido.
+            return (event.app == "payments" and event.action == "transfer"
+                    and bool(event.values.get("beneficiary_known")))
         if event.actor in self.revoked_actors:
             return False
-        if self.global_breaker:
+        if (event.target in self.campaign_suppliers
+                and event.action in ("transfer", "iban_change", "supplier_change")
+                and not event.values.get("beneficiary_known")):
             return False
+        if (self.campaign_suppliers and event.app == "payments"
+                and event.action == "transfer"
+                and not event.values.get("beneficiary_known")):
+            return False  # beneficiarios nuevos/cambiados (24 h) congelados
         return (event.app, operation_scope(event)) not in self.frozen_scopes
 
     # -- medidas ---------------------------------------------------------
@@ -233,6 +257,19 @@ class ContainmentEngine:
                     detail="solo este tipo de operación en esta app"),
             lambda: self.frozen_scopes.discard(key))
 
+    def freeze_campaign(self, actor: str, suppliers: list[str]) -> Measure:
+        self.campaign_actors.add(actor)
+        self.campaign_suppliers.update(suppliers)
+        self.tokens.revoke(actor)
+        def undo() -> None:
+            self.campaign_actors.discard(actor)
+            for s in suppliers:
+                self.campaign_suppliers.discard(s)
+            self.tokens.restore(actor)
+        return self._apply(Measure("freeze_campaign", "*", actor,
+                                   detail="actor, proveedor y beneficiarios nuevos"),
+                           undo)
+
     def circuit_breaker(self, apps: list[str]) -> Measure:
         self.frozen.update(apps)
         self.global_breaker = True
@@ -245,23 +282,108 @@ class ContainmentEngine:
                            undo)
 
 
+def _pretty_supplier(target: str) -> str:
+    name = target.split(":")[-1].replace("-", " ").strip()
+    return name[:1].upper() + name[1:] if name else "the supplier"
+
+
+def _fmt_amount(event: SecurityEvent) -> str:
+    amount = event.values.get("amount")
+    if amount is None:
+        return ""
+    value = float(amount)
+    text = f"{value:,.0f}" if value == int(value) else f"{value:,.2f}"
+    currency = event.values.get("currency")
+    return f"{currency} {text}" if currency else text
+
+
+def build_business_notice(incident: Incident | None, events: list[SecurityEvent],
+                          result: ContainmentResult, *, lang: str = "en") -> str:
+    """Aviso de negocio: máximo 7 líneas, sin ids ni nombres internos.
+
+    Determinista: cada cifra sale de un evento marcado o del veredicto
+    físico de ese evento. Nunca inventa montos, nombres ni temperaturas.
+    """
+    by_id = {e.event_id: e for e in events}
+    flagged = sorted((by_id[i] for i in (incident.event_ids if incident else ())
+                      if i in by_id), key=lambda e: e.ts)
+    es = lang == "es"
+    lines: list[str] = []
+    if flagged:
+        hhmm = flagged[0].ts.strftime("%H:%M")
+        lines.append(f"wAIrrior detuvo un ataque a las {hhmm}." if es
+                     else f"wAIrrior stopped an attack at {hhmm}.")
+    else:
+        lines.append("wAIrrior detuvo un ataque." if es else "wAIrrior stopped an attack.")
+    kinds = {f.kind for f in incident.findings} if incident else set()
+    seen_apps: set[str] = set()
+    for e in flagged:
+        if e.app in seen_apps:
+            continue
+        if e.app == "cold_room" and e.action == "defrost":
+            seen_apps.add(e.app)
+            verdict = cold_room_physics_verdict(e)
+            peak = f"{round(verdict.peak_product_c, 1):g}" if verdict else "?"
+            dur = float(e.values.get("duration_min") or 0)
+            when = f"{dur / 60:g} horas" if es and dur >= 60 else (
+                f"{dur / 60:g}-hour" if dur >= 60 else f"{dur:g} min")
+            lines.append(
+                f"Cámara de frío: un deshielo de {when} habría dañado tu stock "
+                f"(producto a {peak} °C); quedó en su último estado seguro a 3 °C."
+                if es else
+                f"Cold room: a {when} defrost would have spoiled your stock "
+                f"(product to {peak} °C); we kept it at its last safe setting, 3 °C.")
+        elif e.app == "payments" and e.action == "transfer":
+            seen_apps.add(e.app)
+            amount = _fmt_amount(e)
+            supplier = _pretty_supplier(e.target)
+            amt = f" de {amount}" if es and amount else (f" of {amount}" if amount else "")
+            lines.append(
+                f"Pagos: un pago{amt} a un IBAN nuevo para {supplier} está retenido; "
+                f"los datos bancarios de {supplier} están congelados." if es else
+                f"Payments: a payment{amt} to a new IBAN for {supplier} is on hold; "
+                f"{supplier}'s bank details are frozen.")
+        elif e.app == "pos_erp" and "payments" not in {x.app for x in flagged}:
+            seen_apps.add(e.app)
+            supplier = _pretty_supplier(e.target)
+            lines.append(
+                f"Proveedores: los datos bancarios de {supplier} están congelados."
+                if es else
+                f"Suppliers: {supplier}'s bank details are frozen.")
+        elif e.app == "ai_gateway" and ("token_burst" in kinds or len(flagged) >= 3):
+            seen_apps.add(e.app)
+            lines.append(
+                "Una llave de un agente de IA fue robada; ya la reemplazamos."
+                if es else
+                "One AI agent's key was stolen; we replaced it.")
+    if result.scope_level == "global":
+        lines.append(
+            "Las demás escrituras de agentes están en pausa; tus pagos humanos "
+            "habituales a proveedores conocidos siguen." if es else
+            "Other agent writes are paused; your usual human payments to "
+            "known suppliers keep working.")
+    elif result.scope_level != "none":
+        lines.append("Todo lo demás sigue funcionando." if es
+                     else "Everything else keeps working.")
+    has_iban = any("IBAN" in item for item in result.pending_owner)
+    if has_iban:
+        lines.append(
+            "Toca para deshacer · Aprueba el cambio de IBAN solo con tu "
+            "segundo factor." if es else
+            "Tap to undo · Approve the IBAN change only with your second factor.")
+    elif result.pending_owner:
+        lines.append(
+            "Toca para deshacer · Aprobar el pago requiere tu segundo factor."
+            if es else
+            "Tap to undo · Approving the payment needs your second factor.")
+    else:
+        lines.append("Toca para deshacer." if es else "Tap to undo.")
+    return "\n".join(lines[:7])
+
+
 def build_owner_notice(result: ContainmentResult, *, lang: str = "en") -> str:
-    """Texto para WhatsApp/correo DESPUÉS de contener. No envía nada."""
-    done = list(dict.fromkeys(
-        f"{m.kind} ({m.app}:{m.target})" for m in result.measures
-        if m.kind not in ("log", "pending_owner")))
-    pending = "; ".join(result.pending_owner)
-    if lang == "es":
-        text = ("Fuiste atacado. Ya hicimos: " + (", ".join(done) or "registrar el evento")
-                + f" [alcance: {result.scope_level}]."
-                + " Toca para deshacer / liberar con tu segundo factor.")
-        extra = f" Pendiente de tu decisión (nunca automático): {pending}." if pending else ""
-        return text + extra
-    text = ("You were attacked. We already did: " + (", ".join(done) or "logged the event")
-            + f" [scope: {result.scope_level}]."
-            + " Tap to undo / release with your second factor.")
-    extra = f" Waiting for your decision (never automatic): {pending}." if pending else ""
-    return text + extra
+    """Compatibilidad: aviso de negocio sin contexto de incidente."""
+    return build_business_notice(None, [], result, lang=lang)
 
 
 def respond(incident: Incident, events: list[SecurityEvent],
@@ -272,13 +394,16 @@ def respond(incident: Incident, events: list[SecurityEvent],
     t0 = started if started is not None else time.perf_counter()
     by_id = {e.event_id: e for e in events}
     flagged = [by_id[i] for i in incident.event_ids if i in by_id]
-    global_scope = bool(incident.correlated and len(incident.apps) >= 2)
+    # Global solo con >=3 apps o compromiso de plataforma (varios actores).
+    platform = bool(incident.correlated and len(incident.actors) >= 2)
     if not incident.findings or incident.severity == "low":
         level = "none"
-    elif global_scope:
+    elif incident.correlated and (len(incident.apps) >= 3 or platform):
         level = "global"
+    elif incident.correlated and len(incident.apps) >= 2:
+        level = "campaign"  # una campaña en 2 apps no es el negocio entero
     elif incident.severity in ("high", "critical"):
-        level = "app"  # crítico en una sola app: jamás congela las demás
+        level = "app"
     else:
         level = "actor"
     result = ContainmentResult(severity=incident.severity,
@@ -297,12 +422,19 @@ def respond(incident: Incident, events: list[SecurityEvent],
                 measure = engine.freeze_app_scope(e)
                 result.measures.append(measure)
                 result.frozen_scopes.append(f"{e.app}:{measure.target}")
+        suppliers = sorted({e.target for e in flagged if e.target})
         for actor in incident.actors:
             if level == "global":
                 result.measures.append(engine.revoke_tokens(actor, "*"))
-            else:  # actor/app: rotar (el agente legítimo sigue con token nuevo)
+            elif level == "campaign":
+                result.measures.append(engine.freeze_campaign(actor, suppliers))
+                result.frozen_scopes.append(f"campaign:actor:{actor}")
+            else:
                 result.measures.append(
                     engine.rotate_token(actor, flagged[0].app if flagged else "*"))
+        if level == "campaign":
+            result.frozen_scopes.append("payments:transfer:new_or_changed_24h")
+            result.frozen_scopes.extend(f"campaign:supplier:{s}" for s in suppliers)
         if level == "global":
             apps = sorted({e.app for e in events} | set(incident.apps))
             result.measures.append(engine.circuit_breaker(apps))
@@ -313,8 +445,8 @@ def respond(incident: Incident, events: list[SecurityEvent],
             result.pending_owner.append(
                 f"cambio definitivo de IBAN de {e.target} (requiere tu OK)")
     result.detect_to_contain_ms = (time.perf_counter() - t0) * 1000.0
-    result.notice_en = build_owner_notice(result, lang="en")
-    result.notice_es = build_owner_notice(result, lang="es")
+    result.notice_en = build_business_notice(incident, events, result, lang="en")
+    result.notice_es = build_business_notice(incident, events, result, lang="es")
     return result
 
 

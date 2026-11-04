@@ -39,7 +39,7 @@
         "defrost_anomaly",
         "physics_block"
       ],
-      "detect_to_contain_ms": 7.287,
+      "detect_to_contain_ms": 8.457,
       "measures": [
         "block_action",
         "safe_state",
@@ -47,8 +47,8 @@
         "rotate_token"
       ],
       "pending_owner": [],
-      "notice_en": "You were attacked. We already did: block_action (cold_room:camara), safe_state (cold_room:camara), freeze_app_scope (cold_room:defrost:camara), rotate_token (cold_room:unknown-remote) [scope: app]. Tap to undo / release with your second factor.",
-      "notice_es": "Fuiste atacado. Ya hicimos: block_action (cold_room:camara), safe_state (cold_room:camara), freeze_app_scope (cold_room:defrost:camara), rotate_token (cold_room:unknown-remote) [alcance: app]. Toca para deshacer / liberar con tu segundo factor.",
+      "notice_en": "wAIrrior stopped an attack at 03:00.\nCold room: a 4-hour defrost would have spoiled your stock (product to 16.4 °C); we kept it at its last safe setting, 3 °C.\nEverything else keeps working.\nTap to undo.",
+      "notice_es": "wAIrrior detuvo un ataque a las 03:00.\nCámara de frío: un deshielo de 4 horas habría dañado tu stock (producto a 16.4 °C); quedó en su último estado seguro a 3 °C.\nTodo lo demás sigue funcionando.\nToca para deshacer.",
       "comparison": {
         "background_legitimate_writes_total": 300,
         "no_shield": {
@@ -73,27 +73,30 @@
       "simulated": true,
       "severity": "critical",
       "correlated": true,
-      "scope_level": "global",
-      "circuit_breaker": true,
-      "frozen_scopes": [],
+      "scope_level": "campaign",
+      "circuit_breaker": false,
+      "frozen_scopes": [
+        "campaign:actor:payments-bot",
+        "payments:transfer:new_or_changed_24h",
+        "campaign:supplier:supplier:acme"
+      ],
       "findings": [
         "payment_anomaly",
         "iban_then_payment"
       ],
-      "detect_to_contain_ms": 0.076,
+      "detect_to_contain_ms": 0.069,
       "measures": [
         "block_action",
         "block_action",
         "hold_payment",
-        "revoke_tokens",
-        "circuit_breaker"
+        "freeze_campaign"
       ],
       "pending_owner": [
         "cambio definitivo de IBAN de supplier:acme (requiere tu OK)",
         "pagar a supplier:acme (retenido, requiere tu OK)"
       ],
-      "notice_en": "You were attacked. We already did: block_action (pos_erp:supplier:acme), block_action (payments:supplier:acme), hold_payment (payments:supplier:acme), revoke_tokens (*:payments-bot), circuit_breaker (*:payments,pos_erp) [scope: global]. Tap to undo / release with your second factor. Waiting for your decision (never automatic): cambio definitivo de IBAN de supplier:acme (requiere tu OK); pagar a supplier:acme (retenido, requiere tu OK).",
-      "notice_es": "Fuiste atacado. Ya hicimos: block_action (pos_erp:supplier:acme), block_action (payments:supplier:acme), hold_payment (payments:supplier:acme), revoke_tokens (*:payments-bot), circuit_breaker (*:payments,pos_erp) [alcance: global]. Toca para deshacer / liberar con tu segundo factor. Pendiente de tu decisión (nunca automático): cambio definitivo de IBAN de supplier:acme (requiere tu OK); pagar a supplier:acme (retenido, requiere tu OK).",
+      "notice_en": "wAIrrior stopped an attack at 02:10.\nPayments: a payment of 8,000 to a new IBAN for Acme is on hold; Acme's bank details are frozen.\nEverything else keeps working.\nTap to undo · Approve the IBAN change only with your second factor.",
+      "notice_es": "wAIrrior detuvo un ataque a las 02:10.\nPagos: un pago de 8,000 a un IBAN nuevo para Acme está retenido; los datos bancarios de Acme están congelados.\nTodo lo demás sigue funcionando.\nToca para deshacer · Aprueba el cambio de IBAN solo con tu segundo factor.",
       "comparison": {
         "background_legitimate_writes_total": 300,
         "no_shield": {
@@ -107,8 +110,8 @@
         "wairrior": {
           "attacks_blocked": 2,
           "attacks_succeed": 0,
-          "background_legitimate_ok": 0,
-          "background_legitimate_blocked_collateral": 300
+          "background_legitimate_ok": 300,
+          "background_legitimate_blocked_collateral": 0
         }
       }
     },
@@ -137,7 +140,7 @@
       "findings": [
         "token_burst"
       ],
-      "detect_to_contain_ms": 0.116,
+      "detect_to_contain_ms": 0.114,
       "measures": [
         "block_action",
         "freeze_app_scope",
@@ -166,8 +169,8 @@
         "rotate_token"
       ],
       "pending_owner": [],
-      "notice_en": "You were attacked. We already did: block_action (ai_gateway:muse-spark), freeze_app_scope (ai_gateway:model_call:crew-bot), rotate_token (ai_gateway:crew-bot) [scope: app]. Tap to undo / release with your second factor.",
-      "notice_es": "Fuiste atacado. Ya hicimos: block_action (ai_gateway:muse-spark), freeze_app_scope (ai_gateway:model_call:crew-bot), rotate_token (ai_gateway:crew-bot) [alcance: app]. Toca para deshacer / liberar con tu segundo factor.",
+      "notice_en": "wAIrrior stopped an attack at 03:00.\nOne AI agent's key was stolen; we replaced it.\nEverything else keeps working.\nTap to undo.",
+      "notice_es": "wAIrrior detuvo un ataque a las 03:00.\nUna llave de un agente de IA fue robada; ya la reemplazamos.\nTodo lo demás sigue funcionando.\nToca para deshacer.",
       "comparison": {
         "background_legitimate_writes_total": 300,
         "no_shield": {
@@ -196,15 +199,15 @@
       "circuit_breaker": false,
       "frozen_scopes": [],
       "findings": [],
-      "detect_to_contain_ms": 0.02,
+      "detect_to_contain_ms": 0.019,
       "measures": [
         "log"
       ],
       "pending_owner": [
         "pagar a supplier:known (retenido, requiere tu OK)"
       ],
-      "notice_en": "You were attacked. We already did: logged the event [scope: none]. Tap to undo / release with your second factor. Waiting for your decision (never automatic): pagar a supplier:known (retenido, requiere tu OK).",
-      "notice_es": "Fuiste atacado. Ya hicimos: registrar el evento [alcance: none]. Toca para deshacer / liberar con tu segundo factor. Pendiente de tu decisión (nunca automático): pagar a supplier:known (retenido, requiere tu OK).",
+      "notice_en": "wAIrrior stopped an attack at 10:00.\nPayments: a payment of 520 to a new IBAN for Known is on hold; Known's bank details are frozen.\nTap to undo · Approving the payment needs your second factor.",
+      "notice_es": "wAIrrior detuvo un ataque a las 10:00.\nPagos: un pago de 520 a un IBAN nuevo para Known está retenido; los datos bancarios de Known están congelados.\nToca para deshacer · Aprobar el pago requiere tu segundo factor.",
       "comparison": {
         "background_legitimate_writes_total": 300,
         "no_shield": {
@@ -233,13 +236,13 @@
       "circuit_breaker": false,
       "frozen_scopes": [],
       "findings": [],
-      "detect_to_contain_ms": 1.588,
+      "detect_to_contain_ms": 1.558,
       "measures": [
         "log"
       ],
       "pending_owner": [],
-      "notice_en": "You were attacked. We already did: logged the event [scope: none]. Tap to undo / release with your second factor.",
-      "notice_es": "Fuiste atacado. Ya hicimos: registrar el evento [alcance: none]. Toca para deshacer / liberar con tu segundo factor.",
+      "notice_en": "wAIrrior stopped an attack at 06:00.\nCold room: a 20 min defrost would have spoiled your stock (product to 3.8 °C); we kept it at its last safe setting, 3 °C.\nTap to undo.",
+      "notice_es": "wAIrrior detuvo un ataque a las 06:00.\nCámara de frío: un deshielo de 20 min habría dañado tu stock (producto a 3.8 °C); quedó en su último estado seguro a 3 °C.\nToca para deshacer.",
       "comparison": {
         "background_legitimate_writes_total": 300,
         "no_shield": {
@@ -274,7 +277,7 @@
         "iban_then_payment",
         "token_burst"
       ],
-      "detect_to_contain_ms": 2.91,
+      "detect_to_contain_ms": 2.923,
       "measures": [
         "block_action",
         "safe_state",
@@ -300,8 +303,8 @@
         "cambio definitivo de IBAN de supplier:acme (requiere tu OK)",
         "pagar a supplier:acme (retenido, requiere tu OK)"
       ],
-      "notice_en": "You were attacked. We already did: block_action (cold_room:camara), safe_state (cold_room:camara), block_action (pos_erp:supplier:acme), block_action (payments:supplier:acme), hold_payment (payments:supplier:acme), block_action (ai_gateway:muse-spark-1.3), revoke_tokens (*:campaign-actor), circuit_breaker (*:ai_gateway,cold_room,payments,pos_erp) [scope: global]. Tap to undo / release with your second factor. Waiting for your decision (never automatic): cambio definitivo de IBAN de supplier:acme (requiere tu OK); pagar a supplier:acme (retenido, requiere tu OK).",
-      "notice_es": "Fuiste atacado. Ya hicimos: block_action (cold_room:camara), safe_state (cold_room:camara), block_action (pos_erp:supplier:acme), block_action (payments:supplier:acme), hold_payment (payments:supplier:acme), block_action (ai_gateway:muse-spark-1.3), revoke_tokens (*:campaign-actor), circuit_breaker (*:ai_gateway,cold_room,payments,pos_erp) [alcance: global]. Toca para deshacer / liberar con tu segundo factor. Pendiente de tu decisión (nunca automático): cambio definitivo de IBAN de supplier:acme (requiere tu OK); pagar a supplier:acme (retenido, requiere tu OK).",
+      "notice_en": "wAIrrior stopped an attack at 10:00.\nCold room: a 4-hour defrost would have spoiled your stock (product to 16.4 °C); we kept it at its last safe setting, 3 °C.\nPayments: a payment of 9,000 to a new IBAN for Acme is on hold; Acme's bank details are frozen.\nOne AI agent's key was stolen; we replaced it.\nOther agent writes are paused; your usual human payments to known suppliers keep working.\nTap to undo · Approve the IBAN change only with your second factor.",
+      "notice_es": "wAIrrior detuvo un ataque a las 10:00.\nCámara de frío: un deshielo de 4 horas habría dañado tu stock (producto a 16.4 °C); quedó en su último estado seguro a 3 °C.\nPagos: un pago de 9,000 a un IBAN nuevo para Acme está retenido; los datos bancarios de Acme están congelados.\nUna llave de un agente de IA fue robada; ya la reemplazamos.\nLas demás escrituras de agentes están en pausa; tus pagos humanos habituales a proveedores conocidos siguen.\nToca para deshacer · Aprueba el cambio de IBAN solo con tu segundo factor.",
       "comparison": {
         "background_legitimate_writes_total": 300,
         "no_shield": {
@@ -315,8 +318,8 @@
         "wairrior": {
           "attacks_blocked": 15,
           "attacks_succeed": 0,
-          "background_legitimate_ok": 0,
-          "background_legitimate_blocked_collateral": 300
+          "background_legitimate_ok": 38,
+          "background_legitimate_blocked_collateral": 262
         }
       }
     }

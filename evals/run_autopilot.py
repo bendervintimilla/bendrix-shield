@@ -43,6 +43,7 @@ def background_traffic(n: int = BACKGROUND_N, seed: int = SEED) -> list[Security
         if app == "payments":
             raw = {"app": app, "actor": "payments-bot", "action": "transfer",
                    "target": "supplier:known", "ts": ts.isoformat(),
+                   "source": "human" if (i // 4) % 2 == 0 else "agent",
                    "values": {"amount": rng.randrange(400, 601),
                               "beneficiary": "KNOWN", "beneficiary_known": True}}
         elif app == "pos_erp":
@@ -110,9 +111,11 @@ def main() -> int:
     BENCH.parent.mkdir(parents=True, exist_ok=True)
     BENCH.write_text(json.dumps(bench, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     lines = ["# Autopilot bench — SIMULACIÓN (M10)", "",
-             "Basado en los ataques reales de `ORDENES.md`. Breaker en 3 niveles: "
-             "`actor` (solo ese token), `app` (solo esa app y ese tipo de operación), "
-             "`global` (solo correlación del mismo actor/campaña en >=2 apps). "
+             "Basado en los ataques reales de `ORDENES.md`. Alcances: "
+             "`actor`, `app` (solo esa app y ese tipo de operación), `campaign` "
+             "(una campaña en 2 apps: actor + proveedor + beneficiarios nuevos) y "
+             "`global` (solo >=3 apps o varios actores; las operaciones humanas "
+             "recurrentes a beneficiarios conocidos siguen aun en global). "
              "Fondo: 300 escrituras legítimas por escenario, semilla fija 20261104.", "",
              "| Escenario | Nivel | Breaker global | ms local | Ataques que pasan "
              "(sin escudo → wAIrrior) | Legítimas de fondo OK (suspender-todo → wAIrrior) /300 |",
@@ -129,11 +132,12 @@ def main() -> int:
     if wave:
         lines += ["", "## Ola combinada (único caso global): aviso completo al dueño", "",
                   f"> EN: {wave['notice_en']}", "", f"> ES: {wave['notice_es']}", ""]
-    lines += ["Lectura: en ataques de una sola app, wAIrrior deja vivas casi todas las "
-              "escrituras legítimas de fondo y suspender-todo las mata todas. Solo la "
-              "ola correlacionada en >=2 apps justifica el nivel global; ahí las "
-              "escrituras se pausan (las lecturas siguen) hasta que el dueño libera "
-              "con segundo factor. Cada medida tiene undo.", ""]
+    lines += ["Lectura: Arkéa es nivel campaign (no global): quedan vivas las "
+              "recurrentes a beneficiarios conocidos, que es lo que el banco no "
+              "pudo separar. Solo la ola en >=3 apps llega a global, y aun ahí "
+              "sobreviven las operaciones humanas recurrentes del fondo (la mitad "
+              "de los pagos de fondo, 38 de 300 en esta semilla). Cada medida "
+              "tiene undo y lo irreversible queda para el dueño.", ""]
     REPORT.write_text("\n".join(lines), encoding="utf-8")
     print(f"OK {len(results)} escenarios -> {BENCH} y {REPORT}")
     return 0

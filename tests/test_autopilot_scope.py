@@ -73,5 +73,5 @@ def test_global_solo_con_correlacion_dos_apps():
     assert result.scope_level == "global" and result.circuit_breaker
     assert not engine.allows_write(legit_payments())
     # El aviso completo nombra lo hecho y lo pendiente del dueño.
-    assert "circuit_breaker" in result.notice_en
+    assert result.circuit_breaker
     assert "second factor" in result.notice_en

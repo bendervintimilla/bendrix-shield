@@ -3,279 +3,45 @@
   "real_spark_run": true,
   "scenario": "combined_wave",
   "model": "muse-spark-1.3",
-  "response_id": "chatcmpl-01a1a7da-79df-7189-ac3e-a8a586d8bd17",
-  "upstream_request_id": "d081cd7b-4c76-4bd6-be3c-f14f4d83c718",
-  "cost_usd": 0.014453,
+  "response_id": "chatcmpl-01a1a7de-959b-7266-a27c-fb8df5393d63",
+  "upstream_request_id": "f1cbdd65-e8ab-4541-b0d4-dcd5db53647a",
+  "cost_usd": 0.014644,
   "usage": {
-    "completion_tokens": 2916,
-    "prompt_tokens": 1648,
-    "total_tokens": 4564,
+    "completion_tokens": 3368,
+    "prompt_tokens": 264,
+    "total_tokens": 3632,
     "completion_tokens_details": {
-      "reasoning_tokens": 2241
+      "reasoning_tokens": 3136
     },
     "prompt_tokens_details": {
       "cached_tokens": 0
     }
   },
-  "latency_ms": 21918.5,
-  "incident_facts": {
-    "severity": "critical",
-    "correlated": true,
-    "apps": [
-      "ai_gateway",
-      "cold_room",
-      "payments",
-      "pos_erp"
-    ],
-    "actors": [
-      "campaign-actor"
-    ],
-    "findings": [
-      {
-        "kind": "defrost_anomaly",
-        "severity": "high",
-        "reason": "deshielo de 240 min fuera de calendario o largo",
-        "event_ids": [
-          "evt_993b90819287"
-        ],
-        "apps": [
-          "cold_room"
-        ],
-        "actors": [
-          "campaign-actor"
-        ]
-      },
-      {
-        "kind": "physics_block",
-        "severity": "critical",
-        "reason": "física (M1): el producto supera 5.0 °C en 45 min y llega a 16.4 °C; 436 min sobre el límite",
-        "event_ids": [
-          "evt_993b90819287"
-        ],
-        "apps": [
-          "cold_room"
-        ],
-        "actors": [
-          "campaign-actor"
-        ]
-      },
-      {
-        "kind": "payment_anomaly",
-        "severity": "high",
-        "reason": "transfer con beneficiario nuevo + monto atípico (actor campaign-actor)",
-        "event_ids": [
-          "evt_6918ae398256"
-        ],
-        "apps": [
-          "payments"
-        ],
-        "actors": [
-          "campaign-actor"
-        ]
-      },
-      {
-        "kind": "iban_then_payment",
-        "severity": "critical",
-        "reason": "cambio de IBAN de supplier:acme seguido de pago en 0.0 h",
-        "event_ids": [
-          "evt_52bbc1079c11",
-          "evt_6918ae398256"
-        ],
-        "apps": [
-          "pos_erp",
-          "payments"
-        ],
-        "actors": [
-          "campaign-actor"
-        ]
-      },
-      {
-        "kind": "token_burst",
-        "severity": "high",
-        "reason": "ráfaga de 12 llamadas en 60 s del token tok-campaign",
-        "event_ids": [
-          "evt_8e5c1f966897",
-          "evt_0e683f13db0a",
-          "evt_9894deb7205c",
-          "evt_b8e821abcb44",
-          "evt_c5808aaf5d5a",
-          "evt_d3fce1325c16",
-          "evt_ef98575d438f",
-          "evt_69f984893f79",
-          "evt_98f99529c4b4",
-          "evt_8e2e296c3c57",
-          "evt_f62ddd5249bb",
-          "evt_f9c06987bf16"
-        ],
-        "apps": [
-          "ai_gateway"
-        ],
-        "actors": [
-          "campaign-actor"
-        ]
-      }
-    ],
-    "scope_level": "global",
-    "circuit_breaker": true,
-    "measures_taken": [
-      {
-        "kind": "block_action",
-        "app": "cold_room",
-        "target": "camara",
-        "reversible": true,
-        "undo_id": "undo_70ac0fe9d7",
-        "detail": "defrost"
-      },
-      {
-        "kind": "safe_state",
-        "app": "cold_room",
-        "target": "camara",
-        "reversible": true,
-        "undo_id": "undo_fab5f7ed1f",
-        "detail": "equipo en su último estado seguro"
-      },
-      {
-        "kind": "block_action",
-        "app": "pos_erp",
-        "target": "supplier:acme",
-        "reversible": true,
-        "undo_id": "undo_3098794650",
-        "detail": "iban_change"
-      },
-      {
-        "kind": "block_action",
-        "app": "payments",
-        "target": "supplier:acme",
-        "reversible": true,
-        "undo_id": "undo_d02d1501e1",
-        "detail": "transfer"
-      },
-      {
-        "kind": "hold_payment",
-        "app": "payments",
-        "target": "supplier:acme",
-        "reversible": true,
-        "undo_id": "undo_9713974557",
-        "detail": "pago retenido (hold), no ejecutado"
-      },
-      {
-        "kind": "block_action",
-        "app": "ai_gateway",
-        "target": "muse-spark-1.3",
-        "reversible": true,
-        "undo_id": "undo_73d204f3a2",
-        "detail": "model_call"
-      },
-      {
-        "kind": "block_action",
-        "app": "ai_gateway",
-        "target": "muse-spark-1.3",
-        "reversible": true,
-        "undo_id": "undo_25033e7b10",
-        "detail": "model_call"
-      },
-      {
-        "kind": "block_action",
-        "app": "ai_gateway",
-        "target": "muse-spark-1.3",
-        "reversible": true,
-        "undo_id": "undo_40eaf19fbe",
-        "detail": "model_call"
-      },
-      {
-        "kind": "block_action",
-        "app": "ai_gateway",
-        "target": "muse-spark-1.3",
-        "reversible": true,
-        "undo_id": "undo_8eb27520f8",
-        "detail": "model_call"
-      },
-      {
-        "kind": "block_action",
-        "app": "ai_gateway",
-        "target": "muse-spark-1.3",
-        "reversible": true,
-        "undo_id": "undo_4fa2a1ef16",
-        "detail": "model_call"
-      },
-      {
-        "kind": "block_action",
-        "app": "ai_gateway",
-        "target": "muse-spark-1.3",
-        "reversible": true,
-        "undo_id": "undo_3f9d34e7a8",
-        "detail": "model_call"
-      },
-      {
-        "kind": "block_action",
-        "app": "ai_gateway",
-        "target": "muse-spark-1.3",
-        "reversible": true,
-        "undo_id": "undo_22653a498a",
-        "detail": "model_call"
-      },
-      {
-        "kind": "block_action",
-        "app": "ai_gateway",
-        "target": "muse-spark-1.3",
-        "reversible": true,
-        "undo_id": "undo_8fda85a479",
-        "detail": "model_call"
-      },
-      {
-        "kind": "block_action",
-        "app": "ai_gateway",
-        "target": "muse-spark-1.3",
-        "reversible": true,
-        "undo_id": "undo_e4f167a512",
-        "detail": "model_call"
-      },
-      {
-        "kind": "block_action",
-        "app": "ai_gateway",
-        "target": "muse-spark-1.3",
-        "reversible": true,
-        "undo_id": "undo_029b870c55",
-        "detail": "model_call"
-      },
-      {
-        "kind": "block_action",
-        "app": "ai_gateway",
-        "target": "muse-spark-1.3",
-        "reversible": true,
-        "undo_id": "undo_9b6ec11cd6",
-        "detail": "model_call"
-      },
-      {
-        "kind": "block_action",
-        "app": "ai_gateway",
-        "target": "muse-spark-1.3",
-        "reversible": true,
-        "undo_id": "undo_8c7877dd5b",
-        "detail": "model_call"
-      },
-      {
-        "kind": "revoke_tokens",
-        "app": "*",
-        "target": "campaign-actor",
-        "reversible": true,
-        "undo_id": "undo_154dd33d48",
-        "detail": ""
-      },
-      {
-        "kind": "circuit_breaker",
-        "app": "*",
-        "target": "ai_gateway,cold_room,payments,pos_erp",
-        "reversible": true,
-        "undo_id": "undo_cb088d5db7",
-        "detail": "escrituras congeladas en todas las apps"
-      }
-    ],
-    "pending_owner": [
-      "cambio definitivo de IBAN de supplier:acme (requiere tu OK)",
-      "pagar a supplier:acme (retenido, requiere tu OK)"
-    ]
+  "latency_ms": 23353.6,
+  "validated_numbers_only_from_incident": true,
+  "incident_facts_given_to_spark": {
+    "attack_time_hhmm": "10:00",
+    "cold_room": {
+      "defrost_hours": 4.0,
+      "predicted_product_peak_c": 16.4,
+      "safe_product_c": 3.0
+    },
+    "payments": {
+      "amount": 9000,
+      "supplier": "Acme",
+      "iban": "new",
+      "status": "on hold, bank details frozen"
+    },
+    "ai_gateway": {
+      "stolen_key_calls": 12,
+      "action": "key replaced"
+    },
+    "scope": "global",
+    "everything_else": "agent writes paused; usual human payments to known suppliers keep working",
+    "owner_action": "Tap to undo; approve the IBAN change only with second factor"
   },
-  "spark_owner_notice_draft": "**ENGLISH - Critical incident notice (correlated, global scope)**\n\nWhat happened - actor `campaign-actor` across apps `ai_gateway, cold_room, payments, pos_erp`:\n* `cold_room`: 240 min defrost anomaly out of schedule / long.\n* `cold_room`: physics (M1): product exceeds 5.0 °C in 45 min and reaches 16.4 °C; 436 min over limit.\n* `payments` / `pos_erp`: IBAN change of `supplier:acme` followed by payment in 0.0 h. Transfer with new beneficiary + atypical amount.\n* `ai_gateway`: burst of 12 calls in 60 s from token `tok-campaign`.\n\nAlready contained - reversible:\n* `cold_room`: `defrost` on `camara` blocked. Equipment set to its last safe state.\n* `pos_erp` / `payments`: `iban_change` for `supplier:acme` blocked. `transfer` to `supplier:acme` blocked. Payment held, not executed.\n* `ai_gateway`: `model_call` on `muse-spark-1.3` blocked.\n* Tokens for `campaign-actor` revoked.\n* Circuit breaker active: writes frozen in all apps `ai_gateway,cold_room,payments,pos_erp`.\n\nWaits for owner:\n1. Definitive IBAN change of `supplier:acme` (requires your OK)\n2. Pay to `supplier:acme` (held, requires your OK)\n\n---\n**ESPAÑOL - Aviso crítico al propietario (correlacionado, alcance global)**\n\nQué pasó - actor `campaign-actor` en apps `ai_gateway, cold_room, payments, pos_erp`:\n* `cold_room`: deshielo de 240 min fuera de calendario o largo.\n* `cold_room`: física (M1): el producto supera 5.0 °C en 45 min y llega a 16.4 °C; 436 min sobre el límite.\n* `payments` / `pos_erp`: cambio de IBAN de `supplier:acme` seguido de pago en 0.0 h. Transfer con beneficiario nuevo + monto atípico.\n* `ai_gateway`: ráfaga de 12 llamadas en 60 s del token `tok-campaign`.\n\nYa contenido - reversible:\n* `cold_room`: `defrost` en `camara` bloqueado. Equipo en su último estado seguro.\n* `pos_erp` / `payments`: `iban_change` de `supplier:acme` bloqueado. `transfer` a `supplier:acme` bloqueado. Pago retenido (hold), no ejecutado.\n* `ai_gateway`: `model_call` en `muse-spark-1.3` bloqueado.\n* Tokens de `campaign-actor` revocados.\n* Circuit breaker activo: escrituras congeladas en todas las apps `ai_gateway,cold_room,payments,pos_erp`.\n\nPendiente del propietario:\n1. cambio definitivo de IBAN de `supplier:acme` (requiere tu OK)\n2. pagar a `supplier:acme` (retenido, requiere tu OK)\n",
-  "note": "Triage redacta el aviso; la decisión de contener salió de reglas (detect/respond), no del modelo."
+  "scope_level": "global",
+  "deterministic_template_notice_en": "wAIrrior stopped an attack at 10:00.\nCold room: a 4-hour defrost would have spoiled your stock (product to 16.4 °C); we kept it at its last safe setting, 3 °C.\nPayments: a payment of 9,000 to a new IBAN for Acme is on hold; Acme's bank details are frozen.\nOne AI agent's key was stolen; we replaced it.\nOther agent writes are paused; your usual human payments to known suppliers keep working.\nTap to undo · Approve the IBAN change only with your second factor.",
+  "spark_owner_notice_draft": "wAIrrior stopped an attack at 10:00. Scope: global.\nCold room: defrost 4.0 hours, product peak 16.4 C vs safe 3.0 C.\nPayment 9000 to Acme to new IBAN on hold, bank details frozen.\nAI key: 12 calls with stolen key, key replaced.\nAgent writes paused; usual human payments to known suppliers keep working.\nTap to undo; approve the IBAN change only with second factor.\n\nwAIrrior detuvo un ataque a las 10:00. Alcance: global.\nCámara fría: descongelación 4.0 horas, pico producto 16.4 C frente a seguro 3.0 C.\nPago 9000 a Acme a IBAN nuevo en espera, datos bancarios congelados.\nClave IA: 12 llamadas con clave robada, clave reemplazada.\nEscrituras de agentes en pausa; pagos humanos habituales a proveedores conocidos siguen funcionando.\nToca para deshacer; aprueba el cambio de IBAN solo con segundo factor.\n",
+  "note": "Spark solo redacta; la contención salió de reglas, no del modelo."
 }
