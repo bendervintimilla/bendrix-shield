@@ -101,7 +101,8 @@ def test_ocupacion_y_fuera_de_horario_con_datos_reales_en_formato(client, monkey
         assert r.headers["content-type"].startswith("image/svg+xml"), bad
     traversal = client.get("/sentinel/surveillance/room/..%2F..%2Fobservations.jpg")
     assert traversal.headers["content-type"] != "image/jpeg"
-    assert sv["stats"] == {"cameras": 2, "frames": 3, "models": ["Meta SAM 3.1"]}
+    assert sv["stats"] == {"cameras": 2, "frames": 3, "models": ["Meta SAM 3.1"],
+                           "camera_clock_ahead_min": 26}
     assert client.get("/sentinel/surveillance/after_hours.jpg").content == SYNTH_EMPTY
     assert client.get("/sentinel/surveillance/nope.jpg").status_code == 404
     dumped = json.dumps(sv)

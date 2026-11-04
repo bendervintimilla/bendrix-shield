@@ -50,6 +50,7 @@ SV_T: dict[str, dict[str, str]] = {
         "sv_live_label": "real camera, live capture",
         "sv_rec_label": "real camera, recorded {hhmm} · Clara del Rey, Madrid · {n} people ({model})",
         "sv_verified": "human-verified empty",
+        "sv_clock": "Times are recorded_at (Madrid, NTP); the camera's burned-in clock runs ~{m} min ahead.",
         "sv_blurred": "no person boxes, so the whole frame is blurred (privacy default)",
         "sv_ah_clear": "{rooms} at {hhmm}: 0 people in {e}/{t} frames → all clear",
         "sv_ah_alert": "{room} at {hhmm}: {n} people out of hours → alert",
@@ -94,6 +95,7 @@ SV_T: dict[str, dict[str, str]] = {
         "sv_live_label": "cámara real, captura en vivo",
         "sv_rec_label": "cámara real, grabación de las {hhmm} · Clara del Rey, Madrid · {n} personas ({model})",
         "sv_verified": "vacío verificado por una persona",
+        "sv_clock": "Las horas son recorded_at (Madrid, NTP); el reloj impreso de la cámara va ~{m} min adelantado.",
         "sv_blurred": "sin cajas de personas, el cuadro entero va difuminado (privacidad por defecto)",
         "sv_ah_clear": "{rooms} a las {hhmm}: 0 personas en {e}/{t} cuadros → todo en orden",
         "sv_ah_alert": "{room} a las {hhmm}: {n} personas fuera de horario → alerta",
@@ -190,6 +192,7 @@ function frame(src) {
   f.appendChild(img); f.appendChild(el("i", null, "scanline")); return f;
 }
 function renderSurveillance(sv) {
+  window.SV_STATS = sv.stats || {};
   renderEval(sv.eval); renderRibbon(sv.stats);
   const grid = byId("svGrid"); if (!grid) return; clear(grid);
   (sv.cards || []).forEach((c) => {
@@ -217,6 +220,8 @@ function renderSurveillance(sv) {
         ul.appendChild(li);
       });
       card.appendChild(ul); card.appendChild(src);
+      const skew = (window.SV_STATS || {}).camera_clock_ahead_min;
+      if (skew != null) { const note = el("p", fill(TEXT.sv_clock, {m: skew}), "hint sv-clock"); card.appendChild(note); card.querySelectorAll(".sv-rooms li").forEach((x) => { x.title = note.textContent; }); }
       const last = c.rooms.find((r) => r.room_en === c.image_room_en) || c.rooms[c.rooms.length - 1];
       const defLi = ul.children[c.rooms.indexOf(last)]; if (defLi) defLi.dataset.default = "1";
       showRoom(last, defLi);
@@ -322,7 +327,7 @@ a{color:#ffd28a}.hint{color:var(--muted);font-size:13px}.mono{font-family:var(--
 .page .sv-card:not(.sv-occupancy) .w-frame{aspect-ratio:auto;flex:1;min-height:120px}
 .page .sv-card:not(.sv-occupancy) .sv-pending{flex:1;display:flex;align-items:center;justify-content:center}
 .page .sv-head h3{font-size:17px}.page .sv-metric{font-size:15px}.page .sv-src{font-size:13px}.page .sv-proof{font-size:12px}
-.page .sv-how{font-size:12.5px}.page .sv-engine{font-size:12px}
+.page .sv-how{font-size:12.5px}.page .sv-clock{font-size:11.5px}.page .sv-engine{font-size:12px}
 .page .sv-occupancy .sv-rooms li{padding:4px 10px}.page .sv-occupancy .sv-rooms b{font-size:20px}
 .page .sv-log{flex:1;min-height:0;font-size:13px;line-height:1.35}
 .page .sv-security_log .w-frame{display:none}

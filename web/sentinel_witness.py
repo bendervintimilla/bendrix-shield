@@ -38,6 +38,9 @@ DEFAULT_SITE = "Clara del Rey, Madrid"
 PLAYBACK_SOURCES = {"playback", "recorded", "replay", "recording"}
 LIVE_SOURCES = {"live", "live_capture", "camera"}
 AFTER_HOURS = range(0, 6)  # 00:00–05:59, hora del sitio
+# Medido por el orquestador el 4-nov: la cámara marcaba 21:22 con la Mac en
+# 20:56. ``surveillance.json`` puede corregirlo con meta.camera_clock_ahead_min.
+CAMERA_CLOCK_AHEAD_MIN = 26
 EVAL_GLOB = "witness-eval-*.json"
 REPO_ROOT = Path(__file__).resolve().parent.parent
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,150}$")
@@ -479,6 +482,11 @@ def surveillance_state(base: Path | None = None) -> dict[str, Any]:
         "frames": len(real),
         "models": ["Meta " + " + ".join(models)] if models else [],
     }
+    ahead = (surv.get("meta") or {}).get("camera_clock_ahead_min") \
+        if isinstance(surv.get("meta"), dict) else None
+    stats["camera_clock_ahead_min"] = (
+        ahead if isinstance(ahead, (int, float)) and not isinstance(ahead, bool)
+        else CAMERA_CLOCK_AHEAD_MIN) if real else None
     return {"available": bool(obs), "cards": cards, "eval": eval_summary(), "stats": stats}
 
 
