@@ -880,7 +880,7 @@ a{color:#ffd28a}.wrap{width:min(1320px,calc(100% - 48px));margin:0 auto}
 .step-num{width:40px;height:40px;border-radius:50%;border:2px solid var(--line-strong);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--muted)}
 .step[data-state="ok"] .step-num{border-color:var(--ok);color:var(--ok-text)}
 .step[data-state="blocked"] .step-num{border-color:var(--bad);color:var(--bad-text)}
-.step-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 22px;break-inside:avoid}
+.step-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 22px}
 .step[data-state="blocked"] .step-card{border-color:rgba(229,83,75,.7)}
 .step-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.step h2{font-size:23px;margin:0;flex:1 1 280px}
 .step-status{font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:4px 11px;color:var(--muted)}
