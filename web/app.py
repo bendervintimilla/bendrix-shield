@@ -1633,7 +1633,8 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
             resp = HTMLResponse(_page(demo, lang), status_code=status_code)
         return _with_cookie(resp, request, lang)
 
-    @app.get("/", response_class=HTMLResponse)
+    # HEAD también: los chequeos de salud y los previsualizadores de enlaces usan HEAD /.
+    @app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
     async def index(request: Request) -> Any:
         if remote:
             return RedirectResponse("/live", status_code=303)
@@ -1643,7 +1644,8 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
             return _with_cookie(
                 HTMLResponse(render_live_page(lang, replay=True, scene=run.scene)), request, lang
             )
-        demo.start_clock()
+        if request.method != "HEAD":
+            demo.start_clock()
         lang = _resolve_lang(request)
         return _with_cookie(HTMLResponse(_page(demo, lang)), request, lang)
 
@@ -1818,14 +1820,30 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         except Exception:
             pass
 
+    # Un solo arranque a la vez: la página pide /live/start al cargar y cada paso
+    # vuelve a pedirlo si ve «not_started»; sin candado se armaban varias cadenas
+    # (cada una con su gateway) y los pasos que llegaban durante el arranque daban 409.
+    chain_lock = Lock()
+
     def _get_chain() -> Any:
         chain = getattr(app.state, "live_chain", None)
         if chain is None:
-            from web.live_chain import LiveChain
+            with chain_lock:
+                chain = getattr(app.state, "live_chain", None)
+                if chain is None:
+                    from web.live_chain import LiveChain
 
-            chain = LiveChain.start()
-            app.state.live_chain = chain
+                    chain = LiveChain.start()
+                    app.state.live_chain = chain
         _refresh_whatsapp_config(chain)
+        return chain
+
+    def _started_chain() -> Any:
+        """La cadena ya armada; si hay un /live/start en curso, lo espera (no arma otra)."""
+        chain = getattr(app.state, "live_chain", None)
+        if chain is None:
+            with chain_lock:
+                chain = getattr(app.state, "live_chain", None)
         return chain
 
     def _set_auth_cookie(resp: Response, request: Request) -> None:
@@ -1943,7 +1961,10 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         guard = _replay_guard(request)
         if guard is not None:
             return guard
-        return JSONResponse(_replay_run(request).reset())
+        run = _replay_run(request)
+        # Bajo el candado: un paso en curso no se mezcla con la corrida nueva.
+        with run.lock:
+            return JSONResponse(run.reset())
 
     @app.post("/replay/step/{name}")
     async def replay_step(name: str, request: Request) -> Any:
@@ -1951,16 +1972,22 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         if guard is not None:
             return guard
         run = _replay_run(request)
+        rid = run.run_id  # si «New run» llega durante la espera, este paso ya no vale
         await asyncio.sleep(0.6)  # que se vea correr: la grabación no tarda nada
 
         def _run_step() -> Any:
             with run.lock:
+                if run.run_id != rid:
+                    return {
+                        "status": "stale",
+                        "error": "a new run started: this step was discarded",
+                    }
                 return run.step(name)
 
         # «revoke» levanta un gateway en memoria: fuera del bucle de eventos.
         out = await asyncio.to_thread(_run_step)
         status = 200
-        if isinstance(out, dict) and out.get("status") == "error":
+        if isinstance(out, dict) and out.get("status") in ("error", "stale"):
             status = 409
         return JSONResponse(out, status_code=status)
 
@@ -2081,10 +2108,12 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         steps = {"invoice", "count", "attack", "guardian", "contain", "revoke"}
         if name not in steps:
             return JSONResponse({"error": f"unknown live step: {name}"}, status_code=404)
-        chain = getattr(app.state, "live_chain", None)
+        # La factura es el primer paso: si esta instancia no tiene cadena (otra instancia
+        # atendió /live/start, o se reinició), se arma aquí; no se pierde nada ni llama a modelos.
+        chain = _get_chain() if name == "invoice" else _started_chain()
         if chain is None:
             return JSONResponse(
-                {"error": "live chain not started: POST /live/start first"},
+                {"status": "error", "error": "live chain not started: POST /live/start first"},
                 status_code=409,
             )
         blocked = _budget_gate(chain, name)
@@ -2147,10 +2176,10 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         guard = _live_guard(request)
         if guard is not None:
             return guard
-        chain = getattr(app.state, "live_chain", None)
+        chain = _started_chain()
         if chain is None:
             return JSONResponse(
-                {"error": "live chain not started: POST /live/start first"},
+                {"status": "error", "error": "live chain not started: POST /live/start first"},
                 status_code=409,
             )
         blocked = _budget_gate(chain, "voice")
@@ -2167,9 +2196,11 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         guard = _live_guard(request)
         if guard is not None:
             return guard
-        chain = getattr(app.state, "live_chain", None)
+        chain = _started_chain()
         if chain is None:
-            return JSONResponse({"error": "live chain not started"}, status_code=409)
+            return JSONResponse(
+                {"status": "error", "error": "live chain not started"}, status_code=409
+            )
         return JSONResponse(chain.step_voice_confirm())
 
     @app.post("/live/voice/cancel")
@@ -2177,9 +2208,11 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         guard = _live_guard(request)
         if guard is not None:
             return guard
-        chain = getattr(app.state, "live_chain", None)
+        chain = _started_chain()
         if chain is None:
-            return JSONResponse({"error": "live chain not started"}, status_code=409)
+            return JSONResponse(
+                {"status": "error", "error": "live chain not started"}, status_code=409
+            )
         return JSONResponse(chain.step_voice_cancel())
 
     @app.get("/live/state")
@@ -2197,9 +2230,11 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         guard = _live_guard(request)
         if guard is not None:
             return guard
-        chain = getattr(app.state, "live_chain", None)
+        chain = _started_chain()
         if chain is None:
-            return JSONResponse({"error": "live chain not started"}, status_code=409)
+            return JSONResponse(
+                {"status": "error", "error": "live chain not started"}, status_code=409
+            )
         return Response(
             content=chain.export(),
             media_type="application/json",
