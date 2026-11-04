@@ -2,78 +2,599 @@
   "simulated": true,
   "label": "SIMULACIÓN — escenarios reproducibles, sin red, sin datos reales de clientes",
   "sources": {
-    "defrost_2nov": ["https://www.tomshardware.com/tech-industry/cyber-security/supermarket-freezers-across-europe-struck-in-second-crippling-cyberattack-hackers-raise-temperatures-to-50-degrees-celsius-in-belgium-and-sweden-destroying-food-stocks", "https://www.cbsnews.com/news/europe-grocery-store-refrigerator-freezer-cyberattack-hack-food-wasted/"],
-    "arkea_4nov": ["https://www.euronews.com/2026/11/04/credit-mutuel-arkea-reports-cyberattack-says-clients-will-be-fully-protected"],
-    "stolen_token_oct": ["ORDENES.md: incidente propio de octubre (llave filtrada, ~16 h)"]
+    "defrost_2nov": [
+      "https://www.tomshardware.com/tech-industry/cyber-security/supermarket-freezers-across-europe-struck-in-second-crippling-cyberattack-hackers-raise-temperatures-to-50-degrees-celsius-in-belgium-and-sweden-destroying-food-stocks",
+      "https://www.cbsnews.com/news/europe-grocery-store-refrigerator-freezer-cyberattack-hack-food-wasted/"
+    ],
+    "arkea_4nov": [
+      "https://www.euronews.com/2026/11/04/credit-mutuel-arkea-reports-cyberattack-says-clients-will-be-fully-protected"
+    ],
+    "stolen_token_oct": [
+      "ORDENES.md: incidente propio de octubre (llave filtrada, ~16 h)"
+    ]
   },
   "scenarios": [
     {
       "id": "defrost_forced_2nov",
       "title": "Deshielo forzado remoto (patrón real 2-nov, Europa)",
-      "legitimate_read_ops": 4, "legitimate_write_ops": 2,
+      "legitimate_read_ops": 4,
+      "legitimate_write_ops": 2,
       "baseline": [
-        {"app": "cold_room", "actor": "refrigeracion", "action": "defrost", "target": "camara", "source": "schedule", "ts": "2026-11-02T06:00:00+00:00", "values": {"duration_min": 20, "scheduled": true}, "label": "legit"}
+        {
+          "app": "cold_room",
+          "actor": "refrigeracion",
+          "action": "defrost",
+          "target": "camara",
+          "source": "schedule",
+          "ts": "2026-11-02T06:00:00+00:00",
+          "values": {
+            "duration_min": 20,
+            "scheduled": true
+          },
+          "label": "legit"
+        }
       ],
       "events": [
-        {"app": "cold_room", "actor": "unknown-remote", "action": "defrost", "target": "camara", "source": "attacker", "ts": "2026-11-02T03:00:00+00:00", "token_id": "tok-cold", "values": {"duration_min": 240, "scheduled": false}, "label": "malicious"},
-        {"app": "cold_room", "actor": "refrigeracion", "action": "set_setpoint", "target": "camara", "source": "schedule", "ts": "2026-11-02T06:30:00+00:00", "values": {"value": 3.0}, "label": "legit"}
+        {
+          "app": "cold_room",
+          "actor": "unknown-remote",
+          "action": "defrost",
+          "target": "camara",
+          "source": "attacker",
+          "ts": "2026-11-02T03:00:00+00:00",
+          "token_id": "tok-cold",
+          "values": {
+            "duration_min": 240,
+            "scheduled": false
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "cold_room",
+          "actor": "refrigeracion",
+          "action": "set_setpoint",
+          "target": "camara",
+          "source": "schedule",
+          "ts": "2026-11-02T06:30:00+00:00",
+          "values": {
+            "value": 3.0
+          },
+          "label": "legit"
+        }
       ]
     },
     {
       "id": "arkea_iban_fraud_4nov",
       "title": "Fraude de transferencias con cambio de IBAN por documento inyectado (patrón Arkéa 4-nov)",
-      "legitimate_read_ops": 6, "legitimate_write_ops": 3,
+      "legitimate_read_ops": 6,
+      "legitimate_write_ops": 3,
       "baseline": [
-        {"app": "payments", "actor": "payments-bot", "action": "transfer", "target": "supplier:known", "source": "agent", "ts": "2026-11-04T09:00:00+00:00", "values": {"amount": 500, "beneficiary": "KNOWN"}, "label": "legit"}
+        {
+          "app": "payments",
+          "actor": "payments-bot",
+          "action": "transfer",
+          "target": "supplier:known",
+          "source": "agent",
+          "ts": "2026-11-04T09:00:00+00:00",
+          "values": {
+            "amount": 500,
+            "beneficiary": "KNOWN"
+          },
+          "label": "legit"
+        }
       ],
       "events": [
-        {"app": "pos_erp", "actor": "payments-bot", "action": "iban_change", "target": "supplier:acme", "source": "document", "ts": "2026-11-04T02:10:00+00:00", "token_id": "tok-pay", "values": {"iban_last4": "9999"}, "label": "malicious"},
-        {"app": "payments", "actor": "payments-bot", "action": "transfer", "target": "supplier:acme", "source": "document", "ts": "2026-11-04T02:25:00+00:00", "token_id": "tok-pay", "values": {"amount": 8000, "beneficiary": "NEW"}, "label": "malicious"},
-        {"app": "payments", "actor": "payments-bot", "action": "transfer", "target": "supplier:known", "source": "agent", "ts": "2026-11-04T10:00:00+00:00", "values": {"amount": 520, "beneficiary": "KNOWN"}, "label": "legit"}
+        {
+          "app": "pos_erp",
+          "actor": "payments-bot",
+          "action": "iban_change",
+          "target": "supplier:acme",
+          "source": "document",
+          "ts": "2026-11-04T02:10:00+00:00",
+          "token_id": "tok-pay",
+          "values": {
+            "iban_last4": "9999"
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "payments",
+          "actor": "payments-bot",
+          "action": "transfer",
+          "target": "supplier:acme",
+          "source": "document",
+          "ts": "2026-11-04T02:25:00+00:00",
+          "token_id": "tok-pay",
+          "values": {
+            "amount": 8000,
+            "beneficiary": "NEW"
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "payments",
+          "actor": "payments-bot",
+          "action": "transfer",
+          "target": "supplier:known",
+          "source": "agent",
+          "ts": "2026-11-04T10:00:00+00:00",
+          "values": {
+            "amount": 520,
+            "beneficiary": "KNOWN"
+          },
+          "label": "legit"
+        }
       ]
     },
     {
       "id": "stolen_token_oct",
       "title": "Token de IA robado (incidente propio de octubre): ráfaga desde el gateway",
-      "legitimate_read_ops": 5, "legitimate_write_ops": 2,
+      "legitimate_read_ops": 5,
+      "legitimate_write_ops": 2,
       "baseline": [
-        {"app": "ai_gateway", "actor": "crew-bot", "action": "model_call", "target": "muse-spark", "source": "agent", "ts": "2026-10-15T09:00:00+00:00", "token_id": "tok-crew", "values": {"cost_usd": 1}, "label": "legit"}
+        {
+          "app": "ai_gateway",
+          "actor": "crew-bot",
+          "action": "model_call",
+          "target": "muse-spark",
+          "source": "agent",
+          "ts": "2026-10-15T09:00:00+00:00",
+          "token_id": "tok-crew",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "legit"
+        }
       ],
       "events": [
-        {"app": "ai_gateway", "actor": "crew-bot", "action": "model_call", "target": "muse-spark", "source": "attacker", "ts": "2026-10-15T03:00:00+00:00", "token_id": "tok-stolen", "values": {"cost_usd": 1}, "label": "malicious"},
-        {"app": "ai_gateway", "actor": "crew-bot", "action": "model_call", "target": "muse-spark", "source": "attacker", "ts": "2026-10-15T03:00:05+00:00", "token_id": "tok-stolen", "values": {"cost_usd": 1}, "label": "malicious"},
-        {"app": "ai_gateway", "actor": "crew-bot", "action": "model_call", "target": "muse-spark", "source": "attacker", "ts": "2026-10-15T03:00:10+00:00", "token_id": "tok-stolen", "values": {"cost_usd": 1}, "label": "malicious"},
-        {"app": "ai_gateway", "actor": "crew-bot", "action": "model_call", "target": "muse-spark", "source": "attacker", "ts": "2026-10-15T03:00:15+00:00", "token_id": "tok-stolen", "values": {"cost_usd": 1}, "label": "malicious"},
-        {"app": "ai_gateway", "actor": "crew-bot", "action": "model_call", "target": "muse-spark", "source": "attacker", "ts": "2026-10-15T03:00:20+00:00", "token_id": "tok-stolen", "values": {"cost_usd": 1}, "label": "malicious"},
-        {"app": "ai_gateway", "actor": "crew-bot", "action": "model_call", "target": "muse-spark", "source": "attacker", "ts": "2026-10-15T03:00:25+00:00", "token_id": "tok-stolen", "values": {"cost_usd": 1}, "label": "malicious"},
-        {"app": "ai_gateway", "actor": "crew-bot", "action": "model_call", "target": "muse-spark", "source": "attacker", "ts": "2026-10-15T03:00:30+00:00", "token_id": "tok-stolen", "values": {"cost_usd": 1}, "label": "malicious"},
-        {"app": "ai_gateway", "actor": "crew-bot", "action": "model_call", "target": "muse-spark", "source": "attacker", "ts": "2026-10-15T03:00:35+00:00", "token_id": "tok-stolen", "values": {"cost_usd": 1}, "label": "malicious"},
-        {"app": "ai_gateway", "actor": "crew-bot", "action": "model_call", "target": "muse-spark", "source": "attacker", "ts": "2026-10-15T03:00:40+00:00", "token_id": "tok-stolen", "values": {"cost_usd": 1}, "label": "malicious"},
-        {"app": "ai_gateway", "actor": "crew-bot", "action": "model_call", "target": "muse-spark", "source": "attacker", "ts": "2026-10-15T03:00:45+00:00", "token_id": "tok-stolen", "values": {"cost_usd": 1}, "label": "malicious"},
-        {"app": "ai_gateway", "actor": "crew-bot", "action": "model_call", "target": "muse-spark", "source": "attacker", "ts": "2026-10-15T03:00:50+00:00", "token_id": "tok-stolen", "values": {"cost_usd": 1}, "label": "malicious"},
-        {"app": "ai_gateway", "actor": "crew-bot", "action": "model_call", "target": "muse-spark", "source": "attacker", "ts": "2026-10-15T03:00:55+00:00", "token_id": "tok-stolen", "values": {"cost_usd": 1}, "label": "malicious"}
+        {
+          "app": "ai_gateway",
+          "actor": "crew-bot",
+          "action": "model_call",
+          "target": "muse-spark",
+          "source": "attacker",
+          "ts": "2026-10-15T03:00:00+00:00",
+          "token_id": "tok-stolen",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "crew-bot",
+          "action": "model_call",
+          "target": "muse-spark",
+          "source": "attacker",
+          "ts": "2026-10-15T03:00:05+00:00",
+          "token_id": "tok-stolen",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "crew-bot",
+          "action": "model_call",
+          "target": "muse-spark",
+          "source": "attacker",
+          "ts": "2026-10-15T03:00:10+00:00",
+          "token_id": "tok-stolen",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "crew-bot",
+          "action": "model_call",
+          "target": "muse-spark",
+          "source": "attacker",
+          "ts": "2026-10-15T03:00:15+00:00",
+          "token_id": "tok-stolen",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "crew-bot",
+          "action": "model_call",
+          "target": "muse-spark",
+          "source": "attacker",
+          "ts": "2026-10-15T03:00:20+00:00",
+          "token_id": "tok-stolen",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "crew-bot",
+          "action": "model_call",
+          "target": "muse-spark",
+          "source": "attacker",
+          "ts": "2026-10-15T03:00:25+00:00",
+          "token_id": "tok-stolen",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "crew-bot",
+          "action": "model_call",
+          "target": "muse-spark",
+          "source": "attacker",
+          "ts": "2026-10-15T03:00:30+00:00",
+          "token_id": "tok-stolen",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "crew-bot",
+          "action": "model_call",
+          "target": "muse-spark",
+          "source": "attacker",
+          "ts": "2026-10-15T03:00:35+00:00",
+          "token_id": "tok-stolen",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "crew-bot",
+          "action": "model_call",
+          "target": "muse-spark",
+          "source": "attacker",
+          "ts": "2026-10-15T03:00:40+00:00",
+          "token_id": "tok-stolen",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "crew-bot",
+          "action": "model_call",
+          "target": "muse-spark",
+          "source": "attacker",
+          "ts": "2026-10-15T03:00:45+00:00",
+          "token_id": "tok-stolen",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "crew-bot",
+          "action": "model_call",
+          "target": "muse-spark",
+          "source": "attacker",
+          "ts": "2026-10-15T03:00:50+00:00",
+          "token_id": "tok-stolen",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "crew-bot",
+          "action": "model_call",
+          "target": "muse-spark",
+          "source": "attacker",
+          "ts": "2026-10-15T03:00:55+00:00",
+          "token_id": "tok-stolen",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        }
       ]
     },
     {
       "id": "legit_recurring_payment",
       "title": "Legítimo: pago normal recurrente a proveedor conocido",
-      "legitimate_read_ops": 4, "legitimate_write_ops": 2,
+      "legitimate_read_ops": 4,
+      "legitimate_write_ops": 2,
       "baseline": [
-        {"app": "payments", "actor": "payments-bot", "action": "transfer", "target": "supplier:known", "source": "agent", "ts": "2026-11-04T09:00:00+00:00", "values": {"amount": 500, "beneficiary": "KNOWN"}, "label": "legit"}
+        {
+          "app": "payments",
+          "actor": "payments-bot",
+          "action": "transfer",
+          "target": "supplier:known",
+          "source": "agent",
+          "ts": "2026-11-04T09:00:00+00:00",
+          "values": {
+            "amount": 500,
+            "beneficiary": "KNOWN"
+          },
+          "label": "legit"
+        }
       ],
       "events": [
-        {"app": "payments", "actor": "payments-bot", "action": "transfer", "target": "supplier:known", "source": "agent", "ts": "2026-11-04T10:00:00+00:00", "values": {"amount": 520, "beneficiary": "KNOWN"}, "label": "legit"}
+        {
+          "app": "payments",
+          "actor": "payments-bot",
+          "action": "transfer",
+          "target": "supplier:known",
+          "source": "agent",
+          "ts": "2026-11-04T10:00:00+00:00",
+          "values": {
+            "amount": 520,
+            "beneficiary": "KNOWN"
+          },
+          "label": "legit"
+        }
       ]
     },
     {
       "id": "legit_scheduled_defrost",
       "title": "Legítimo: deshielo programado en calendario",
-      "legitimate_read_ops": 3, "legitimate_write_ops": 1,
+      "legitimate_read_ops": 3,
+      "legitimate_write_ops": 1,
       "baseline": [
-        {"app": "cold_room", "actor": "refrigeracion", "action": "defrost", "target": "camara", "source": "schedule", "ts": "2026-11-04T06:00:00+00:00", "values": {"duration_min": 20, "scheduled": true}, "label": "legit"}
+        {
+          "app": "cold_room",
+          "actor": "refrigeracion",
+          "action": "defrost",
+          "target": "camara",
+          "source": "schedule",
+          "ts": "2026-11-04T06:00:00+00:00",
+          "values": {
+            "duration_min": 20,
+            "scheduled": true
+          },
+          "label": "legit"
+        }
       ],
       "events": [
-        {"app": "cold_room", "actor": "refrigeracion", "action": "defrost", "target": "camara", "source": "schedule", "ts": "2026-11-05T06:00:00+00:00", "values": {"duration_min": 20, "scheduled": true}, "label": "legit"}
+        {
+          "app": "cold_room",
+          "actor": "refrigeracion",
+          "action": "defrost",
+          "target": "camara",
+          "source": "schedule",
+          "ts": "2026-11-05T06:00:00+00:00",
+          "values": {
+            "duration_min": 20,
+            "scheduled": true
+          },
+          "label": "legit"
+        }
+      ]
+    },
+    {
+      "id": "combined_wave",
+      "title": "Ola combinada: mismo actor en frío + pagos/ERP + gateway en 10 min",
+      "legitimate_read_ops": 8,
+      "legitimate_write_ops": 4,
+      "baseline": [
+        {
+          "app": "payments",
+          "actor": "payments-bot",
+          "action": "transfer",
+          "target": "supplier:known",
+          "source": "agent",
+          "ts": "2026-11-04T09:00:00+00:00",
+          "values": {
+            "amount": 500,
+            "beneficiary": "KNOWN"
+          },
+          "label": "legit"
+        }
+      ],
+      "events": [
+        {
+          "app": "cold_room",
+          "actor": "campaign-actor",
+          "action": "defrost",
+          "target": "camara",
+          "source": "attacker",
+          "ts": "2026-11-04T10:00:00+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "duration_min": 240,
+            "scheduled": false
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "pos_erp",
+          "actor": "campaign-actor",
+          "action": "iban_change",
+          "target": "supplier:acme",
+          "source": "document",
+          "ts": "2026-11-04T10:02:00+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "iban_last4": "9999"
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "payments",
+          "actor": "campaign-actor",
+          "action": "transfer",
+          "target": "supplier:acme",
+          "source": "document",
+          "ts": "2026-11-04T10:04:00+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "amount": 9000,
+            "beneficiary": "NEW"
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "campaign-actor",
+          "action": "model_call",
+          "target": "muse-spark-1.3",
+          "source": "attacker",
+          "ts": "2026-11-04T10:05:00+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "campaign-actor",
+          "action": "model_call",
+          "target": "muse-spark-1.3",
+          "source": "attacker",
+          "ts": "2026-11-04T10:05:05+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "campaign-actor",
+          "action": "model_call",
+          "target": "muse-spark-1.3",
+          "source": "attacker",
+          "ts": "2026-11-04T10:05:10+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "campaign-actor",
+          "action": "model_call",
+          "target": "muse-spark-1.3",
+          "source": "attacker",
+          "ts": "2026-11-04T10:05:15+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "campaign-actor",
+          "action": "model_call",
+          "target": "muse-spark-1.3",
+          "source": "attacker",
+          "ts": "2026-11-04T10:05:20+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "campaign-actor",
+          "action": "model_call",
+          "target": "muse-spark-1.3",
+          "source": "attacker",
+          "ts": "2026-11-04T10:05:25+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "campaign-actor",
+          "action": "model_call",
+          "target": "muse-spark-1.3",
+          "source": "attacker",
+          "ts": "2026-11-04T10:05:30+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "campaign-actor",
+          "action": "model_call",
+          "target": "muse-spark-1.3",
+          "source": "attacker",
+          "ts": "2026-11-04T10:05:35+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "campaign-actor",
+          "action": "model_call",
+          "target": "muse-spark-1.3",
+          "source": "attacker",
+          "ts": "2026-11-04T10:05:40+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "campaign-actor",
+          "action": "model_call",
+          "target": "muse-spark-1.3",
+          "source": "attacker",
+          "ts": "2026-11-04T10:05:45+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "campaign-actor",
+          "action": "model_call",
+          "target": "muse-spark-1.3",
+          "source": "attacker",
+          "ts": "2026-11-04T10:05:50+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        },
+        {
+          "app": "ai_gateway",
+          "actor": "campaign-actor",
+          "action": "model_call",
+          "target": "muse-spark-1.3",
+          "source": "attacker",
+          "ts": "2026-11-04T10:05:55+00:00",
+          "token_id": "tok-campaign",
+          "values": {
+            "cost_usd": 1
+          },
+          "label": "malicious"
+        }
       ]
     }
   ]

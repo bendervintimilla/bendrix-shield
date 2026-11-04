@@ -141,10 +141,17 @@ def cold_room_physics_verdict(event: SecurityEvent) -> Any | None:
     if kind is None:
         return None
     from shield.physics.contract import ColdRoomParams, ProposedAction, RoomState
-    from shield.physics.gate import verify_action
 
     action = ProposedAction(
         kind=kind, equipment=event.target or "camara",
         value=event.values.get("value"), duration_min=float(event.values.get("duration_min") or 0),
         requested_by=event.actor, source=event.source)
-    return verify_action(ColdRoomParams(), RoomState(), action)
+    params, state = ColdRoomParams(), RoomState()
+    try:  # M6: verificar-antes-de-actuar (residuo de sensor + gate).
+        from shield.physics.pipeline import verify_before_actuate
+
+        return verify_before_actuate(params, [state], [state.air_c], action)
+    except ImportError:  # pragma: no cover - solo si M6 no está fusionado
+        from shield.physics.gate import verify_action
+
+        return verify_action(params, state, action)
