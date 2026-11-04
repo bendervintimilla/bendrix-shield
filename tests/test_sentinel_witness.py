@@ -122,3 +122,14 @@ def test_datos_malos_o_imagen_no_jpeg_no_rompen(client, monkeypatch, tmp_path):
     assert state["witness"]["available"] is False
     _write(tmp_path, [{"captured_at": "ayer", "people": "muchos"}, _obs(people=True)])
     assert load_observations(tmp_path) == []
+
+
+def test_observacion_fallida_o_fixture_no_cuenta_como_testigo_real(tmp_path):
+    # Formato real de WitnessObservation.public(): trae ok/error/has_redacted_image.
+    _write(tmp_path, [
+        _obs(ok=False, error="sam timeout", has_redacted_image=False),
+        _obs(source="fixture", ok=True, error=None),
+    ])
+    obs = load_observations(tmp_path)
+    assert len(obs) == 1 and obs[0]["is_fixture"] is True
+    assert night_playback(obs) is None

@@ -657,7 +657,7 @@ SENTINEL_T: dict[str, dict[str, str]] = {
         "w_alt": "Latest camera frame, people covered by silhouettes",
         "w_live": "real camera, live capture",
         "w_playback": "real camera, recorded (playback)",
-        "w_real": "real camera",
+        "w_fixture": "test fixture — not a real camera",
         "w_camera": "camera",
         "w_captured": "captured",
         "w_people": "people:",
@@ -716,7 +716,7 @@ SENTINEL_T: dict[str, dict[str, str]] = {
         "w_alt": "Último cuadro de la cámara, personas cubiertas por siluetas",
         "w_live": "cámara real, captura en vivo",
         "w_playback": "cámara real, grabación (reproducción)",
-        "w_real": "cámara real",
+        "w_fixture": "dato de prueba: no es una cámara real",
         "w_camera": "cámara",
         "w_captured": "captura",
         "w_people": "personas:",
@@ -881,7 +881,7 @@ function renderWitness(w) {
   if (!o) { src.hidden = true; note.textContent = TEXT.w_none; note.hidden = false; return; }
   byId("wSite").textContent = o.site || "Clara del Rey, Madrid";
   src.hidden = false; src.className = "chip" + (o.is_live ? " live" : "");
-  src.textContent = o.is_live ? TEXT.w_live : (o.is_playback ? TEXT.w_playback : TEXT.w_real);
+  src.textContent = o.is_live ? TEXT.w_live : (o.is_playback ? TEXT.w_playback : TEXT.w_fixture);
   const es = TEXT.lang_code === "es";
   const door = o.door_open === true ? TEXT.w_open : (o.door_open === false ? TEXT.w_closed : TEXT.w_unknown);
   const ai = [o.model || "SAM 3.1", o.response_id_short, o.latency_ms != null ? Math.round(o.latency_ms) + " ms" : "", o.cost_usd != null ? "USD " + Number(o.cost_usd).toFixed(4) : ""].filter(Boolean).join(" · ");

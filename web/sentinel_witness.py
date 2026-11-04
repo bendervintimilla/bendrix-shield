@@ -92,6 +92,8 @@ def public_observation(raw: dict[str, Any]) -> dict[str, Any] | None:
     """Normaliza una observación pública; ``None`` si no sirve para la escena."""
     if not isinstance(raw, dict):
         return None
+    if raw.get("ok") is False or raw.get("error"):
+        return None  # SAM falló: no hay testimonio válido (no afirmar «0 personas»)
     ts = _parse_ts(raw.get("captured_at"))
     people = raw.get("people")
     if ts is None or isinstance(people, bool) or not isinstance(people, int) or people < 0:
@@ -120,6 +122,7 @@ def public_observation(raw: dict[str, Any]) -> dict[str, Any] | None:
         "source": source,
         "is_live": source in LIVE_SOURCES,
         "is_playback": source in PLAYBACK_SOURCES,
+        "is_fixture": source not in LIVE_SOURCES and source not in PLAYBACK_SOURCES,
         "_ts": ts,
     }
 
