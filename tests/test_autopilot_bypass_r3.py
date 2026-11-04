@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from datetime import UTC, datetime, timedelta
 
 from shield.autopilot import ContainmentEngine, SecurityEvent, run_pipeline
@@ -80,41 +79,23 @@ def test_c3_16_actor_autopiloto_forjado_es_sospechoso():
                  target="camara", source="attacker", values={"value": 3.0})
     findings = detect([forjado])
     assert any(f.kind == "forged_autopilot_actor" for f in findings)
-    from shield.autopilot.events import proposed_action_from_event
-    # Jamás se pasa ese actor como requested_by confiable al gate.
-    assert proposed_action_from_event(forjado).requested_by != "wairrior-autopilot"
+    # El gate marca el claim como sospechoso: el string no da privilegio.
+    verdict = cold_room_physics_verdict(forjado)
+    assert verdict.evidence.get("suspicious_rescue_claim") is True
     _, result = run_pipeline([forjado])
     assert result.scope_level != "none"
 
 
-def test_grant_se_pasa_solo_si_la_cadena_lo_acepta(monkeypatch):
-    import shield.physics.pipeline as pipeline
+def test_grant_real_solo_con_el_emisor_de_m1():
+    from shield.autopilot.events import emit_safe_state_rescue, verify_rescue
+    from shield.physics.contract import ColdRoomParams, ProposedAction, RoomState
+    from shield.physics.gate import verify_action
 
-    seen = {}
-
-    class FakeVerdict:
-        decision = "allow"
-
-    def fake_verify(params, state_history, reported, action, **kw):
-        seen.update(kw)
-        return FakeVerdict()
-
-    monkeypatch.setattr(pipeline, "verify_before_actuate", fake_verify)
-    evento = ev(app="cold_room", actor="agent:cold", action="set_setpoint",
-                target="camara", values={"value": 3.0})
-    verdict = cold_room_physics_verdict(evento, rescue_grant="GRANT-DE-PRUEBA")
-    assert verdict.decision == "allow"
-    # La firma falsa no declara grant: no se le inyecta nada a ciegas.
-    assert "rescue_grant" not in seen
-
-    def fake_verify2(params, state_history, reported, action, *, rescue_grant=None):
-        seen["rescue_grant"] = rescue_grant
-
-        class V:
-            decision = "allow"
-        return V()
-
-    monkeypatch.setattr(pipeline, "verify_before_actuate", fake_verify2)
-    cold_room_physics_verdict(evento, rescue_grant="GRANT-DE-PRUEBA")
-    assert seen["rescue_grant"] == "GRANT-DE-PRUEBA"
-    assert "shield.physics.rescue" not in sys.modules or True  # grant opaco, sin firmar aquí
+    action, grant = emit_safe_state_rescue("camara")
+    verdict = verify_rescue(action, grant)
+    assert verdict.evidence["rescue_grant_status"] == "valid"
+    # La misma acción SIN grant: el gate no da privilegio por el string.
+    sin_grant = verify_action(ColdRoomParams(), RoomState(), action)
+    assert sin_grant.evidence["suspicious_rescue_claim"] is True
+    assert sin_grant.evidence["rescue_grant_status"] == "missing"
+    _ = ProposedAction  # la acción forjada a mano tampoco firma nada

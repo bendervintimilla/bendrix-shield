@@ -10,15 +10,18 @@ from shield.autopilot.detect import (
 )
 from shield.autopilot.events import (
     APPS,
+    ColdRoomHistory,
     SecurityEvent,
     build_internal_rescue_action,
     cold_room_physics_verdict,
+    emit_safe_state_rescue,
     from_cold_room,
     from_gateway_call,
     from_payment,
     from_pos_erp,
     from_webhook,
     proposed_action_from_event,
+    verify_rescue,
 )
 from shield.autopilot.respond import (
     ContainmentEngine,
@@ -35,11 +38,12 @@ from shield.autopilot.respond import (
 )
 
 __all__ = [
-    "APPS", "ActorBaseline", "ContainmentEngine", "ContainmentResult",
+    "APPS", "ActorBaseline", "ColdRoomHistory", "ContainmentEngine", "ContainmentResult",
     "Finding", "InMemoryTokenOps", "Incident", "Measure", "SecurityEvent",
     "ShieldActionsTokenOps", "build_business_notice", "operation_scope",
     "build_internal_rescue_action", "build_owner_notice",
-    "cold_room_physics_verdict", "proposed_action_from_event", "correlate", "detect",
+    "cold_room_physics_verdict", "emit_safe_state_rescue",
+    "proposed_action_from_event", "verify_rescue", "correlate", "detect",
     "dispatch_notice_sandbox", "from_cold_room", "from_gateway_call",
     "from_payment", "from_pos_erp", "from_webhook", "respond",
     "run_pipeline", "triage_incident",
