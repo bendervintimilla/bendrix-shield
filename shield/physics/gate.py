@@ -24,8 +24,9 @@ Simetría fría (R2-01/R2-02): el destino de un setpoint permanente es
 su estado estacionario analítico; bajo ``safe_min_c`` es ``block`` y
 a 0.5 °C o menos sobre el mínimo es ``ask_owner``, igual que el lado
 caliente. La contención del autopiloto (``last_safe_action``) cancela
-en el gemelo el deshielo/apagado activo y nunca es ``block`` si
-mejora la trayectoria frente a no hacer nada (R2-09/R2-10).
+en el gemelo el deshielo/apagado activo y, si mejora la trayectoria
+frente a no hacer nada, es ``allow`` inmediato: el ``ask_owner`` por
+margen nunca aplica a un rescate (R2-09/R2-10).
 
 Todo lo reportado es ``simulated``: sale del gemelo de
 :mod:`shield.physics.thermal`, no de un equipo real.
@@ -226,7 +227,7 @@ def verify_action(
     # Contención del autopiloto: el gemelo ya cortó el deshielo/apagado
     # activo al inicio del rescate. Regla dura adicional: una acción de
     # rescate que mejora la trayectoria frente a no hacer nada (la
-    # history siguiendo su curso) nunca es block.
+    # history siguiendo su curso) es allow inmediato.
     rescue = _is_rescue(params, action)
     improves = False
     no_action_peak: float | None = None
@@ -242,12 +243,13 @@ def verify_action(
             # frío: empeorar es cruzar safe_min_c o bajar del no-acción.
             and (minimum >= params.safe_min_c or minimum >= no_action_min - 1e-9)
         )
-        if improves and decision == "block":
-            decision = "ask_owner"
+        if improves:
+            # Contain first: el ask_owner por margen nunca aplica a un
+            # rescate que mejora; es allow inmediato.
+            decision = "allow"
             detail = (
-                f"contención reversible: mejora la trayectoria frente a no "
-                f"hacer nada (pico {peak:.1f} °C vs {no_action_peak:.1f} °C); "
-                f"no se bloquea"
+                f"contención reversible: mejora frente a no hacer nada; "
+                f"margen restante {margin_c:.1f} °C"
             )
 
     if horizon_capped and decision == "allow":
@@ -266,6 +268,7 @@ def verify_action(
         "baseline_peak_product_c": round(baseline_peak, 3),
         "min_product_c": round(minimum, 3),
         "margin_to_safe_max_c": round(margin_c, 3),
+        "remaining_margin_c": round(margin_c, 3),
         "minutes_above_limit": round(minutes_above_total, 2),
         "minutes_above_so_far": float(state.minutes_above_so_far),
         "predicted_breach_min": breach_min,
