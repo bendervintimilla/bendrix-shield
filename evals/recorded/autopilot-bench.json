@@ -1,6 +1,16 @@
 {
   "simulated": true,
   "label": "SIMULACIÓN — sin datos reales, tiempos locales en ms",
+  "background": {
+    "n": 300,
+    "seed": 20261104,
+    "apps": [
+      "payments",
+      "pos_erp",
+      "cold_room",
+      "ai_gateway"
+    ]
+  },
   "sources": {
     "defrost_2nov": [
       "https://www.tomshardware.com/tech-industry/cyber-security/supermarket-freezers-across-europe-struck-in-second-crippling-cyberattack-hackers-raise-temperatures-to-50-degrees-celsius-in-belgium-and-sweden-destroying-food-stocks",
@@ -20,38 +30,40 @@
       "simulated": true,
       "severity": "critical",
       "correlated": false,
-      "circuit_breaker": true,
+      "scope_level": "app",
+      "circuit_breaker": false,
+      "frozen_scopes": [
+        "cold_room:defrost:camara"
+      ],
       "findings": [
         "defrost_anomaly",
         "physics_block"
       ],
-      "detect_to_contain_ms": 7.302,
+      "detect_to_contain_ms": 7.287,
       "measures": [
         "block_action",
         "safe_state",
-        "revoke_tokens",
-        "circuit_breaker"
+        "freeze_app_scope",
+        "rotate_token"
       ],
       "pending_owner": [],
-      "notice_en": "You were attacked. We already did: block_action (cold_room:camara), safe_state (cold_room:camara), revoke_tokens (*:unknown-remote), circuit_breaker (*:cold_room). Tap to undo / release with your second factor.",
+      "notice_en": "You were attacked. We already did: block_action (cold_room:camara), safe_state (cold_room:camara), freeze_app_scope (cold_room:defrost:camara), rotate_token (cold_room:unknown-remote) [scope: app]. Tap to undo / release with your second factor.",
+      "notice_es": "Fuiste atacado. Ya hicimos: block_action (cold_room:camara), safe_state (cold_room:camara), freeze_app_scope (cold_room:defrost:camara), rotate_token (cold_room:unknown-remote) [alcance: app]. Toca para deshacer / liberar con tu segundo factor.",
       "comparison": {
+        "background_legitimate_writes_total": 300,
         "no_shield": {
-          "malicious_succeed": 1,
-          "legitimate_write_ok": 2,
-          "legitimate_read_ok": 4
+          "attacks_succeed": 1,
+          "background_legitimate_ok": 300
         },
         "suspend_all_arkea_style": {
-          "malicious_succeed": 0,
-          "legitimate_write_ok": 0,
-          "legitimate_read_ok": 0
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 0
         },
-        "wairrior_fine_containment": {
-          "malicious_blocked": 1,
-          "malicious_succeed": 0,
-          "legitimate_events_ok": 0,
-          "legitimate_write_ok": 0,
-          "legitimate_read_ok": 4,
-          "writes_paused_by_circuit_breaker": true
+        "wairrior": {
+          "attacks_blocked": 1,
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 300,
+          "background_legitimate_blocked_collateral": 0
         }
       }
     },
@@ -61,12 +73,14 @@
       "simulated": true,
       "severity": "critical",
       "correlated": true,
+      "scope_level": "global",
       "circuit_breaker": true,
+      "frozen_scopes": [],
       "findings": [
         "payment_anomaly",
         "iban_then_payment"
       ],
-      "detect_to_contain_ms": 0.067,
+      "detect_to_contain_ms": 0.076,
       "measures": [
         "block_action",
         "block_action",
@@ -78,25 +92,23 @@
         "cambio definitivo de IBAN de supplier:acme (requiere tu OK)",
         "pagar a supplier:acme (retenido, requiere tu OK)"
       ],
-      "notice_en": "You were attacked. We already did: block_action (pos_erp:supplier:acme), block_action (payments:supplier:acme), hold_payment (payments:supplier:acme), revoke_tokens (*:payments-bot), circuit_breaker (*:payments,pos_erp). Tap to undo / release with your second factor. Waiting for your decision (never automatic): cambio definitivo de IBAN de supplier:acme (requiere tu OK); pagar a supplier:acme (retenido, requiere tu OK).",
+      "notice_en": "You were attacked. We already did: block_action (pos_erp:supplier:acme), block_action (payments:supplier:acme), hold_payment (payments:supplier:acme), revoke_tokens (*:payments-bot), circuit_breaker (*:payments,pos_erp) [scope: global]. Tap to undo / release with your second factor. Waiting for your decision (never automatic): cambio definitivo de IBAN de supplier:acme (requiere tu OK); pagar a supplier:acme (retenido, requiere tu OK).",
+      "notice_es": "Fuiste atacado. Ya hicimos: block_action (pos_erp:supplier:acme), block_action (payments:supplier:acme), hold_payment (payments:supplier:acme), revoke_tokens (*:payments-bot), circuit_breaker (*:payments,pos_erp) [alcance: global]. Toca para deshacer / liberar con tu segundo factor. Pendiente de tu decisión (nunca automático): cambio definitivo de IBAN de supplier:acme (requiere tu OK); pagar a supplier:acme (retenido, requiere tu OK).",
       "comparison": {
+        "background_legitimate_writes_total": 300,
         "no_shield": {
-          "malicious_succeed": 2,
-          "legitimate_write_ok": 3,
-          "legitimate_read_ok": 6
+          "attacks_succeed": 2,
+          "background_legitimate_ok": 300
         },
         "suspend_all_arkea_style": {
-          "malicious_succeed": 0,
-          "legitimate_write_ok": 0,
-          "legitimate_read_ok": 0
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 0
         },
-        "wairrior_fine_containment": {
-          "malicious_blocked": 2,
-          "malicious_succeed": 0,
-          "legitimate_events_ok": 0,
-          "legitimate_write_ok": 0,
-          "legitimate_read_ok": 6,
-          "writes_paused_by_circuit_breaker": true
+        "wairrior": {
+          "attacks_blocked": 2,
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 0,
+          "background_legitimate_blocked_collateral": 300
         }
       }
     },
@@ -106,46 +118,71 @@
       "simulated": true,
       "severity": "high",
       "correlated": false,
+      "scope_level": "app",
       "circuit_breaker": false,
+      "frozen_scopes": [
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot"
+      ],
       "findings": [
         "token_burst"
       ],
-      "detect_to_contain_ms": 0.069,
+      "detect_to_contain_ms": 0.116,
       "measures": [
         "block_action",
+        "freeze_app_scope",
         "block_action",
+        "freeze_app_scope",
         "block_action",
+        "freeze_app_scope",
         "block_action",
+        "freeze_app_scope",
         "block_action",
+        "freeze_app_scope",
         "block_action",
+        "freeze_app_scope",
         "block_action",
+        "freeze_app_scope",
         "block_action",
+        "freeze_app_scope",
         "block_action",
+        "freeze_app_scope",
         "block_action",
+        "freeze_app_scope",
         "block_action",
+        "freeze_app_scope",
         "block_action",
+        "freeze_app_scope",
         "rotate_token"
       ],
       "pending_owner": [],
-      "notice_en": "You were attacked. We already did: block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), block_action (ai_gateway:muse-spark), rotate_token (ai_gateway:crew-bot). Tap to undo / release with your second factor.",
+      "notice_en": "You were attacked. We already did: block_action (ai_gateway:muse-spark), freeze_app_scope (ai_gateway:model_call:crew-bot), rotate_token (ai_gateway:crew-bot) [scope: app]. Tap to undo / release with your second factor.",
+      "notice_es": "Fuiste atacado. Ya hicimos: block_action (ai_gateway:muse-spark), freeze_app_scope (ai_gateway:model_call:crew-bot), rotate_token (ai_gateway:crew-bot) [alcance: app]. Toca para deshacer / liberar con tu segundo factor.",
       "comparison": {
+        "background_legitimate_writes_total": 300,
         "no_shield": {
-          "malicious_succeed": 12,
-          "legitimate_write_ok": 2,
-          "legitimate_read_ok": 5
+          "attacks_succeed": 12,
+          "background_legitimate_ok": 300
         },
         "suspend_all_arkea_style": {
-          "malicious_succeed": 0,
-          "legitimate_write_ok": 0,
-          "legitimate_read_ok": 0
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 0
         },
-        "wairrior_fine_containment": {
-          "malicious_blocked": 12,
-          "malicious_succeed": 0,
-          "legitimate_events_ok": 0,
-          "legitimate_write_ok": 2,
-          "legitimate_read_ok": 5,
-          "writes_paused_by_circuit_breaker": false
+        "wairrior": {
+          "attacks_blocked": 12,
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 300,
+          "background_legitimate_blocked_collateral": 0
         }
       }
     },
@@ -155,34 +192,34 @@
       "simulated": true,
       "severity": "low",
       "correlated": false,
+      "scope_level": "none",
       "circuit_breaker": false,
+      "frozen_scopes": [],
       "findings": [],
-      "detect_to_contain_ms": 0.016,
+      "detect_to_contain_ms": 0.02,
       "measures": [
         "log"
       ],
       "pending_owner": [
         "pagar a supplier:known (retenido, requiere tu OK)"
       ],
-      "notice_en": "You were attacked. We already did: logged the event. Tap to undo / release with your second factor. Waiting for your decision (never automatic): pagar a supplier:known (retenido, requiere tu OK).",
+      "notice_en": "You were attacked. We already did: logged the event [scope: none]. Tap to undo / release with your second factor. Waiting for your decision (never automatic): pagar a supplier:known (retenido, requiere tu OK).",
+      "notice_es": "Fuiste atacado. Ya hicimos: registrar el evento [alcance: none]. Toca para deshacer / liberar con tu segundo factor. Pendiente de tu decisión (nunca automático): pagar a supplier:known (retenido, requiere tu OK).",
       "comparison": {
+        "background_legitimate_writes_total": 300,
         "no_shield": {
-          "malicious_succeed": 0,
-          "legitimate_write_ok": 2,
-          "legitimate_read_ok": 4
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 300
         },
         "suspend_all_arkea_style": {
-          "malicious_succeed": 0,
-          "legitimate_write_ok": 0,
-          "legitimate_read_ok": 0
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 0
         },
-        "wairrior_fine_containment": {
-          "malicious_blocked": 0,
-          "malicious_succeed": 0,
-          "legitimate_events_ok": 1,
-          "legitimate_write_ok": 2,
-          "legitimate_read_ok": 4,
-          "writes_paused_by_circuit_breaker": false
+        "wairrior": {
+          "attacks_blocked": 0,
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 300,
+          "background_legitimate_blocked_collateral": 0
         }
       }
     },
@@ -192,32 +229,94 @@
       "simulated": true,
       "severity": "low",
       "correlated": false,
+      "scope_level": "none",
       "circuit_breaker": false,
+      "frozen_scopes": [],
       "findings": [],
-      "detect_to_contain_ms": 1.352,
+      "detect_to_contain_ms": 1.588,
       "measures": [
         "log"
       ],
       "pending_owner": [],
-      "notice_en": "You were attacked. We already did: logged the event. Tap to undo / release with your second factor.",
+      "notice_en": "You were attacked. We already did: logged the event [scope: none]. Tap to undo / release with your second factor.",
+      "notice_es": "Fuiste atacado. Ya hicimos: registrar el evento [alcance: none]. Toca para deshacer / liberar con tu segundo factor.",
       "comparison": {
+        "background_legitimate_writes_total": 300,
         "no_shield": {
-          "malicious_succeed": 0,
-          "legitimate_write_ok": 1,
-          "legitimate_read_ok": 3
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 300
         },
         "suspend_all_arkea_style": {
-          "malicious_succeed": 0,
-          "legitimate_write_ok": 0,
-          "legitimate_read_ok": 0
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 0
         },
-        "wairrior_fine_containment": {
-          "malicious_blocked": 0,
-          "malicious_succeed": 0,
-          "legitimate_events_ok": 1,
-          "legitimate_write_ok": 1,
-          "legitimate_read_ok": 3,
-          "writes_paused_by_circuit_breaker": false
+        "wairrior": {
+          "attacks_blocked": 0,
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 300,
+          "background_legitimate_blocked_collateral": 0
+        }
+      }
+    },
+    {
+      "id": "combined_wave",
+      "title": "Ola combinada: mismo actor en frío + pagos/ERP + gateway en 10 min",
+      "simulated": true,
+      "severity": "critical",
+      "correlated": true,
+      "scope_level": "global",
+      "circuit_breaker": true,
+      "frozen_scopes": [],
+      "findings": [
+        "defrost_anomaly",
+        "physics_block",
+        "payment_anomaly",
+        "iban_then_payment",
+        "token_burst"
+      ],
+      "detect_to_contain_ms": 2.91,
+      "measures": [
+        "block_action",
+        "safe_state",
+        "block_action",
+        "block_action",
+        "hold_payment",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "revoke_tokens",
+        "circuit_breaker"
+      ],
+      "pending_owner": [
+        "cambio definitivo de IBAN de supplier:acme (requiere tu OK)",
+        "pagar a supplier:acme (retenido, requiere tu OK)"
+      ],
+      "notice_en": "You were attacked. We already did: block_action (cold_room:camara), safe_state (cold_room:camara), block_action (pos_erp:supplier:acme), block_action (payments:supplier:acme), hold_payment (payments:supplier:acme), block_action (ai_gateway:muse-spark-1.3), revoke_tokens (*:campaign-actor), circuit_breaker (*:ai_gateway,cold_room,payments,pos_erp) [scope: global]. Tap to undo / release with your second factor. Waiting for your decision (never automatic): cambio definitivo de IBAN de supplier:acme (requiere tu OK); pagar a supplier:acme (retenido, requiere tu OK).",
+      "notice_es": "Fuiste atacado. Ya hicimos: block_action (cold_room:camara), safe_state (cold_room:camara), block_action (pos_erp:supplier:acme), block_action (payments:supplier:acme), hold_payment (payments:supplier:acme), block_action (ai_gateway:muse-spark-1.3), revoke_tokens (*:campaign-actor), circuit_breaker (*:ai_gateway,cold_room,payments,pos_erp) [alcance: global]. Toca para deshacer / liberar con tu segundo factor. Pendiente de tu decisión (nunca automático): cambio definitivo de IBAN de supplier:acme (requiere tu OK); pagar a supplier:acme (retenido, requiere tu OK).",
+      "comparison": {
+        "background_legitimate_writes_total": 300,
+        "no_shield": {
+          "attacks_succeed": 15,
+          "background_legitimate_ok": 300
+        },
+        "suspend_all_arkea_style": {
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 0
+        },
+        "wairrior": {
+          "attacks_blocked": 15,
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 0,
+          "background_legitimate_blocked_collateral": 300
         }
       }
     }
