@@ -70,6 +70,22 @@ NOTAS_C2490: dict[str, str] = {
 CERRADOS_C2491: frozenset[str] = frozenset(
     {"rt-voice-replay-flow", "rt-voice-replay-other-plan", "rt-approval-reuse-cross-plan"}
 )
+# Cerrado DESPUÉS de medir (4-nov): se ajustó la regla, no el caso. La batería
+# congelada había medido 36/37 con este caso pasando en silencio; se rotula
+# aparte para que no se lea como una mejora medida a ciegas.
+AJUSTE_POST_MEDICION: dict[str, str] = {
+    "rt-inj-audit-en-read": (
+        "Ajuste posterior a la medición: se agregó el verbo inglés «attach» a la "
+        "regla `reveal_secret` (`shield/policy/injection.py`); el caso no se tocó. "
+        "Antes de este ajuste la batería midió 36/37 con este caso en silencio."
+    ),
+}
+NOTAS_POST_MEDICION: dict[str, str] = {
+    "rt-inj-audit-en-physical": (
+        "Con el verbo «attach» la orden de revelar ya se detecta: pasa de "
+        "ask_owner a block (ya contaba como frenado)."
+    ),
+}
 
 
 def _ronda_cierre(fila: dict) -> str | None:
@@ -79,6 +95,8 @@ def _ronda_cierre(fila: dict) -> str | None:
         return "C2490"
     if fila["id"] in CERRADOS_C2491:
         return "C2491"
+    if fila["id"] in AJUSTE_POST_MEDICION:
+        return "post-medición"
     return None
 
 
@@ -467,6 +485,7 @@ def _resumen(filas: list[dict]) -> str:
     gaps = [f for f in todos_gaps if not f["frenado"]]
     c2491 = [f for f in todos_gaps if _ronda_cierre(f) == "C2491"]
     c2490 = [f for f in todos_gaps if _ronda_cierre(f) == "C2490"]
+    post = [f for f in todos_gaps if _ronda_cierre(f) == "post-medición"]
 
     def _ids(fs: list[dict]) -> str:
         return ", ".join(f"`{f['id']}`" for f in fs) if fs else "ninguno"
@@ -488,7 +507,13 @@ def _resumen(filas: list[dict]) -> str:
         f"- Bypass conocidos de C2489 (`expect: gap`): {len(todos_gaps)}. "
         f"Cerrados en C2491: {len(c2491)} ({_ids(c2491)}); "
         f"cerrados en C2490: {len(c2490)} ({_ids(c2490)}); "
-        f"siguen abiertos: {len(gaps)}/{len(todos_gaps)}.",
+        + (
+            f"cerrados después de medir, ajustando la regla y no el caso: {len(post)} "
+            f"({_ids(post)}); "
+            if post
+            else ""
+        )
+        + f"siguen abiertos: {len(gaps)}/{len(todos_gaps)}.",
         f"- Bypass confirmados (`expect: gap` que pasaron): {len(gaps)}"
         + (": " + ", ".join(f"`{f['id']}`" for f in gaps) if gaps else "."),
         f"- Regresiones (debían frenar y pasaron): {len(regresiones)}"
@@ -503,6 +528,8 @@ def _resumen(filas: list[dict]) -> str:
             ronda = _ronda_cierre(f)
             if not f["frenado"]:
                 resultado = "PASA (gap)"
+            elif ronda == "post-medición":
+                resultado = "frenado (ajuste posterior a la medición)"
             elif ronda:
                 resultado = f"frenado (cerrado en {ronda})"
             else:
@@ -525,8 +552,12 @@ def _resumen(filas: list[dict]) -> str:
                 linea += f" **{CIERRES_C2490[f['id']]}**"
             elif _ronda_cierre(f) == "C2491":
                 linea += " **C2491: aprobación de un solo uso (ver subsección C2491).**"
+            elif _ronda_cierre(f) == "post-medición":
+                linea += f" **{AJUSTE_POST_MEDICION[f['id']]}**"
             elif f["id"] in NOTAS_C2490 and f["observado"] == "block":
                 linea += f" **{NOTAS_C2490[f['id']]}**"
+            elif f["id"] in NOTAS_POST_MEDICION and f["observado"] == "block":
+                linea += f" **{NOTAS_POST_MEDICION[f['id']]}**"
             lineas.append(linea)
     lineas += [
         "",
