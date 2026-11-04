@@ -1,4 +1,4 @@
-# Gateway — Wairrior
+# Gateway — wAIrrior
 
 Proxy compatible con OpenAI. La app presenta su token Shield
 (`Authorization: Bearer shd_<agent>_...`); el gateway valida y reenvía a la Meta

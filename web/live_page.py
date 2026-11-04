@@ -7,7 +7,7 @@ from __future__ import annotations
 import html
 from typing import Any
 
-from web.brand import BRAND, SUBTITLE
+from web.brand import BRAND, SUBTITLE, brand_mark_html, brand_parts, favicon_href
 from web.live_page_replay import REPLAY_T
 
 __all__ = [
@@ -46,6 +46,16 @@ T: dict[str, dict[str, str]] = {
         "voice_via_whatsapp": "Owner approved via WhatsApp voice note",
         "voice_via_whatsapp_note": "Owner replied via WhatsApp voice note",
         "voice_via_browser": "Owner replied via browser microphone",
+        "voice_via_typed": "Owner typed the decision",
+        "typed_note_title": "Typed decision",
+        "typed_transcript": "What the owner typed",
+        "step5_title_typed": "You approve the plan",
+        "err_need_step": "run step {n} first",
+        "err_not_approved": "the owner has not approved yet",
+        "err_stale": "this run was reset",
+        "err_contained": "this run is already contained: start a new run",
+        "material_label_ai": "AI-generated test image (muse-image-1.0), not real warehouse footage",
+        "model_original_en": "",
         "voice_no_speech": "No speech detected. Check the microphone and try again.",
         "mic_silence": "The microphone recorded silence",
         "level_label": "Microphone level (RMS)",
@@ -55,7 +65,7 @@ T: dict[str, dict[str, str]] = {
         "action_verify": "Check it still works",
         "action_draft_notice": "Draft a notice",
         "action_rotate_upstream_key": "Rotate the upstream key",
-        "live_label": "LIVE — real Meta models, called from this Mac through the Wairrior gateway",
+        "live_label": f"LIVE — real Meta models, called from this Mac through the {BRAND} gateway",
         "sticky_attacker": "Attacker",
         "sticky_sdk": "SDK",
         "replay": "Replay",
@@ -126,7 +136,7 @@ T: dict[str, dict[str, str]] = {
         "record": "Record",
         "stop": "Stop",
         "typed_fallback": "Typed fallback: no Voice Transcribe is used in this path",
-        "voice_hint": 'Try: "sí, rota el token de bodega"',
+        "voice_hint": 'Try: "yes, rotate the warehouse token"',
         "send_typed": "Send typed decision",
         "transcript": "Voice Transcribe transcript",
         "spark_intent": "Muse Spark intent",
@@ -162,6 +172,12 @@ T: dict[str, dict[str, str]] = {
         "activate_body": "Start it with make live, then open /live again. No model is called from this screen.",
         "no_key": "No key in the vault",
         "no_key_body": "Put META_MODEL_API_KEY in the vault (environment backend) and restart with make live. The key is never shown here.",
+        "recorded_live_run": "recorded live run (2 Nov)",
+        "approved": "approved",
+        "stale_page": "Another tab changed the scene or started a new run, so this page is out of date. Reload to continue.",
+        "stale_short": "page out of date, reload",
+        "reload": "Reload",
+        "err_own_photo": "the replay does not count your photo (the file was ignored); use live mode to count your own photo",
     },
     "es": {
         "lang_code": "es",
@@ -189,6 +205,16 @@ T: dict[str, dict[str, str]] = {
         "voice_via_whatsapp": "El dueño aprobó por nota de voz de WhatsApp",
         "voice_via_whatsapp_note": "El dueño respondió por nota de voz de WhatsApp",
         "voice_via_browser": "El dueño respondió por el micrófono del navegador",
+        "voice_via_typed": "El dueño escribió la decisión",
+        "typed_note_title": "Decisión escrita",
+        "typed_transcript": "Lo que escribió el dueño",
+        "step5_title_typed": "Tú apruebas el plan",
+        "err_need_step": "primero corre el paso {n}",
+        "err_not_approved": "el dueño todavía no aprueba",
+        "err_stale": "esta corrida se reinició",
+        "err_contained": "esta corrida ya está contenida: empieza una nueva",
+        "material_label_ai": "Imagen de prueba generada por IA (muse-image-1.0), no es material real de una bodega",
+        "model_original_en": "Respuesta original del modelo, en inglés.",
         "voice_no_speech": "No se detectó voz. Revisa el micrófono y vuelve a intentar.",
         "mic_silence": "El micrófono grabó silencio",
         "level_label": "Nivel del micrófono (RMS)",
@@ -198,7 +224,7 @@ T: dict[str, dict[str, str]] = {
         "action_verify": "Comprobar que sigue funcionando",
         "action_draft_notice": "Preparar un borrador de aviso",
         "action_rotate_upstream_key": "Rotar la clave del proveedor",
-        "live_label": "EN VIVO — modelos reales de Meta, llamados desde esta Mac a través del gateway de Shield",
+        "live_label": f"EN VIVO — modelos reales de Meta, llamados desde esta Mac a través del gateway de {BRAND}",
         "sticky_attacker": "Atacante",
         "sticky_sdk": "SDK",
         "replay": "Repetición",
@@ -305,6 +331,12 @@ T: dict[str, dict[str, str]] = {
         "activate_body": "Arráncalo con make live y vuelve a abrir /live. Desde esta pantalla no se llama a ningún modelo.",
         "no_key": "Sin clave en el vault",
         "no_key_body": "Pon META_MODEL_API_KEY en el vault (backend de entorno) y reinicia con make live. La llave nunca se muestra aquí.",
+        "recorded_live_run": "corrida en vivo grabada (2 nov)",
+        "approved": "aprobado",
+        "stale_page": "Otra pestaña cambió la escena o empezó una corrida nueva, así que esta página quedó desactualizada. Recarga para seguir.",
+        "stale_short": "página desactualizada, recarga",
+        "reload": "Recargar",
+        "err_own_photo": "la repetición no cuenta tu foto (el archivo se ignoró); usa el modo en vivo para contar tu propia foto",
     },
 }
 
@@ -419,7 +451,8 @@ code,.mono{font-family:var(--mono);font-size:.92em}
 #sphereCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
 .hero-copy{position:relative;z-index:1;flex:1 1 auto;text-align:center;min-width:0}
 .hero-brand{margin:0;font-size:clamp(76px,10.5vw,148px);line-height:.92;font-weight:800;letter-spacing:-.055em}
-.hero-fill{color:#fff}
+.hero-fill{color:#E8A33D}
+.brand-ai{color:#E8A33D}
 .hero-outline{color:transparent;-webkit-text-stroke:2px rgba(255,255,255,.92)}
 .hero-subtitle{margin:14px auto 0;max-width:640px;color:var(--muted);font-size:18px;line-height:1.45}
 .band h1,.hero-copy h1{font-size:clamp(26px,2.6vw,38px);margin:18px auto 0;max-width:760px;font-weight:700}
@@ -464,7 +497,7 @@ code,.mono{font-family:var(--mono);font-size:.92em}
 .step[data-state="error"] .step-card,.step[data-state="blocked"] .step-card{border-color:rgba(229,83,75,.7)}
 .step-head{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;min-height:40px}
 .step h2{font-size:21px;margin:0;flex:1 1 260px;min-width:0;line-height:1.2}
-.step-status{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:4px 11px 4px 9px;background:var(--sunk);color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;transition:color .3s ease,border-color .3s ease}
+.step-status{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:4px 11px 4px 9px;background:var(--sunk);color:var(--muted);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;transition:color .3s ease,border-color .3s ease}
 .step-status::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.8}
 .step-status[data-state="running"]{color:var(--warn-text);border-color:rgba(239,168,58,.6)}
 .step-status[data-state="ok"]{color:var(--ok-text);border-color:rgba(54,179,126,.55)}
@@ -489,6 +522,10 @@ code,.mono{font-family:var(--mono);font-size:.92em}
 .key-result[data-tone="bad"]{color:var(--bad-text)}
 .kr-num{font-size:52px;font-weight:700;letter-spacing:-.035em;line-height:1}
 .kr-unit{margin-left:12px;font-size:20px;font-weight:550;color:var(--muted);letter-spacing:-.01em}
+.key-result .recorded-run{display:inline-block;margin-left:14px;font-size:14px;font-weight:500;letter-spacing:0;vertical-align:middle}
+.cold-attack-note{margin:8px 0 0}
+.stale-notice{position:sticky;top:0;z-index:70;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 16px;background:var(--surface);border-bottom:2px solid var(--accent);font-size:15px}
+.stale-notice p{margin:0;flex:1 1 260px}
 .kr-label{display:block;margin-bottom:6px;font-size:13.5px;font-weight:600;color:var(--muted);letter-spacing:0}
 .verdict{margin:0;font-size:16.5px;font-weight:550;color:var(--text);max-width:68ch}
 /* Factura */
@@ -607,7 +644,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-width:
 section h2{font-size:21px}
 @media (max-width:1100px){.split--media{grid-template-columns:minmax(200px,280px) minmax(0,1fr)}}
 @media (max-width:900px){.hero{display:block;min-height:78vh;min-height:78svh;padding:26px 0 30px}.clockbox{text-align:center;padding-top:18px;min-width:0}.hero .attempts{justify-content:center}.split,.split--media{grid-template-columns:1fr}.shelf-wrap,.thumb{max-width:420px}}
-@media (max-width:760px){.band-tools,.band-top{max-width:100%}.hero .code-block{min-width:54px;min-height:48px;font-size:20px}.hero-brand{font-size:clamp(64px,22vw,96px)}#bigClock{font-size:56px}.ledger-row{grid-template-columns:1fr}.step{grid-template-columns:32px minmax(0,1fr);column-gap:12px}.step-num{width:32px;height:32px;font-size:14px}.step-rail::after{top:54px}.step-card{padding:16px 16px 18px}.kr-num{font-size:44px}.key-result{font-size:24px}}
+@media (max-width:760px){.sticky-inner{flex-wrap:nowrap;gap:10px;overflow:hidden}.sticky-sdk,.sticky-cost,.sticky-label{display:none}.stickybar .btn{flex:0 0 auto;white-space:nowrap}.band-tools,.band-top{max-width:100%}.hero .code-block{min-width:54px;min-height:48px;font-size:20px}.hero-brand{font-size:clamp(64px,22vw,96px)}#bigClock{font-size:56px}.ledger-row{grid-template-columns:1fr}.step{grid-template-columns:32px minmax(0,1fr);column-gap:12px}.step-num{width:32px;height:32px;font-size:14px}.step-rail::after{top:54px}.step-card{padding:16px 16px 18px}.kr-num{font-size:44px}.key-result{font-size:24px}}
 @media (max-width:480px){.band .inner,.wrap,.sticky-inner{width:calc(100% - 32px)}.hero{min-height:72vh;min-height:72svh;padding:22px 0 26px;gap:0}.hero-brand{font-size:clamp(58px,20vw,84px)}.hero-subtitle{font-size:16px}.band h1,.hero-copy h1{font-size:24px}#bigClock{font-size:48px}.clockbox{min-width:0}.step{grid-template-columns:1fr}.step-rail{display:none}.step h2{flex-basis:100%;font-size:19px}.step-head .btn{flex:1 1 auto}.stickybar .btn{margin-left:0}.sticky-cost{white-space:normal}.hero .code-block{min-width:48px;min-height:44px;font-size:19px;padding:6px 10px}.prov{padding:16px}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto;animation:none!important;transition:none!important}}
 """
@@ -653,6 +690,12 @@ function startStatus(step) {
   }, 500);
 }
 function stopStatus(step, text) { clearInterval(stepTimers[step]); setStatus(step, text); }
+/* Estado de la decisión en el idioma de la página (el servidor manda «approved»). */
+function statusWord(status) {
+  if (status === "approved") return TEXT.approved;
+  if (status === "stale") return TEXT.stale_page;
+  return String(status || "");
+}
 function decisionBlock(value) {
   const raw = String(value || "").toLowerCase();
   const label = raw === "block" ? "BLOCK" : (raw === "allow" ? "ALLOW" : "ASK");
@@ -731,7 +774,8 @@ function hiddenNoteLine(text) {
   return lines.find((line) => /iban/i.test(line)) || lines.find((line) => /agente|agent/i.test(line)) || lines.find((line) => /cuenta|account/i.test(line)) || "";
 }
 function plainArgs(args) {
-  return Object.entries(args || {}).map(([k, v]) => k + ": " + v).join(", ");
+  const text = Object.entries(args || {}).map(([k, v]) => k + ": " + (v && typeof v === "object" ? JSON.stringify(v) : v)).join(", ");
+  return text.length > 300 ? text.slice(0, 299) + "…" : text;
 }
 function evidenceText(items) {
   return TEXT.evidence + ": " + ((items || []).map(translateEvidence).join(", "));
@@ -817,7 +861,8 @@ function renderCount(r) {
   const countNode = byId("countValue"); clear(countNode);
   countNode.appendChild(el("span", String(r.count ?? ""), "kr-num"));
   countNode.appendChild(el("span", TEXT.boxes_counted, "kr-unit"));
-  byId("materialLabel").textContent = r.material_label || "";
+  const material = String(r.material_label || "");
+  byId("materialLabel").textContent = material.indexOf("AI-generated test image") === 0 ? TEXT.material_label_ai : material;
   byId("expectedLine").textContent = r.is_fixture ? TEXT.expected_7 : "";
   const overlay = byId("shelfOverlay"); clear(overlay);
   (r.boxes || []).forEach((item) => {
@@ -865,8 +910,9 @@ function renderGuardian(r) {
     if (turns.length) box.appendChild(turnsBox());
     return;
   }
-  const plan = r.plan;
+  const plan = (TEXT.lang_code === "en" && r.plan_en) ? r.plan_en : r.plan;
   box.appendChild(el("p", TEXT.plan_proposed, "label"));
+  if (TEXT.model_original_en && SCENE !== "frio") box.appendChild(el("p", TEXT.model_original_en, "meta"));
   const stepList = el("ol", null, "plan-steps");
   (plan.steps || []).forEach((s) => {
     const li = el("li");
@@ -904,7 +950,8 @@ function renderVoice(r) {
   byId("voiceTranscript").textContent = r.transcript || "";
   const channelNode = byId("voiceChannel");
   if (channelNode) {
-    if (r.channel === "whatsapp") channelNode.textContent = r.status === "approved" ? TEXT.voice_via_whatsapp : TEXT.voice_via_whatsapp_note;
+    if (r.input_mode === "typed") channelNode.textContent = TEXT.voice_via_typed;
+    else if (r.channel === "whatsapp") channelNode.textContent = r.status === "approved" ? TEXT.voice_via_whatsapp : TEXT.voice_via_whatsapp_note;
     else if (r.channel === "browser") channelNode.textContent = TEXT.voice_via_browser;
     else channelNode.textContent = "";
   }
@@ -922,7 +969,7 @@ function renderVoice(r) {
   byId("voiceConfirm").hidden = !showConfirm;
   byId("voiceCancel").hidden = !showConfirm;
   byId("disagreeLine").textContent = intent.source === "disagreement" ? TEXT.disagreement : "";
-  byId("voiceStatusLine").textContent = r.status === "unknown_command" ? TEXT.voice_unknown : (r.status === "no_speech" ? TEXT.voice_no_speech : ((r.status === "error" || r.status === "replayed") ? TEXT.error + ": " + (r.error || "") : (r.status || "")));
+  byId("voiceStatusLine").textContent = r.status === "unknown_command" ? TEXT.voice_unknown : (r.status === "no_speech" ? TEXT.voice_no_speech : ((r.status === "error" || r.status === "replayed") ? TEXT.error + ": " + stepErrorText(r, "") : statusWord(r.status)));
 }
 function sdkSequenceText(statuses) {
   const parts = [];
@@ -936,7 +983,11 @@ function setContained(r) {
   const node = byId("containedLine"); clear(node);
   if (r.contained_in_s == null) return;
   node.appendChild(el("span", TEXT.contained_in, "kr-label"));
-  node.appendChild(el("span", r.contained_in_s + "s", "kr-num"));
+  node.appendChild(el("span", Number(r.contained_in_s).toFixed(1) + "s", "kr-num"));
+  /* Bodega: el tiempo de la corrida en vivo grabada va aparte, no como el del visitante. */
+  if (r.recorded_contained_in_s != null) {
+    node.appendChild(el("span", TEXT.recorded_live_run + ": " + Math.round(Number(r.recorded_contained_in_s)) + " s", "meta recorded-run"));
+  }
 }
 function renderContain(r, state) {
   const before = ((state && state.results && state.results.attack) || {}).statuses || [];
@@ -947,14 +998,24 @@ function renderContain(r, state) {
   byId("comprasLine").textContent = TEXT.purchasing_status + ": " + (r.compras_status ?? "");
   setContained(r);
 }
+const COLD_EQUIPMENT_EN = {"Cámara fría": "Cold room", "Congelador": "Freezer", "camara": "Cold room", "congelador": "Freezer"};
+function coldLabel(value) {
+  const raw = String(value || "");
+  return TEXT.lang_code === "en" ? (COLD_EQUIPMENT_EN[raw] || raw) : raw;
+}
+function coldReason(value) {
+  const raw = String(value || "");
+  if (TEXT.lang_code !== "en") return raw;
+  return raw.replace(/ fuera de /g, " outside ").replace(/\(esperado ([A-Z]{2})\)/, "(expected $1)");
+}
 function coldAttempt(att, label) {
   const eq = (att.equipment || {});
   const req = (att.request || {});
-  const line = ledgerRow(label || (eq.label || req.equipment || ""), "ledger-solo");
+  const line = ledgerRow(label || coldLabel(eq.label || req.equipment || ""), "ledger-solo");
   line.what.appendChild(el("code", (req.setpoint_c !== undefined ? req.setpoint_c + " °C" : "") + (req.hour !== undefined ? " · " + String(req.hour).padStart(2, "0") + ":00" : "") + (req.origin_country ? " · " + req.origin_country : "")));
   line.what.appendChild(decisionBlock(att.decision));
   line.what.appendChild(el("span", att.applied ? TEXT.cold_applied : TEXT.cold_not_applied, "chip"));
-  (att.reasons || []).forEach((reason) => line.what.appendChild(el("p", reason, "ledger-reason")));
+  (att.reasons || []).forEach((reason) => line.what.appendChild(el("p", coldReason(reason), "ledger-reason")));
   return line.row;
 }
 function renderColdLegit(r) {
@@ -970,6 +1031,8 @@ function renderColdScope(r) {
 }
 function renderColdAttack(r) {
   renderAttack(r);
+  const note = byId("coldAttackNote");
+  if (note) note.textContent = (r.statuses || []).length ? TEXT.cold_token_accepted : "";
   const box = byId("coldAttempts"); clear(box);
   (r.attacks || []).forEach((att) => box.appendChild(coldAttempt(att)));
 }
@@ -996,7 +1059,7 @@ function renderResult(step, r, state) {
   if (step === "guardian") renderGuardian(r);
   if (step === "voice") {
     const base = ((state && state.results && state.results.voice) || (state && state.voice) || {});
-    renderVoice({...base, ...r, transcript: r.transcript || base.transcript || "", intent: r.intent || base.intent || {}, channel: r.channel || base.channel || ""});
+    renderVoice({...base, ...r, transcript: r.transcript || base.transcript || "", intent: r.intent || base.intent || {}, channel: r.channel || base.channel || "", input_mode: r.input_mode || base.input_mode || ""});
   }
   if (step === "contain") renderContain(r, state);
   if (step === "revoke") renderRevoke(r);
@@ -1173,9 +1236,15 @@ let drawSphere = function () {};
 })();
 let lastState = null;
 let clockTimer = null;
+function isContained(state) {
+  const c = ((state && state.results) || {}).contain || {};
+  return c.status === "ok" || c.status === "contained";
+}
 function updateBand(state) {
   lastState = state || lastState;
   if (!state) return;
+  const runUntil = byId("runUntilBtn");
+  if (runUntil) runUntil.disabled = isContained(state);
   const total = Number(state.total_cost_usd || 0);
   const cap = Number(state.cap_usd || 1);
   byId("costLabel").textContent = REPLAY ? TEXT.replay_cost : "USD " + total.toFixed(4) + " " + TEXT.cost_of_cap.replace("{cap}", cap.toFixed(2));
@@ -1227,7 +1296,9 @@ function updateBand(state) {
     const contained = snapshot.contained_in_s != null;
     byId("bigClock").dataset.state = contained ? "contained" : (results.attack ? "attack" : "calm");
     const elapsed = (Date.now() - snapshot.receivedAt) / 1000;
-    byId("chainDuration").textContent = fmtClock(contained ? snapshot.duration_s : snapshot.duration_s + elapsed);
+    /* Antes del primer paso no hay cadena que medir: el reloj se queda en 00:00. */
+    const anyStep = Object.keys(results).length > 0;
+    byId("chainDuration").textContent = !anyStep ? fmtClock(0) : fmtClock(contained ? snapshot.duration_s : snapshot.duration_s + elapsed);
     const label = byId("clockLabel");
     if (contained) {
       if (label) label.textContent = TEXT.time_to_401;
@@ -1247,39 +1318,123 @@ function updateBand(state) {
   tickClock();
   clockTimer = setInterval(tickClock, 1000);
   Object.keys(results).forEach((key) => renderResult(key === "voice_confirm" || key === "voice_cancel" ? "voice" : key, results[key], state));
+  /* Al recargar, los pasos con resultado muestran su estado, no «sin correr». */
+  Object.keys(results).forEach((key) => {
+    const step = key === "voice_confirm" || key === "voice_cancel" ? "voice" : key;
+    const r = results[key] || {};
+    const node = document.querySelector("[data-status-for='" + step + "']");
+    if (!node || node.dataset.state === "running") return;
+    if (["error", "cost_cap_reached", "not_approved", "daily_limit"].includes(r.status)) stopStatus(step, TEXT.error + ": " + (r.error || r.status));
+    else if (step === "voice") stopStatus(step, TEXT.ok + ": " + statusWord(r.status));
+    else stopStatus(step, TEXT.ok);
+  });
 }
+/* «New run» aborta lo que esté en vuelo; un paso que el servidor descarta por
+   corrida nueva vuelve como «stale» y no se pinta. */
+let runCtl = new AbortController();
+/* Repetición: cada llamada lleva la escena de esta página y su run_id. Si otra pestaña
+   (misma cookie) cambió la escena o empezó otra corrida, el servidor responde 409
+   «stale» y aquí se pide recargar en vez de pintar datos de otra escena. */
+let RUN_ID = null;
+function replayPath(path) {
+  if (!REPLAY) return path;
+  const q = new URLSearchParams({scene: SCENE});
+  if (RUN_ID) q.set("run", RUN_ID);
+  return path + (path.indexOf("?") === -1 ? "?" : "&") + q.toString();
+}
+function showStaleNotice() {
+  if (byId("staleNotice")) return;
+  const box = el("div", null, "stale-notice");
+  box.id = "staleNotice";
+  box.setAttribute("role", "alert");
+  box.appendChild(el("p", TEXT.stale_page));
+  const btn = el("button", TEXT.reload, "btn primary");
+  btn.type = "button";
+  btn.addEventListener("click", () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("scene", SCENE);
+    window.location.href = url.toString();
+  });
+  box.appendChild(btn);
+  document.body.insertBefore(box, document.body.firstChild);
+}
+async function apiFetch(path, opts) {
+  const res = await fetch(API + replayPath(path), {...(opts || {}), signal: runCtl.signal});
+  if (REPLAY && res.status === 409) {
+    try {
+      const data = await res.clone().json();
+      if (data && (data.error_code === "scene_changed" || data.error_code === "run_changed")) showStaleNotice();
+    } catch (err) { /* sin cuerpo JSON: lo trata quien llamó */ }
+  }
+  return res;
+}
+function isAbort(err) { return err && err.name === "AbortError"; }
+/* La página quedó vieja (otra pestaña cambió la escena o la corrida): solo el aviso. */
+function isStaleData(data) { return !!(data && (data.error_code === "scene_changed" || data.error_code === "run_changed")); }
 async function refreshState() {
-  const res = await fetch(API + "/state");
+  const res = await apiFetch("/state");
   if (!res.ok) return null;
   const state = await res.json();
+  if (REPLAY && state.run_id) RUN_ID = state.run_id;
   if (state.status === "not_started") {
-    const started = await fetch(API + "/start", {method: "POST"});
-    if (started.ok) { const s2 = await started.json(); updateBand(s2); return s2; }
+    const started = await apiFetch("/start", {method: "POST"});
+    if (started.ok) { const s2 = await started.json(); if (REPLAY && s2.run_id) RUN_ID = s2.run_id; updateBand(s2); return s2; }
     return state;
   }
   updateBand(state);
   return state;
 }
+/* Un solo arranque por página: los pasos esperan a que /live/start termine
+   (antes, un clic durante el arranque daba 409 «chain not started»). */
+let bootPromise = null;
+function ensureStarted() {
+  if (!bootPromise) {
+    bootPromise = refreshState().then((s) => {
+      if (!s || s.status === "not_started") bootPromise = null;
+      return s;
+    }, (err) => { bootPromise = null; throw err; });
+  }
+  return bootPromise;
+}
+const STEP_NUMBER = {invoice: 1, count: 2, attack: 3, guardian: 4, voice: 5, contain: 6, revoke: 7};
+/* Errores de paso en el idioma de la página (el servidor manda códigos o frases fijas en inglés). */
+function stepErrorText(data, httpStatus) {
+  const raw = String((data && data.error) || "");
+  let need = data && data.need;
+  const m = raw.match(/^first run: (\w+)$/);
+  if (!need && m) need = m[1];
+  if (!need && (raw === "run the guardian first" || raw === "no pending approval")) need = "guardian";
+  if (need && STEP_NUMBER[need]) return TEXT.err_need_step.replace("{n}", STEP_NUMBER[need]);
+  if ((data && data.status === "not_approved") || raw === "the owner has not approved yet") return TEXT.err_not_approved;
+  if (isStaleData(data)) return TEXT.stale_short;
+  if (data && data.status === "stale") return TEXT.err_stale;
+  if ((data && data.error_code === "contained") || raw === "this run is already contained: start a new run") return TEXT.err_contained;
+  if (data && data.error_code === "own_photo_not_counted") return TEXT.err_own_photo;
+  return raw || (data && data.status) || String(httpStatus || "");
+}
 async function runStep(step) {
   startStatus(step);
   try {
+    await ensureStarted();
     let res;
     if (step === "count") {
-      const input = byId("ownPhoto");
+      const input = REPLAY ? null : byId("ownPhoto");
       if (input && input.files && input.files[0]) {
         byId("shelfImg").src = URL.createObjectURL(input.files[0]);
         const form = new FormData();
         form.append("file", input.files[0]);
-        res = await fetch(API + "/step/count", {method: "POST", body: form});
+        res = await apiFetch("/step/count", {method: "POST", body: form});
       } else {
-        res = await fetch(API + "/step/count", {method: "POST"});
+        res = await apiFetch("/step/count", {method: "POST"});
       }
     } else {
-      res = await fetch(API + "/step/" + step, {method: "POST"});
+      res = await apiFetch("/step/" + step, {method: "POST"});
     }
     const data = await res.json();
+    if (data.status === "stale") { stopStatus(step, TEXT.not_run); return data; }
+    if (!res.ok && !data.status) data.status = "error";
     if (!res.ok || data.status === "error" || data.status === "cost_cap_reached" || data.status === "not_approved") {
-      stopStatus(step, TEXT.error + ": " + (data.error || data.status || res.status));
+      stopStatus(step, TEXT.error + ": " + stepErrorText(data, res.status));
     } else {
       stopStatus(step, TEXT.ok);
     }
@@ -1287,15 +1442,31 @@ async function runStep(step) {
     await refreshState();
     return data;
   } catch (err) {
+    if (isAbort(err)) { stopStatus(step, TEXT.not_run); return {status: "aborted"}; }
     stopStatus(step, TEXT.error + ": " + err.message);
     return {status: "error", error: err.message};
   }
 }
+/* La decisión del dueño queda a la vista: centra la caja de aprobación y le da foco. */
+function focusApproval() {
+  const typed = byId("typedText");
+  if (!typed) return;
+  typed.scrollIntoView({block: "center", behavior: "smooth"});
+  typed.focus({preventScroll: true});
+}
 async function runUntilOwner() {
+  const done = (lastState && lastState.results) || {};
+  /* Ya corrido hasta el dueño (o contenido): no se repite el ataque ni otra aprobación.
+     Un guardián o una contención que fallaron no cuentan: el botón vuelve a correr. */
+  if (isContained(lastState)) return;
+  if ((done.guardian || {}).status === "ok") { focusApproval(); return; }
+  try { await ensureStarted(); } catch (err) { if (isAbort(err)) return; throw err; }
+  let finished = true;
   for (const step of ["invoice", "count", "attack", "guardian"]) {
     const data = await runStep(step);
-    if (!data || data.status === "error" || data.status === "cost_cap_reached") break;
+    if (!data || ["error", "cost_cap_reached", "daily_limit", "stale", "aborted"].includes(data.status)) { finished = false; break; }
   }
+  if (finished) focusApproval();
 }
 // mono PCM16 16 kHz WAV
 function buildWav(samples, sampleRate) {
@@ -1349,9 +1520,13 @@ async function toggleRecord() {
     const form = new FormData();
     form.append("file", wav, "voz.wav");
     startStatus("voice");
-    const res = await fetch(API + "/voice", {method: "POST", body: form});
-    const data = await res.json();
-    stopStatus("voice", data.status === "error" ? TEXT.error + ": " + (data.error || "") : TEXT.ok + ": " + (data.status || ""));
+    let res, data;
+    try {
+      res = await apiFetch("/voice", {method: "POST", body: form});
+      data = await res.json();
+    } catch (err) { if (isAbort(err)) return; throw err; }
+    if (isStaleData(data)) { stopStatus("voice", TEXT.error + ": " + TEXT.stale_short); return; }
+    stopStatus("voice", data.status === "error" ? TEXT.error + ": " + (data.error || "") : TEXT.ok + ": " + statusWord(data.status));
     renderVoice(data);
     await refreshState();
     if (data.status === "approved") await runStep("contain");
@@ -1391,8 +1566,10 @@ function clearRun() {
    "comprasLine", "countValue", "expectedLine", "approvedLine"].forEach((id) => {
     const node = byId(id); if (node) node.textContent = "";
   });
-  ["attackerBefore", "attackerAfter", "revokeResult"].forEach((id) => { const n = byId(id); if (n) n.replaceChildren(); });
+  ["attackerBefore", "attackerAfter", "revokeResult", "invoiceResult", "countResult",
+   "guardianResult"].forEach((id) => { const n = byId(id); if (n) n.replaceChildren(); });
   const typed = byId("typedText"); if (typed) typed.value = "";
+  const runUntil = byId("runUntilBtn"); if (runUntil) runUntil.disabled = false;
   ["voiceConfirm", "voiceCancel"].forEach((id) => { const n = byId(id); if (n) n.hidden = true; });
   document.querySelectorAll("[data-status-for]").forEach((n) => {
     n.textContent = TEXT.not_run; n.dataset.state = "pending";
@@ -1404,7 +1581,9 @@ function clearRun() {
 document.addEventListener("DOMContentLoaded", () => {
   byId("runUntilBtn").addEventListener("click", runUntilOwner);
   byId("newRunBtn").addEventListener("click", async () => {
-    await fetch(API + "/reset", {method: "POST"});
+    runCtl.abort();  // corta pasos y voz en vuelo antes de pedir la corrida nueva
+    runCtl = new AbortController();
+    await fetch(API + replayPath("/reset"), {method: "POST"});  // repetición: con la escena de esta página
     clearRun();
     window.location.reload();
   });
@@ -1426,27 +1605,31 @@ document.addEventListener("DOMContentLoaded", () => {
     const form = new FormData();
     form.append("typed", byId("typedText").value);
     startStatus("voice");
-    const res = await fetch(API + "/voice", {method: "POST", body: form});
-    const data = await res.json();
-    stopStatus("voice", data.status === "error" ? TEXT.error + ": " + (data.error || "") : TEXT.ok + ": " + (data.status || ""));
+    let res, data;
+    try {
+      res = await apiFetch("/voice", {method: "POST", body: form});
+      data = await res.json();
+    } catch (err) { if (isAbort(err)) { stopStatus("voice", TEXT.not_run); return; } throw err; }
+    if (isStaleData(data)) { stopStatus("voice", TEXT.error + ": " + TEXT.stale_short); return; }
+    stopStatus("voice", (data.status === "error" || data.status === "stale") ? TEXT.error + ": " + stepErrorText(data, res.status) : TEXT.ok + ": " + statusWord(data.status));
     renderVoice(data);
     await refreshState();
     if (data.status === "approved") await runStep("contain");
   });
   byId("voiceConfirm").addEventListener("click", async () => {
-    const res = await fetch(API + "/voice/confirm", {method: "POST"});
+    const res = await apiFetch("/voice/confirm", {method: "POST"});
     const data = await res.json();
-    byId("voiceStatusLine").textContent = data.status || "";
+    byId("voiceStatusLine").textContent = statusWord(data.status);
     await refreshState();
     if (data.status === "approved") await runStep("contain");
   });
   byId("voiceCancel").addEventListener("click", async () => {
-    const res = await fetch(API + "/voice/cancel", {method: "POST"});
+    const res = await apiFetch("/voice/cancel", {method: "POST"});
     const data = await res.json();
-    byId("voiceStatusLine").textContent = data.status || "";
+    byId("voiceStatusLine").textContent = statusWord(data.status);
     await refreshState();
   });
-  refreshState();
+  ensureStarted().catch(() => {});
 });
 """
 
@@ -1468,13 +1651,11 @@ def _step_html(number: int, step: str, title: str, lang: str, inner: str) -> str
 
 
 def _hero_brand_html(brand: str) -> str:
-    """Titular de marca: resalta «AI» dentro del nombre (W·ai·rrior); si no hay, las 2 primeras letras."""
-    i = brand.lower().find("ai")
-    if i > 0:
-        parts = [("outline", brand[:i]), ("fill", brand[i : i + 2]), ("outline", brand[i + 2 :])]
-    else:
-        parts = [("fill", brand[:2]), ("outline", brand[2:])]
-    return "".join(f"<span class='hero-{k}'>{_e(t)}</span>" for k, t in parts if t)
+    """Titular de marca: «w» y «rrior» en contorno, «AI» relleno en el acento (sin punto medio)."""
+    return "".join(
+        f"<span class='hero-{'fill' if kind == 'ai' else 'outline'}'>{_e(text)}</span>"
+        for kind, text in brand_parts(brand)
+    )
 
 def render_live_page(
     lang: str = "en",
@@ -1500,15 +1681,23 @@ def render_live_page(
         labels["step1_title"] = labels["cold_step1_title"]
         labels["step2_title"] = labels["cold_step2_title"]
         labels["step3_title"] = labels["cold_step3_title"]
+        labels["step4_title"] = labels["cold_step4_title"]
+        labels["live_off_note"] = labels["live_off_note_cold"]
+        labels["plan_reasoning"] = labels["cold_plan_reasoning"]
     if replay:
-        labels["live_label"] = labels["replay_label"]
+        labels["live_label"] = labels["cold_replay_label" if cold else "replay_label"]
+        labels["spark_intent"] = labels["replay_spark_intent"]
+        # En la repetición la decisión se escribe: nada de micrófono ni nota de WhatsApp.
+        labels["whatsapp_note_title"] = labels["typed_note_title"]
+        labels["transcript"] = labels["typed_transcript"]
+        labels["step5_title"] = labels["step5_title_typed"]
         if not cold:
             labels["hero_subtitle"] = labels["replay_hero_subtitle"]
     if remote:
         labels["live_label"] = (
-            "LIVE — real Meta models through the Wairrior gateway (hosted, spend capped)"
+            f"LIVE — real Meta models through the {BRAND} gateway (hosted, spend capped)"
             if lang == "en"
-            else "EN VIVO — modelos reales de Meta a través del gateway de Shield (alojado, gasto con tope)"
+            else f"EN VIVO — modelos reales de Meta a través del gateway de {BRAND} (alojado, gasto con tope)"
         )
     def _L(key: str) -> str:
         return labels.get(key) or T["en"].get(key, key)
@@ -1542,21 +1731,29 @@ def render_live_page(
             "<figcaption id='materialLabel' class='provenance-tag'></figcaption></figure>"
             "<div class='stack'><p class='key-result' id='countValue'></p>"
             "<p id='expectedLine' class='meta'></p>"
-            "<label class='file-pill' for='ownPhoto'><input class='file-input' id='ownPhoto' type='file' accept='image/*'>"
-            f"<span>{_e(_L('use_own_photo'))}</span></label></div></div>"
+            # En la repetición no se cuenta ninguna foto: el selector solo existe en vivo.
+            + (
+                ""
+                if replay
+                else "<label class='file-pill' for='ownPhoto'><input class='file-input' id='ownPhoto' type='file' accept='image/*'>"
+                f"<span>{_e(_L('use_own_photo'))}</span></label>"
+            )
+            + "</div></div>"
         )
     step3_inner = (
         "<div class='split'><div class='stack'>"
         f"<p class='label'>{_e(_L('attacker_attempts'))}</p>"
-        "<div id='attackStatuses' class='attempts'></div></div>"
+        "<div id='attackStatuses' class='attempts'></div>"
+        + ("<p id='coldAttackNote' class='meta cold-attack-note'></p>" if cold else "")
+        + "</div>"
         f"<div class='stack'><p class='label'>{_e(_L('anomalies'))}</p>"
         "<ul id='anomalyList' class='signal-list'></ul></div></div>"
         + ("<div id='coldAttempts' class='stack stack-gap'></div>" if cold else "")
     )
+    # En replay el plan es grabado o determinista: sin encabezado de inventario vacío.
     step4_inner = (
-        f"<p class='meta'>{_e(_L('demo_inventory'))}</p>"
-        "<div id='guardianResult' class='stack stack-gap'></div>"
-    )
+        "" if (cold or replay) else f"<p class='meta'>{_e(_L('demo_inventory'))}</p>"
+    ) + "<div id='guardianResult' class='stack stack-gap'></div>"
     step5_inner = (
         "<div class='split'><div class='voice-controls'>"
         + (
@@ -1618,6 +1815,11 @@ def render_live_page(
         ]
     )
     no_key_hidden = "" if no_key and not replay else " hidden"
+    # La repetición pública no es «live»: el título solo dice «Live» en /live.
+    page_title = f"{BRAND} — {SUBTITLE}" if replay else f"{BRAND} — {SUBTITLE} · Live"
+    initial_cost = (
+        _L("replay_cost") if replay else "USD 0.0000 " + _L("cost_of_cap").replace("{cap}", "1.00")
+    )
     if replay:
         mode_switch = (
             f"<nav class='mode-switch'><a href='/?scene={scene}&lang={lang}' aria-current='true'>{_e(_L('replay'))}</a>"
@@ -1643,20 +1845,20 @@ def render_live_page(
     return (
         "<!doctype html>\n"
         f"<html lang='{_e(lang)}'><head><meta charset='utf-8'>"
-        "<link rel='icon' href='data:,'>"
+        f"<link rel='icon' href=\"{favicon_href()}\">"
         "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-        f"<title>{_e(BRAND)} — {_e(SUBTITLE)} live</title>"
+        f"<title>{_e(page_title)}</title>"
         f"<style>{_CSS}</style></head><body>"
         "<header class='band'><div class='inner'>"
         "<div class='band-top'>"
-        f"<p class='brandline'><strong>{_e(BRAND)}</strong> · {_e(SUBTITLE)}</p>"
+        f"<p class='brandline'><strong>{brand_mark_html()}</strong> · {_e(SUBTITLE)}</p>"
         f"<span class='live-label'>{_e(labels['live_label'])}</span>"
         "<div class='band-tools'>"
         f"{mode_switch}"
         f"{scene_switch}"
         f"<span class='lang'><a href='{lang_base}lang=en'{en_current}>EN</a>"
         f"<a href='{lang_base}lang=es'{es_current}>ES</a></span>"
-        "<span id='costLabel'>USD 0.0000 of 1.00 cap</span>"
+        f"<span id='costLabel'>{_e(initial_cost)}</span>"
         f"<span>{_e(_L('chain_duration'))}: <span id='chainDuration'>00:00</span></span>"
         f"<button class='btn ghost' id='newRunBtn' type='button'>{_e(_L('new_run'))}</button>"
         "</div></div>"
@@ -1673,15 +1875,16 @@ def render_live_page(
         "</div>"
         f"<div class='clockbox'><p id='clockLabel'>{_e(_L('time_to_401'))}</p>"
         "<p id='bigClock'>--:--</p>"
-        f"<p class='clock-note'>{_e(_L('real_incident'))}</p></div>"
+        + ("" if cold else f"<p class='clock-note'>{_e(_L('real_incident'))}</p>")
+        + "</div>"
         "</div></div></header>"
         "<div class='stickybar'><div class='sticky-inner'>"
-        f"<span class='sticky-brand'>{_e(BRAND)}</span>"
+        f"<span class='sticky-brand'>{brand_mark_html()}</span>"
         f"<span class='sticky-group'><span class='sticky-label' id='stickyClockLabel'>{_e(_L('time_to_401'))}</span>"
         "<span class='sticky-clock' id='stickyClock'>--:--</span></span>"
         f"<span class='sticky-group'><span class='sticky-label'>{_e(_L('sticky_attacker'))}</span>"
         "<span class='sticky-group' id='stickyAttacker'></span></span>"
-        f"<span class='sticky-group'><span class='sticky-label'>{_e(_L('sticky_sdk'))}</span>"
+        f"<span class='sticky-group sticky-sdk'><span class='sticky-label'>{_e(_L('sticky_sdk'))}</span>"
         "<span class='sticky-group' id='stickySdk'></span></span>"
         "<span class='sticky-cost' id='stickyCost'>USD 0.0000</span>"
         f"<button class='btn ghost' id='stickyNewRunBtn' type='button'>{_e(_L('new_run'))}</button>"
@@ -1692,8 +1895,8 @@ def render_live_page(
         f"<section class='prov'><div class='prov-head'><h2>{_e(_L('provenance'))}</h2>"
         f"<a class='btn secondary' href='{api}/provenance.json'>{_e(_L('export_log'))}</a></div>"
         + (f"<p class='replay-note'>{_e(prov_note)}</p>" if replay else "")
-        + f"<p id='sparkOpenRow' class='spark-open'>{_e(spark_row)}</p>"
-        f"<details class='more'><summary>{_e(_L('prov_table'))} <span id='provCount'></span></summary>"
+        + ("" if replay else f"<p id='sparkOpenRow' class='spark-open'>{_e(spark_row)}</p>")
+        + f"<details class='more'><summary>{_e(_L('prov_table'))} <span id='provCount'></span></summary>"
         "<div class='tablewrap'><table><thead><tr>"
         f"<th>{_e(_L('th_step'))}</th><th>{_e(_L('th_agent'))}</th>"
         f"<th>{_e(_L('th_model'))}</th><th>{_e(_L('th_response'))}</th>"
@@ -1716,13 +1919,13 @@ def render_live_inactive_page(lang: str = "en") -> str:
     return (
         "<!doctype html>\n"
         f"<html lang='{_e(lang)}'><head><meta charset='utf-8'>"
-        "<link rel='icon' href='data:,'>"
+        f"<link rel='icon' href=\"{favicon_href()}\">"
         "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-        f"<title>{_e(BRAND)} — {_e(SUBTITLE)} live</title>"
+        f"<title>{_e(BRAND)} — {_e(SUBTITLE)} · Live</title>"
         f"<style>{_CSS}</style></head><body>"
         "<header class='band'><div class='inner'>"
         "<div class='band-top'>"
-        f"<p class='brandline'><strong>{_e(BRAND)}</strong> · {_e(SUBTITLE)}</p>"
+        f"<p class='brandline'><strong>{brand_mark_html()}</strong> · {_e(SUBTITLE)}</p>"
         "<div class='band-tools'>"
         f"<nav class='mode-switch'><a href='/'>{_e(_t(lang, 'replay'))}</a>"
         f"<a href='/live' aria-current='true'>{_e(_t(lang, 'live'))}</a></nav>"

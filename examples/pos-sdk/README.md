@@ -1,6 +1,6 @@
 # examples/pos-sdk/
 
-Agente de caja de un punto de venta con el SDK de Wairrior (`@shield.tool`).
+Agente de caja de un punto de venta con el SDK de wAIrrior (`@shield.tool`).
 Cada herramienta pasa por la política de [policies/caja.yaml](policies/caja.yaml)
 antes de ejecutarse:
 

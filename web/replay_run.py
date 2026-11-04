@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 import secrets
 import time
 from collections import OrderedDict
@@ -52,11 +53,70 @@ _PROVENANCE_GROUP = {
 
 _cache: dict[str, Any] = {}
 
+_ADVISORIES = _RECORDED.parent / "advisories"
+_CVE_PHONE = "CVE-[REDACTED:phone]"
+_CVE_PHONE_TITLED = re.compile(re.escape(_CVE_PHONE) + r'(", "title": ")([^"]+)"')
+
+
+def _fix_cve_redaction(node: Any) -> Any:
+    """Deshace en la grabación el falso positivo «CVE-[REDACTED:phone]».
+
+    El patrón de teléfono viejo comía «2026-NNNN» de los CVE. Si la grabación
+    trae el título del aviso (vuelta de ``list_advisories``), el id se recupera
+    del mismo `evals/advisories/*.json` que sirvió la herramienta, solo si el
+    título es único; si no, queda «CVE-(id)». No inventa ids.
+    """
+    if isinstance(node, dict):
+        return {k: _fix_cve_redaction(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [_fix_cve_redaction(v) for v in node]
+    if not isinstance(node, str) or _CVE_PHONE not in node:
+        return node
+    by_title: dict[str, list[str]] = {}
+    for f in sorted(_ADVISORIES.glob("*.json")):
+        try:
+            adv = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(adv, dict) and str(adv.get("id", "")).startswith("CVE-"):
+            by_title.setdefault(str(adv.get("title", "")), []).append(str(adv["id"]))
+
+    def _sub(m: re.Match[str]) -> str:
+        ids = by_title.get(m.group(2), [])
+        return (ids[0] if len(ids) == 1 else "CVE-(id)") + m.group(1) + m.group(2) + '"'
+
+    return _CVE_PHONE_TITLED.sub(_sub, node).replace(_CVE_PHONE, "CVE-(id)")
+
+
+_PHONE_MARK = "[REDACTED:phone]"
+_ID_KEYS = frozenset({"response_id", "upstream_request_id"})
+
+
+def _fix_id_redaction(node: Any) -> Any:
+    """Ids de respuesta que el patrón de teléfono viejo partió: el tramo comido va «…».
+
+    No reconstruye el id (no se sabe qué dígitos eran); solo deja de mostrar
+    «[REDACTED:phone]» dentro de un id, que no era un teléfono.
+    """
+    if isinstance(node, dict):
+        return {
+            k: (
+                v.replace(_PHONE_MARK, "…")
+                if k in _ID_KEYS and isinstance(v, str)
+                else _fix_id_redaction(v)
+            )
+            for k, v in node.items()
+        }
+    if isinstance(node, list):
+        return [_fix_id_redaction(v) for v in node]
+    return node
+
 
 def _load(path: Path) -> dict[str, Any]:
     key = str(path)
     if key not in _cache:
-        _cache[key] = json.loads(path.read_text(encoding="utf-8"))
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        _cache[key] = _fix_id_redaction(_fix_cve_redaction(raw))
     return copy.deepcopy(_cache[key])
 
 
@@ -75,8 +135,9 @@ class ReplayRun:
     # -- ciclo de vida -----------------------------------------------------------
     def _reset(self) -> None:
         self.run_id = "replay_" + secrets.token_hex(6)
-        self.started = time.monotonic()
-        self.started_at = _now_iso()
+        # El reloj «Chain duration» arranca con el primer paso, no al abrir la página.
+        self.started: float | None = None
+        self.started_at: str | None = None
         self.results: dict[str, Any] = {}
         self.done: list[str] = []
         self.broker = ApprovalBroker()
@@ -112,7 +173,9 @@ class ReplayRun:
             "replay": True,
             "scene": self.scene,
             "started_at": self.started_at,
-            "duration_s": round(time.monotonic() - self.started, 3),
+            "duration_s": (
+                0.0 if self.started is None else round(time.monotonic() - self.started, 3)
+            ),
             "cap_usd": 0.0,
             "total_cost_usd": 0.0,
             "gateway_logged_cost_usd": 0.0,
@@ -127,6 +190,7 @@ class ReplayRun:
             "provenance": self._provenance(),
             "voice": {
                 "channel": "browser" if voice else None,
+                "input_mode": "typed" if voice else None,
                 "transcript": voice.get("transcript", ""),
                 "status": voice.get("status"),
                 "intent": voice.get("intent"),
@@ -134,8 +198,17 @@ class ReplayRun:
         }
 
     # -- pasos -------------------------------------------------------------------
-    def _error(self, message: str) -> dict[str, Any]:
-        return {"status": "error", "error": message}
+    def _error(
+        self, message: str, *, need: str | None = None, code: str | None = None
+    ) -> dict[str, Any]:
+        """Error de paso. ``need`` es el paso que falta: la pantalla lo traduce."""
+        out: dict[str, Any] = {"status": "error", "error": message}
+        if code:
+            out["error_code"] = code
+        if need:
+            out["error_code"] = "needs_step"
+            out["need"] = need
+        return out
 
     def step(self, name: str) -> dict[str, Any]:
         if name not in _STEP_ORDER or name == "voice":
@@ -143,9 +216,19 @@ class ReplayRun:
         needs = {"guardian": "attack", "contain": "voice", "revoke": "attack"}
         need = needs.get(name)
         if need and need not in self.done:
-            return self._error(f"first run: {need}")
+            return self._error(f"first run: {need}", need=need)
+        if name in ("attack", "guardian", "contain") and "contain" in self.done:
+            # Ya contenido: repetir el ataque crearía otra aprobación con la corrida cerrada.
+            return self._error("this run is already contained: start a new run", code="contained")
         if name == "contain" and (self.results.get("voice") or {}).get("status") != "approved":
-            return {"status": "not_approved", "error": "the owner has not approved yet"}
+            return {
+                "status": "not_approved",
+                "error": "the owner has not approved yet",
+                "error_code": "not_approved",
+            }
+        if self.started is None:
+            self.started = time.monotonic()
+            self.started_at = _now_iso()
         if name == "revoke":
             builder = self._revoke
         else:
@@ -206,20 +289,22 @@ class ReplayRun:
         return out
 
     # ---- escena Bodega (corrida real grabada) ----
+    # Cada paso devuelve una copia: la grabación cargada (``self._recorded``) no se
+    # toca, así un valor grabado (p. ej. los 47.021 s) nunca se pisa con uno del visitante.
     def _bodega_invoice(self) -> dict[str, Any]:
-        return self._recorded["results"]["invoice"]
+        return copy.deepcopy(self._recorded["results"]["invoice"])
 
     def _bodega_count(self) -> dict[str, Any]:
-        return self._recorded["results"]["count"]
+        return copy.deepcopy(self._recorded["results"]["count"])
 
     def _bodega_attack(self) -> dict[str, Any]:
-        out = self._recorded["results"]["attack"]
+        out = copy.deepcopy(self._recorded["results"]["attack"])
         self.attack_started_at = _now_iso()
         out["attack_started_at"] = self.attack_started_at
         return out
 
     def _bodega_guardian(self) -> dict[str, Any]:
-        out = self._recorded["results"]["guardian"]
+        out = copy.deepcopy(self._recorded["results"]["guardian"])
         plan = out["plan"]
         self.plan = plan
         req = self.broker.request(
@@ -236,10 +321,17 @@ class ReplayRun:
         return out
 
     def _bodega_contain(self) -> dict[str, Any]:
-        out = self._recorded["results"]["contain"]
+        recorded = self._recorded["results"]["contain"]
+        out = copy.deepcopy(recorded)
         out["approval_id"] = self.approval_id
         out["attack_started_at"] = self.attack_started_at
-        self.contained_in_s = out.get("contained_in_s")
+        # «Real time to first 401» es el de este visitante (como en frío); el tiempo de la
+        # corrida en vivo grabada se muestra aparte, sin hacerlo pasar por el del visitante.
+        out["recorded_contained_in_s"] = recorded.get("contained_in_s")
+        started = datetime.fromisoformat(self.attack_started_at or _now_iso())
+        elapsed = round((datetime.now(UTC) - started).total_seconds(), 3)
+        out["contained_in_s"] = elapsed
+        self.contained_in_s = elapsed
         return out
 
     # ---- escena Cadena de frío (escenario determinista grabado) ----
@@ -292,10 +384,38 @@ class ReplayRun:
                 }
             ],
         }
+        # Mismo plan en inglés para la pantalla en EN (la escena es determinista, sin modelo).
+        plan_en = {
+            "summary": (
+                "Rotate only the Refrigeration token; Warehouse and Purchasing are untouched."
+            ),
+            "reasoning": (
+                "The Refrigeration token tried to set the cold room to 50 °C and the freezer to "
+                "5 °C at 03:00 from BR (expected EC): out of range, off hours and from an "
+                "unexpected origin. Rotating it locks the attacker out without stopping the "
+                "kitchen."
+            ),
+            "exposures": [],
+            "steps": [
+                {
+                    "action": "rotate_token",
+                    "target": "refrigeracion",
+                    "reason": "token used out of range, off hours and from an unexpected origin",
+                    "requires_approval": True,
+                }
+            ],
+        }
         self.plan = plan
         req = self.broker.request(plan)
         self.approval_id = req.approval_id
-        return {"status": "ok", "plan": plan, "approval_id": req.approval_id, "turns": []}
+        return {
+            "status": "ok",
+            "kind": "cold_plan_deterministic",
+            "plan": plan,
+            "plan_en": plan_en,
+            "approval_id": req.approval_id,
+            "turns": [],
+        }
 
     def _frio_contain(self) -> dict[str, Any]:
         after = self._cold_step("after_rotation")
@@ -327,7 +447,7 @@ class ReplayRun:
     # -- decisión del dueño (real, con nonce) ------------------------------------
     def voice(self, typed: str) -> dict[str, Any]:
         if not self.approval_id:
-            return self._error("run the guardian first")
+            return self._error("run the guardian first", need="guardian")
         text = (typed or "").strip()
         if not text:
             out = {"status": "no_speech", "transcript": "", "intent": {}}
@@ -342,6 +462,7 @@ class ReplayRun:
                 "intent": (self.results.get("voice") or {}).get("intent") or {},
                 "approval_id": self.approval_id,
                 "channel": "browser",
+                "input_mode": "typed",
             }
             return out
         outcome = self.flow.handle_transcript(
@@ -365,7 +486,7 @@ class ReplayRun:
 
     def voice_confirm(self) -> dict[str, Any]:
         if not self.approval_id:
-            return self._error("no pending approval")
+            return self._error("no pending approval", need="guardian")
         req = self.broker.get(self.approval_id)
         outcome = self.flow.confirm(self.approval_id, nonce=req.nonce if req else None)
         prev = self.results.get("voice") or {}
@@ -379,7 +500,7 @@ class ReplayRun:
 
     def voice_cancel(self) -> dict[str, Any]:
         if not self.approval_id:
-            return self._error("no pending approval")
+            return self._error("no pending approval", need="guardian")
         outcome = self.flow.cancel(self.approval_id)
         prev = self.results.get("voice") or {}
         out = {**prev, "status": outcome.get("status")}
@@ -427,5 +548,6 @@ class ReplayStore:
             while len(self._items) > self.max_sessions:
                 self._items.popitem(last=False)
         if scene in SCENES and run.scene != scene:
-            run.reset(scene)
+            with run.lock:
+                run.reset(scene)
         return run

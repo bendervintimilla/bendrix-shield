@@ -1,20 +1,20 @@
-# Amenazas reales 2025-2026 → controles de Wairrior
+# Amenazas reales 2025-2026 → controles de wAIrrior
 
 Fecha: 3 de noviembre de 2026. Alcance: ataques reales o demostrados
-entre 2025 y 2026 que tocan lo que Wairrior protege: llaves de IA, tokens
+entre 2025 y 2026 que tocan lo que wAIrrior protege: llaves de IA, tokens
 de agentes, documentos que dan órdenes, aprobaciones por voz y, desde
 esta ronda, dispositivos físicos de un restaurante (cadena de frío).
 
 Regla de este documento: solo se afirma lo que trae enlace o lo que se
 leyó en el código de este repo en `main` (`b0af85a`). Donde la fuente
 dice «no confirmado», aquí también dice «no confirmado». Ninguna cifra
-de este documento es una medición nueva de Wairrior: las cifras de Wairrior
+de este documento es una medición nueva de wAIrrior: las cifras de wAIrrior
 citadas salen de `evals/report.md` y se reproducen con
 `uv run python evals/run_all.py`.
 
 ## Resumen en una tabla
 
-| # | Ataque (fecha) | El golpe en una línea | ¿Wairrior hoy lo frena? | Lo que falta |
+| # | Ataque (fecha) | El golpe en una línea | ¿wAIrrior hoy lo frena? | Lo que falta |
 |---|---|---|---|---|
 | 1 | Refrigeración de supermercados europeos (oct-nov 2026) | Setpoints subidos a distancia; comida botada en más de 100 tiendas | Parcial: el patrón token-por-agente + 401 selectivo es el correcto, pero no existe agente ni herramienta de refrigeración | Agente/dispositivo Refrigeración con rangos duros de setpoint (Parte 2) y rangos por token en el gateway (Parte 3) |
 | 2 | LiteLLM troyano 1.107.0 (21-oct-2026) | Una llave maestra filtrada en mayo y nunca revocada terminó en un paquete oficial con ladrón de credenciales en PyPI/Docker | Parcial: la llave real vive solo en el vault y el botín de un token Shield es un agente, no el proveedor | Revocación inmediata de toda credencial filtrada, verificación de procedencia de dependencias y prueba de que un paquete malo no alcanza el vault (Partes 3 y 4) |
@@ -24,7 +24,7 @@ citadas salen de `evals/report.md` y se reproducen con
 | 6 | Cadena de suministro de IA (2025-2026) | Dependencias, conectores y paquetes oficiales convertidos en el vector de entrada | Parcial: `uv.lock` fija versiones y CI corre pruebas y ruff, pero no hay verificación de hashes ni escaneo de secretos en CI | Pin con hashes, gitleaks en CI y SBOM/procedencia antes de publicar (Parte 3; lo verifica la Parte 4) |
 | 7 | Suplantación de voz del dueño (2025-2026) | Voz clonada por IA usada para suplantar autoridades y autorizar fraudes | Parcial: aprobar exige un `approval_id` pendiente, pero ese id no caduca, no se consume al usarse y no está atado a un plan concreto | Aprobación de un solo uso, con caducidad, nonce y atada a acción+objetivo; reto de frase para voz (Partes 3 y 4) |
 
-## Qué ya hace Wairrior, verificado en el código
+## Qué ya hace wAIrrior, verificado en el código
 
 Esto es lo que las Partes 2-4 pueden dar por hecho. Cada punto trae el
 archivo donde se comprobó el 3-nov-2026.
@@ -97,7 +97,7 @@ lista priorizada del final.
 6. **Sin agente de dispositivos.** La cuadrilla es Compras y Bodega
    (`crew/`). No hay token, política ni herramienta para un dispositivo
    físico que reciba órdenes con efecto en el mundo real (setpoint de
-   una cámara). El ataque 1 no tiene hoy contraparte en Wairrior.
+   una cámara). El ataque 1 no tiene hoy contraparte en wAIrrior.
 7. **CI sin escaneo de secretos ni de dependencias.** El workflow
    (`.github/workflows/ci.yml`) corre ruff y pytest. No corre gitleaks
    ni verificación de hashes del lockfile: una llave pegada en un
@@ -122,7 +122,7 @@ Fuentes: [Reuters vía Global Banking & Finance, factbox del 2-nov-2026](https:/
 [Forescout vía Industrial Cyber, 23-oct-2026](https://industrialcyber.co/industrial-cyber-attacks/forescout-warns-internet-exposed-refrigeration-controls-could-enable-attacks-on-food-supply-chains-and-hospitals/) ·
 [BleepingComputer, 2-nov-2026](https://www.bleepingcomputer.com/news/security/hackers-disrupt-refrigeration-systems-at-european-supermarkets/)
 
-**Qué control de Wairrior lo frena.** El patrón, todavía no el escenario:
+**Qué control de wAIrrior lo frena.** El patrón, todavía no el escenario:
 si la refrigeración fuera un agente más, tendría su propio token con
 alcance mínimo; un setpoint fuera de rango sería una escritura con
 efecto que la política manda a `ask_owner` o bloquea; y al detectarse
@@ -154,7 +154,7 @@ publicaron desde un fork casi homónimo usando el flujo oficial.
 Fuentes: [BleepingComputer, oct-2026](https://www.bleepingcomputer.com/news/security/litellm-release-pipeline-hacked-to-distribute-info-stealer-malware/) ·
 [The Register, 26-oct-2026](https://www.theregister.com/security/2026/10/26/litellm-supply-chain-attack-started-with-an-exposed-master-key/5305544)
 
-**Qué control de Wairrior lo frena.** La mitad estructural: en Wairrior la
+**Qué control de wAIrrior lo frena.** La mitad estructural: en wAIrrior la
 llave del proveedor nunca está en la app ni en el paquete; vive en el
 vault y solo el gateway la toca. Un `pip install` comprometido en la
 máquina de un agente se llevaría, como máximo, el token Shield de ese
@@ -188,7 +188,7 @@ proveedores para que reiniciaran llaves a gran escala.
 
 Fuente primaria: [Railway, Preliminary Report: Oct 21st Security Incident, 22-oct-2026](https://blog.railway.com/p/preliminary-report-october-security-incident)
 
-**Qué control de Wairrior lo frena.** Es el caso para el que Wairrior nació:
+**Qué control de wAIrrior lo frena.** Es el caso para el que wAIrrior nació:
 si las variables de entorno de la app solo contienen un token Shield
 por agente, «rota todo» se convierte en «rota el token de ese agente»
 y el abuso se corta en segundos, no en las ~16 h del incidente propio
@@ -196,7 +196,7 @@ de octubre de 2026 que motiva el proyecto (USD 310, en
 `docs/DEMO.md`). El ladrón tampoco puede subir de nivel: el token no
 es la llave del proveedor y no abre otros agentes.
 
-**Cuál falta.** Dos cosas que Railway sí tuvo que hacer y Wairrior aún
+**Cuál falta.** Dos cosas que Railway sí tuvo que hacer y wAIrrior aún
 no: revocación de emergencia de **todos** los tokens de una app con
 un solo comando probado, y que el token robado valga menos mientras
 vive: hoy el gateway no hace cumplir `scopes`, así que un token
@@ -218,7 +218,7 @@ comprometida; abuso inmediato; la víctima se entera por el costo.
 Fuentes: [Railway, informe preliminar (el objetivo eran llaves de IA)](https://blog.railway.com/p/preliminary-report-october-security-incident) ·
 [GitGuardian sobre el incidente de Railway: trata toda variable como expuesta](https://blog.gitguardian.com/railway-october-2026-incident-environment-variables/)
 
-**Qué control de Wairrior lo frena.** El abuso deja señales que Wairrior ya
+**Qué control de wAIrrior lo frena.** El abuso deja señales que wAIrrior ya
 detecta: país nuevo, modelo nunca usado, pico de costo
 (`shield/anomaly.py`; precisión y recall 1.000 en la serie sintética
 de 16 h, 0 falsos positivos en la normal). Detectado el abuso, el
@@ -250,7 +250,7 @@ tampoco hay que venderlo como un robo consumado.
 Fuentes: [OWASP LLM01:2025 Prompt Injection](https://genai.owasp.org/llmrisk/llm01-prompt-injection/) ·
 [SecurityWeek sobre EchoLeak, jun-2025](https://www.securityweek.com/echoleak-ai-attack-enabled-theft-of-sensitive-data-via-microsoft-365-copilot/)
 
-**Qué control de Wairrior lo frena.** Documentos marcados como datos
+**Qué control de wAIrrior lo frena.** Documentos marcados como datos
 (`shield.untrusted`), escaneo de inyección antes de cualquier
 herramienta con efecto y campos sensibles que siempre pasan por el
 dueño. Medido en el set held-out v2, ciego a las reglas y congelado
@@ -283,7 +283,7 @@ malo.
 
 Fuente: [OWASP LLM03:2025 Supply Chain](https://genai.owasp.org/llmrisk/llm032025-supply-chain/)
 
-**Qué control de Wairrior lo frena.** `uv.lock` presente y fijado; CI
+**Qué control de wAIrrior lo frena.** `uv.lock` presente y fijado; CI
 que corre la suite completa en cada PR; gitleaks limpio sobre el
 árbol y la historia actual (comprobado al hacer público el repo el
 31-oct-2026, ver `H15-ESTADO.md` en el escritorio del proyecto).
@@ -305,7 +305,7 @@ una persona ya no prueba que esa persona esté hablando.
 
 Fuente oficial: [FBI, alerta I-051525-PSA actualizada (I-121925-PSA)](https://www.fbi.gov/file-repository/cyber-alerts/senior-us-officials-continue-to-be-impersonated-in-malicious-messaging-campaign)
 
-**Qué control de Wairrior lo frena.** La voz no ejecuta nada por sí
+**Qué control de wAIrrior lo frena.** La voz no ejecuta nada por sí
 sola: lo que autoriza un efecto es un `approval_id` que nació como
 pendiente, y el broker de canales es el único camino
 (`channels/approvals.py`). Una nota de voz falsa tendría que además
@@ -379,7 +379,7 @@ cuenta como hecho.
   confirmado es el daño y la exposición masiva de controladores.
 - No afirma que EchoLeak robó datos a nadie: fue una demostración de
   investigadores, corregida, sin explotación conocida.
-- No afirma ninguna cifra nueva de Wairrior. Las únicas cifras citadas
+- No afirma ninguna cifra nueva de wAIrrior. Las únicas cifras citadas
   (held-out v2, anomalías, rotación 200→401) salen de
   `evals/report.md` y de sus grabaciones en `evals/recorded/`.
 - Las Partes 2-4 pueden cambiar el orden interno de su prioridad si

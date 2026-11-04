@@ -1,17 +1,17 @@
-# Wairrior — Privacy Policy
+# wAIrrior — Privacy Policy
 
 Last updated: 2026-11-02
 
-Wairrior is an open-source hackathon project by Juan Vintimilla. This policy covers the
-"Wairrior owner approvals" WhatsApp integration and the Wairrior demo panel.
+wAIrrior is an open-source hackathon project by Juan Vintimilla. This policy covers the
+"wAIrrior owner approvals" WhatsApp integration and the wAIrrior demo panel.
 
 ## What data is processed
 
-- **The owner's WhatsApp messages to the Wairrior number** (text and voice notes), only
+- **The owner's WhatsApp messages to the wAIrrior number** (text and voice notes), only
   while a live demo run is active. Messages from any other number are ignored and their
   media is never downloaded.
 - **Voice notes** are downloaded from Meta's media servers, converted to audio on the
-  owner's own computer, and transcribed by a Meta model through the Wairrior gateway. The
+  owner's own computer, and transcribed by a Meta model through the wAIrrior gateway. The
   transcript and the understood intent ("rotate the key" / "do not rotate") are shown in
   the owner's local panel.
 - **Gateway call metadata** (model name, time, cost, status) is kept in a local database

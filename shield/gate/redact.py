@@ -33,6 +33,31 @@ PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 ]
 
 
+# Única excepción a los patrones: identificadores CVE (``CVE-2026-1234``), que
+# el patrón de teléfono confundía. Se apartan antes de redactar y se reponen
+# después; todo lo demás (``tel-0991 2345``, ``WA-+593…``, ids) sigue igual.
+_CVE = re.compile(r"\bCVE-(?:19|20)\d{2}-\d{4,7}\b(?![ \-]?\d)")
+_HOLD = "\ue000"
+
+
+def _protect_cves(text: str) -> tuple[str, list[str]]:
+    if _HOLD in text:
+        return text, []
+    held: list[str] = []
+
+    def _keep(m: re.Match[str]) -> str:
+        held.append(m.group(0))
+        return f"{_HOLD}{len(held) - 1}{_HOLD}"
+
+    return _CVE.sub(_keep, text), held
+
+
+def _restore_cves(text: str, held: list[str]) -> str:
+    for i, cve in enumerate(held):
+        text = text.replace(f"{_HOLD}{i}{_HOLD}", cve)
+    return text
+
+
 @dataclass(frozen=True)
 class Redaction:
     kind: str
@@ -40,6 +65,7 @@ class Redaction:
 
 
 def _kind_in(text: str) -> str | None:
+    text = _CVE.sub("", text)
     for kind, pattern in PATTERNS:
         if pattern.search(text):
             return kind
@@ -48,7 +74,7 @@ def _kind_in(text: str) -> str | None:
 
 def redact_text(text: str) -> tuple[str, list[Redaction]]:
     findings: dict[str, int] = {}
-    out = text
+    out, held = _protect_cves(text)
     for kind, pattern in PATTERNS:
         out, n = pattern.subn(f"[REDACTED:{kind}]", out)
         # La clave de OpenAI también la caza el patrón genérico tras redactar;
@@ -65,6 +91,7 @@ def redact_text(text: str) -> tuple[str, list[Redaction]]:
         n = out.count(encoded)
         out = out.replace(encoded, f"[REDACTED:{label}]")
         findings[label] = findings.get(label, 0) + n
+    out = _restore_cves(out, held)
     return out, [Redaction(kind=k, count=v) for k, v in sorted(findings.items())]
 
 

@@ -1,6 +1,6 @@
 """Genera el set red team de C2489-4: `evals/redteam/cases.json` (congelado).
 
-Batería adversaria sintética contra Wairrior y contra el guardián: inyección
+Batería adversaria sintética contra wAIrrior y contra el guardián: inyección
 en documentos/facturas, exfiltración del token por el gate, suplantación de
 la voz del dueño (repetición de la transcripción), confusión de agentes y
 abuso de tasa. Todo es material de prueba propio (`synthetic: true`); ningún

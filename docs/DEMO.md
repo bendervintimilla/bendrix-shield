@@ -1,6 +1,6 @@
-# Guía de la demo — Wairrior — Business Protection
+# Guía de la demo — wAIrrior — Business Protection
 
-Nombre público: «Wairrior, Business Protection». Aviso de no afiliación:
+Nombre público: «wAIrrior, Business Protection». Aviso de no afiliación:
 *Built on Meta's Muse models; independent project, not affiliated with
 or endorsed by Meta.* Portadas: `docs/brand/slides/`.
 
@@ -8,8 +8,11 @@ Dos modos con los mismos comandos: **replay** (sin red ni créditos) y
 **en vivo** (con créditos Meta y, opcionalmente, la llave de Baseten en
 el vault). En replay todo lo que necesite un modelo responde
 `needs_credits` o sale de la caché por hash, y la demo no se cae.
-WhatsApp es un webhook en modo simulador, sin credenciales reales; la
-cadena viva usa voz.
+WhatsApp funciona en modo simulador sin credenciales reales y se probó
+en vivo con la nota de voz real del dueño el 3-nov-2026
+(`evals/recorded/live-run-whatsapp-owner-voice-2026-11-03.json`); la
+toma del video aprueba por voz en el navegador
+(`evals/recorded/live-run-video-take-2026-11-03.json`).
 
 ## Antes de empezar
 
@@ -43,7 +46,7 @@ security find-generic-password -s baseten-api-key -a hackathon -w >/dev/null \
 
 El 21-oct-2026 las llaves de IA fueron el botín (paquete troyanizado,
 variables de nube expuestas, ~16 h de abuso, USD 310). Las apps tenían
-la llave real; con Wairrior solo tienen un token revocable por agente.
+la llave real; con wAIrrior solo tienen un token revocable por agente.
 
 ### 2. Conectar cualquier app en 2 líneas
 
@@ -91,8 +94,10 @@ Es el E2E en replay: anomalía (país nuevo) en Bodega → plan →
 aprobación del dueño por voz o panel (WhatsApp es un webhook en
 simulador) → rotación solo de Bodega → el atacante con el token robado
 recibe **401** mientras Bodega, con el token nuevo que el SDK refresca
-solo, sigue contando en 200. Punta a punta <10 s en replay frente a
-las ~16 h reales.
+solo, sigue contando en 200. Punta a punta <10 s en la prueba automática
+(`tests/test_actions_h6.py`, la aprobación la da la prueba) frente a las
+~16 h reales; en el replay público el reloj «Contenido en» incluye lo que
+tarda el visitante en aprobar.
 
 Si el gateway está desplegado (ver abajo), la misma escena contra la
 URL de Cloud Run: el token revocado responde 401 y `/health` sigue ok.

@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from channels.voice import interpret_checked
 from shield.meta_client import MetaClient
 from shield.vault import MemoryVault
+from web.brand import BRAND, SUBTITLE
 from web.live_chain import LiveChain, validate_wav
 
 UPSTREAM_KEY = "upstream-test-key-9999"
@@ -739,18 +740,19 @@ def test_live_page_live_and_inactive_and_no_external_resources(monkeypatch):
         page = client.get("/live")
         assert page.status_code == 200
         text = page.text
-        assert "LIVE — real Meta models, called from this Mac through the Wairrior gateway" in text
+        assert f"LIVE — real Meta models, called from this Mac through the {BRAND} gateway" in text
         assert "Run until the owner decides" in text
         assert "Muse Spark Open: not run. No Baseten, Modal or Fireworks key in this vault." in text
         assert "Typed fallback: no Voice Transcribe is used in this path" in text
-        assert 'Try: "sí, rota el token de bodega"' in text
+        assert 'Try: "yes, rotate the warehouse token"' in text
         assert "Export log (JSON)" in text
         assert "/live/provenance.json" in text
         assert "Use your own photo (no people, no real data)" in text
         assert "textContent" in text
         assert "innerHTML" not in text
         assert "<script src" not in text
-        assert text.count("<link") == 1 and "<link rel='icon' href='data:,'>" in text
+        assert text.count("<link") == 1 and "<link rel='icon' href=\"data:image/svg+xml," in text
+        assert f"<title>{BRAND} — {SUBTITLE} · Live</title>" in text
         assert "http://" not in text and "https://" not in text
         assert "getUserMedia" in text and "AudioContext" in text
         assert "ScriptProcessor" in text and "16000" in text
@@ -859,7 +861,7 @@ def test_live_page_h14_3_polish_strings():
     assert visible.count("Hidden order in the fine print") == 1
     assert visible.count("Demo inventory") == 1
     assert "Guardian turns</summary></details>" not in visible
-    assert "data:," in text  # favicon data URI
+    assert "data:image/svg+xml," in text and "%3Ew%3C" in text  # favicon con la «w»
     assert "--col:1320px" in text
     assert "Time since the attack started" in text
     assert "Spark did not take the bait in either run" in text
@@ -884,7 +886,7 @@ def test_live_page_dark_hero_sphere_and_whatsapp_bubble():
         text = render_live_page(lang)
         assert "id='sphereCanvas'" in text
         assert "hero-fill" in text and "hero-outline" in text
-        assert "<span class='hero-outline'>W</span><span class='hero-fill'>ai</span>" in text
+        assert "<span class='hero-outline'>w</span><span class='hero-fill'>AI</span>" in text
         assert "<span class='hero-outline'>rrior</span>" in text
         assert "hero-brand" in text and subtitle in text
         assert "id='whatsappBubble'" in text

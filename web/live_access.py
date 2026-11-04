@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import html
 import json
 import os
 import threading
@@ -24,6 +25,8 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Protocol
 from urllib.parse import quote
+
+from web.brand import BRAND, brand_mark_html, favicon_href
 
 COOKIE_NAME = "live_auth"
 COOKIE_TTL_S = 12 * 3600
@@ -298,7 +301,8 @@ class SpendLedger:
 LOGIN_HTML = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Wairrior · live mode</title>
+<title>{brand} · live mode</title>
+<link rel="icon" href="{favicon}">
 <style>
 body{{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1117;
 color:#e6edf3;font:16px system-ui,sans-serif}}
@@ -308,8 +312,9 @@ input,button{{font:inherit;width:100%;box-sizing:border-box;padding:12px;border-
 border:1px solid #2b3a48;background:#121b24;color:inherit;margin-top:10px}}
 button{{background:#1f6f4a;border-color:#2e8b5f;cursor:pointer}}
 .err{{color:#ff9d9d}}
+.brand-ai{{color:#E8A33D}}
 </style></head><body><main>
-<h1>Wairrior · live mode</h1>
+<h1>{brand_mark} · live mode</h1>
 <p>Real Meta models (Muse Spark, SAM 3.1, Voice Transcribe). Access code required;
 spend is capped on the server (USD {usd} and {runs} runs per day).</p>
 {message}
@@ -324,4 +329,11 @@ autofocus required>
 
 def render_login(usd: float, runs: int, message: str = "") -> str:
     msg = f'<p class="err">{message}</p>' if message else ""
-    return LOGIN_HTML.format(usd=f"{usd:.0f}", runs=runs, message=msg)
+    return LOGIN_HTML.format(
+        usd=f"{usd:.0f}",
+        runs=runs,
+        message=msg,
+        brand=html.escape(BRAND),
+        brand_mark=brand_mark_html(),
+        favicon=favicon_href(),
+    )
