@@ -320,6 +320,47 @@ no solo la misma clase.
   no genera ningún finding (severidad low, scope none): bajo los umbrales
   de `detect`, la campaña es invisible.
 
+## Antes / después de la ronda 3 (M1 550966a RescueGrant + M10 bbb9c17)
+
+Re-corrida de las cuatro rondas sin tocarlas. M1: rescate solo con
+`RescueGrant` firmado (nonce de un uso, 60 s, atado a equipo/tipo/valor);
+sin grant, el claim de autopiloto no cancela nada ni da allow inmediato.
+M10: congelamiento total del actor, correlación de campaña a 24 h y
+finding `forged_autopilot_actor`.
+
+| Caso R3 | Antes | Después | Lectura |
+|---|---|---|---|
+| C3-07 rescate forjado cancela deshielo | allow | ask_owner | privilegio eliminado sin grant |
+| C3-08 rescate forjado pisa un block | allow | **block** | el block vuelve a mandar |
+| C3-09 rescate «real» sin grant | allow | ask_owner | indistinguible del forjado, ahora en dirección segura: el rescate real debe presentar grant (lo publicará M10) |
+| C3-11 reintento con target alias | retry_allowed=true | **false** | congelamiento total del actor |
+| C3-12 reintento cambiando clase | retry_allowed=true | **false** | idem |
+| C3-13 espaciado 90 min, actores/tokens distintos | EVADED | **CORRELATED, scope campaign** | correlación 24 h por campaña |
+| C3-14 control dentro de ventana | EVADED* | CORRELATED | *antes era artefacto de auto-línea-base; ahora el pago sí genera finding |
+| C3-16 actor «wairrior-autopilot» forjado | sin finding, low | finding `forged_autopilot_actor`, high/app | detectado a nivel evento |
+| C3-01..C3-04 sensor vs pipeline | block/block/block/ask | sin cambios | RT-18 sigue cerrado |
+| C3-05 rescate real con sensor falso | block | block (sin cambios) | ver residuo 1 |
+| C3-15 lento y bajo (deshielo 40 programado) | sin findings | payment medium/actor; deshielo sin finding | ver residuo 2 |
+
+Rondas 1, addendum y 2 sin regresiones de bypass (0 en las tres). Nota:
+R2-09/R2-10 vuelven a `block` al llamar al gate **sin grant**, que es el
+comportamiento correcto bajo el modelo nuevo; la contención real ahora
+depende de que M10 emita el grant firmado al actuar.
+
+Residuos (no son bypass: fallan hacia cerrado o son de detección):
+
+1. **El pipeline no reenvía el grant.** `verify_before_actuate` (M6) no
+   acepta `rescue_grant`; el `_grant_kwargs` de M10 lo descarta en
+   silencio al ir por el pipeline. El rescate real por la cadena completa
+   pierde su privilegio (C3-05 sigue en block con sensor falsificado).
+   Arreglo: que el pipeline acepte y reenvíe `rescue_grant` al gate.
+2. **Deshielo lento-y-bajo invisible para `detect`.** Un defrost de
+   40 min «programado» no genera finding (≤45 min y scheduled), y el
+   veredicto físico por evento se evalúa desde un `RoomState` fresco sin
+   historia: repeticiones tipo DF-04 no acumulan a ojos del autopiloto.
+   Arreglo: que el veredicto por evento reciba estado/historia reales, o
+   un contador de duty-cycle por equipo en `detect`.
+
 ## Arreglos propuestos (para M1/orquestador, M7 no toca gate.py)
 
 1. Cubrir o escalar toda acción cuyo inicio o fin caiga fuera del horizonte.
