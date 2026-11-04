@@ -1,0 +1,553 @@
+{
+  "label": "Planes generados por Muse Spark 1.3; congelados ANTES de evaluarlos.",
+  "generated_with": {
+    "model": "muse-spark-1.3",
+    "response_id": "chatcmpl-01a1a7d7-aa3d-7249-95cb-a3b6fd5d0673",
+    "latency_ms": 31510.50012500491,
+    "cost_usd": 0.02250025,
+    "usage": {
+      "completion_tokens": 5168,
+      "prompt_tokens": 429,
+      "total_tokens": 5597,
+      "completion_tokens_details": {
+        "reasoning_tokens": 3485
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    }
+  },
+  "state": {
+    "t_min": 0.0,
+    "air_c": 3.0,
+    "product_c": 3.0,
+    "product_kg": 200.0,
+    "setpoint_c": 3.0,
+    "compressor_on": false,
+    "door_open": false,
+    "minutes_above_so_far": 0.0
+  },
+  "params_note": "ColdRoomParams por defecto (supuestos rotulados en contract.py)",
+  "plans": [
+    {
+      "plan_id": "A01",
+      "name": "Baseline Hold 3C",
+      "idea": "Control baseline with no disturbance to anchor peak and time-above metrics.",
+      "hour": 0,
+      "origin_country": "France",
+      "actions": [
+        {
+          "kind": "set_setpoint",
+          "equipment": "camara",
+          "value": 3.0,
+          "duration_min": 0.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A02",
+      "name": "Short Door 10min Morning",
+      "idea": "Single short 10-min door opening during breakfast prep.",
+      "hour": 6,
+      "origin_country": "Italy",
+      "actions": [
+        {
+          "kind": "door_open",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 10.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A03",
+      "name": "Long Door 180min Stocking",
+      "idea": "Single long 180-min door open to test prolonged infiltration.",
+      "hour": 8,
+      "origin_country": "Spain",
+      "actions": [
+        {
+          "kind": "door_open",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 180.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A04",
+      "name": "Compressor Off 10min",
+      "idea": "Brief 10-min power cut to check short holdover.",
+      "hour": 2,
+      "origin_country": "Germany",
+      "actions": [
+        {
+          "kind": "compressor_off",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 10.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A05",
+      "name": "Compressor Off 300min Night",
+      "idea": "Maximum 300-min compressor off to force exceedance of 5C limit.",
+      "hour": 1,
+      "origin_country": "Norway",
+      "actions": [
+        {
+          "kind": "compressor_off",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 300.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A06",
+      "name": "Short Defrost 15min",
+      "idea": "Single short 15-min defrost cycle.",
+      "hour": 4,
+      "origin_country": "Sweden",
+      "actions": [
+        {
+          "kind": "defrost",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 15.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A07",
+      "name": "Long Defrost 90min",
+      "idea": "Single long 90-min defrost to stress recovery.",
+      "hour": 15,
+      "origin_country": "Netherla",
+      "actions": [
+        {
+          "kind": "defrost",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 90.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A08",
+      "name": "Small Load 10kg",
+      "idea": "Single small 10-kg warm delivery.",
+      "hour": 9,
+      "origin_country": "Portugal",
+      "actions": [
+        {
+          "kind": "load_product",
+          "equipment": "camara",
+          "value": 10.0,
+          "duration_min": 0.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A09",
+      "name": "Large Load 200kg",
+      "idea": "Single large 200-kg warm load equal to full inventory.",
+      "hour": 10,
+      "origin_country": "Poland",
+      "actions": [
+        {
+          "kind": "load_product",
+          "equipment": "camara",
+          "value": 200.0,
+          "duration_min": 0.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A10",
+      "name": "Setpoint Inside 1C Step",
+      "idea": "Single large step down to 1C inside safe band.",
+      "hour": 7,
+      "origin_country": "Ireland",
+      "actions": [
+        {
+          "kind": "set_setpoint",
+          "equipment": "camara",
+          "value": 1.0,
+          "duration_min": 0.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A11",
+      "name": "Setpoint Outside -2C",
+      "idea": "Extreme low setpoint -2C outside 0-4C to test freezing logic.",
+      "hour": 23,
+      "origin_country": "Canada",
+      "actions": [
+        {
+          "kind": "set_setpoint",
+          "equipment": "camara",
+          "value": -2.0,
+          "duration_min": 0.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A12",
+      "name": "Setpoint Outside 8C Abuse",
+      "idea": "Single large step up to 8C to drive product over 5C limit.",
+      "hour": 13,
+      "origin_country": "Greece",
+      "actions": [
+        {
+          "kind": "set_setpoint",
+          "equipment": "camara",
+          "value": 8.0,
+          "duration_min": 0.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A13",
+      "name": "Gradual Cooldown Steps",
+      "idea": "Gradual 0.5C steps from 3C to 1C to test integral response.",
+      "hour": 11,
+      "origin_country": "Japan",
+      "actions": [
+        {
+          "kind": "set_setpoint",
+          "equipment": "camara",
+          "value": 2.5,
+          "duration_min": 0.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        },
+        {
+          "kind": "set_setpoint",
+          "equipment": "camara",
+          "value": 2.0,
+          "duration_min": 0.0,
+          "start_in_min": 60.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        },
+        {
+          "kind": "set_setpoint",
+          "equipment": "camara",
+          "value": 1.5,
+          "duration_min": 0.0,
+          "start_in_min": 120.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        },
+        {
+          "kind": "set_setpoint",
+          "equipment": "camara",
+          "value": 1.0,
+          "duration_min": 0.0,
+          "start_in_min": 180.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A14",
+      "name": "Single Large Drop 0C",
+      "idea": "Single abrupt drop from 3C to 0C contrasting gradual sequence.",
+      "hour": 12,
+      "origin_country": "USA",
+      "actions": [
+        {
+          "kind": "set_setpoint",
+          "equipment": "camara",
+          "value": 0.0,
+          "duration_min": 0.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A15",
+      "name": "Door Plus Warm Load 50kg",
+      "idea": "Door 30-min open combined with 50-kg warm load on arrival.",
+      "hour": 17,
+      "origin_country": "Brazil",
+      "actions": [
+        {
+          "kind": "door_open",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 30.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        },
+        {
+          "kind": "load_product",
+          "equipment": "camara",
+          "value": 50.0,
+          "duration_min": 0.0,
+          "start_in_min": 10.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A16",
+      "name": "Door Plus Compressor Off",
+      "idea": "60-min door open overlapping 60-min compressor off during service.",
+      "hour": 19,
+      "origin_country": "Mexico",
+      "actions": [
+        {
+          "kind": "door_open",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 60.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        },
+        {
+          "kind": "compressor_off",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 60.0,
+          "start_in_min": 15.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A17",
+      "name": "Defrost Door Load Chain",
+      "idea": "Defrost 30-min followed by door 20-min and 100-kg load.",
+      "hour": 14,
+      "origin_country": "Turkey",
+      "actions": [
+        {
+          "kind": "defrost",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 30.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        },
+        {
+          "kind": "door_open",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 20.0,
+          "start_in_min": 40.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        },
+        {
+          "kind": "load_product",
+          "equipment": "camara",
+          "value": 100.0,
+          "duration_min": 0.0,
+          "start_in_min": 45.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A18",
+      "name": "Repeated Door 3x20min",
+      "idea": "Three repeated 20-min door cycles hourly to mimic rush periods.",
+      "hour": 18,
+      "origin_country": "United K",
+      "actions": [
+        {
+          "kind": "door_open",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 20.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        },
+        {
+          "kind": "door_open",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 20.0,
+          "start_in_min": 60.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        },
+        {
+          "kind": "door_open",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 20.0,
+          "start_in_min": 120.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A19",
+      "name": "Repeated Compressor Cycling",
+      "idea": "Repeated 45-min compressor off cycles to test recovery between faults.",
+      "hour": 21,
+      "origin_country": "Australi",
+      "actions": [
+        {
+          "kind": "compressor_off",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 45.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        },
+        {
+          "kind": "compressor_off",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 45.0,
+          "start_in_min": 90.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        },
+        {
+          "kind": "compressor_off",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 45.0,
+          "start_in_min": 180.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "plan_id": "A20",
+      "name": "Worst Case Peak Abuse",
+      "idea": "Combined 120-min door, 150-kg load, 120-min off and 7C setpoint.",
+      "hour": 16,
+      "origin_country": "India",
+      "actions": [
+        {
+          "kind": "set_setpoint",
+          "equipment": "camara",
+          "value": 7.0,
+          "duration_min": 0.0,
+          "start_in_min": 0.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        },
+        {
+          "kind": "door_open",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 120.0,
+          "start_in_min": 10.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        },
+        {
+          "kind": "load_product",
+          "equipment": "camara",
+          "value": 150.0,
+          "duration_min": 0.0,
+          "start_in_min": 20.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        },
+        {
+          "kind": "compressor_off",
+          "equipment": "camara",
+          "value": null,
+          "duration_min": 120.0,
+          "start_in_min": 30.0,
+          "requested_by": "spark-attacker",
+          "source": "attacker",
+          "note": ""
+        }
+      ]
+    }
+  ]
+}
