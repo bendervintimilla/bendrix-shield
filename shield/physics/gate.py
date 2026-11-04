@@ -9,10 +9,16 @@ Simula la línea base (estado actual, sin la acción) y el escenario con
   pasos chicos ya aceptados en ``history`` más la acción nueva) deja el
   pico a menos de 1 °C del límite. Cada paso puede estar «en rango» y
   aun así la suma rompe el margen: por eso se simula la historia junta.
-- ``ask_owner``: no rompe la envolvente, pero el pico queda a menos de
-  1 °C de ``safe_max_c``, hay una ruptura breve dentro de la tolerancia,
-  o la fuente no es confiable (documento, atacante o fuente desconocida).
-- ``allow``: el resto.
+- ``ask_owner``: no rompe la envolvente, pero el pico (o el setpoint
+  permanente destino) queda a 0.5 °C o menos de ``safe_max_c``, hay una
+  ruptura breve dentro de la tolerancia, la fuente no es confiable
+  (documento, atacante o fuente desconocida), o la acción empieza tan
+  lejos que no se puede simular entera. Nunca se permite sin simular:
+  el horizonte efectivo cubre inicio + duración + recuperación de la
+  acción y de cada acción de ``history`` (hallazgo RT-04/06/22 de M7).
+- ``allow``: el resto. Un setpoint en 4.0 °C con pico simulado lejos
+  del límite es legítimo: se permite informando el margen en la
+  evidencia, sin fricción de aprobación.
 
 Todo lo reportado es ``simulated``: sale del gemelo de
 :mod:`shield.physics.thermal`, no de un equipo real.
@@ -34,6 +40,11 @@ _DT_S = 30.0
 # Deriva lenta: a partir de estos acumulados se escala ask_owner a block.
 _DRIFT_MIN_STEPS = 3
 _DRIFT_MIN_CUMULATIVE_C = 2.0
+# Margen (pico o setpoint destino) que escala a ask_owner.
+_ASK_MARGIN_C = 0.5
+# Cola simulada tras el fin de cada acción y tope del horizonte efectivo.
+_RECOVERY_MIN = 240.0
+_MAX_EFFECTIVE_HORIZON_MIN = 1_440.0
 
 
 def _metrics(
@@ -78,6 +89,26 @@ def _setpoint_drift(
     return cumulative_up, final, steps
 
 
+def _effective_horizon(actions: list[ProposedAction], horizon_min: float) -> tuple[float, bool]:
+    """(horizonte a simular, True si ni extendiendo se cubre todo).
+
+    Cubre, para cada acción, inicio + duración + recuperación. Las
+    acciones permanentes o instantáneas duran 0 a este efecto, pero
+    igual reciben su cola de recuperación desde que empiezan.
+    """
+    required = float(horizon_min)
+    for action in actions:
+        start = max(float(action.start_in_min), 0.0)
+        duration = (
+            max(float(action.duration_min), 0.0)
+            if action.kind in ("compressor_off", "defrost", "door_open")
+            else 0.0
+        )
+        required = max(required, start + duration + _RECOVERY_MIN)
+    cap = max(_MAX_EFFECTIVE_HORIZON_MIN, float(horizon_min))
+    return min(required, cap), required > cap
+
+
 def verify_action(
     params: ColdRoomParams,
     state: RoomState,
@@ -87,23 +118,27 @@ def verify_action(
 ) -> PhysicalVerdict:
     """Decide allow / ask_owner / block simulando antes de actuar."""
     past = list(history or [])
-    baseline = simulate(params, state, [], horizon_min=horizon_min, dt_s=_DT_S)
-    with_action = simulate(params, state, [*past, action], horizon_min=horizon_min, dt_s=_DT_S)
+    effective_horizon, horizon_capped = _effective_horizon([*past, action], horizon_min)
+    baseline = simulate(params, state, [], horizon_min=effective_horizon, dt_s=_DT_S)
+    with_action = simulate(
+        params, state, [*past, action], horizon_min=effective_horizon, dt_s=_DT_S
+    )
 
     peak, minimum, breach_min, minutes_above_sim = _metrics(params, with_action)
     baseline_peak, _, _, _ = _metrics(params, baseline)
     minutes_above_total = float(state.minutes_above_so_far) + minutes_above_sim
     drift_up, final_setpoint, setpoint_steps = _setpoint_drift(state, [*past, action])
     margin_c = params.safe_max_c - peak
-    # Un setpoint es permanente: aunque el producto tarde en llegar, su
-    # destino es ese setpoint. El margen de decisión usa ese destino.
-    decision_peak = max(peak, final_setpoint) if setpoint_steps else peak
-    decision_margin_c = params.safe_max_c - decision_peak
+    # Un setpoint es permanente: su destino cuenta solo si queda a
+    # _ASK_MARGIN_C del límite; un destino a 4.0 °C (margen 1.0 °C)
+    # es legítimo y no debe generar fricción de aprobación.
+    destination_margin_c = params.safe_max_c - final_setpoint if setpoint_steps else margin_c
+    decision_margin_c = min(margin_c, destination_margin_c)
 
     drift_block = (
         setpoint_steps >= _DRIFT_MIN_STEPS
         and drift_up >= _DRIFT_MIN_CUMULATIVE_C
-        and decision_margin_c <= 1.0
+        and destination_margin_c <= 1.0
     )
 
     if minimum < params.safe_min_c:
@@ -126,7 +161,7 @@ def verify_action(
             f"+{drift_up:.1f} °C hasta {final_setpoint:.1f} °C y el producto "
             f"llega a {peak:.1f} °C, a {decision_margin_c:.1f} °C del límite"
         )
-    elif breach_min is not None or decision_margin_c <= 1.0:
+    elif breach_min is not None or decision_margin_c <= _ASK_MARGIN_C:
         decision = "ask_owner"
         detail = (
             f"el producto llega a {peak:.1f} °C, a {decision_margin_c:.1f} °C del "
@@ -143,6 +178,15 @@ def verify_action(
         detail = (
             f"el producto se mantiene en máximo {peak:.1f} °C, bajo el "
             f"límite de {params.safe_max_c:.1f} °C"
+        )
+
+    if horizon_capped and decision == "allow":
+        # Nunca allow sin haber simulado la acción completa.
+        decision = "ask_owner"
+        detail = (
+            f"acción diferida fuera del horizonte simulable "
+            f"(empieza en {action.start_in_min:.0f} min); no se permite "
+            f"sin revisión del dueño"
         )
 
     evidence = {
@@ -162,6 +206,8 @@ def verify_action(
         "source": action.source,
         "requested_by": action.requested_by,
         "horizon_min": horizon_min,
+        "effective_horizon_min": effective_horizon,
+        "horizon_capped": horizon_capped,
         "dt_s": _DT_S,
     }
     return PhysicalVerdict(
