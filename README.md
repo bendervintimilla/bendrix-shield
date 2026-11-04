@@ -39,7 +39,7 @@ make live   # with your META_MODEL_API_KEY; see Run it live
 | Held-out v2, per-document Spark review (3 runs) | Blocked 12, 10, 11/12; silent 0, 1, 1; false blocks 1, 0, 0 | `evals/report.md` H15; `evals/recorded/heldout2-spark-armc*.json` |
 | Stolen-token rotation (automated replay test) | Attacker `200 → 401` in under 10 seconds, with the approval given by the test (no human wait) | `tests/test_actions_h6.py`; `evals/report.md` H6 |
 | Live chain recorded 2026-10-31 | USD 0.0749 in 84.7 s; stolen token `401`, crew token `200` after refresh | `evals/recorded/live-run-2026-10-31.json` |
-| Offline test suite | 423 passed with no network and no key (2026-11-04, branch `wairrior-final`) | `make test` / `uv run pytest -q` |
+| Offline test suite | 427 passed with no network and no key (2026-11-04, branch `wairrior-final`) | `make test` / `uv run pytest -q` |
 
 Time to the first `401` depends on who is in the loop: under 10 s in the automated test (`tests/test_actions_h6.py`, approval given by the test); in the hosted replay the "Contained in" clock includes how long you take to approve (the recorded 2 Nov live run it plays back took 47.0 s); about 24.6 s scripted live with a synthetic voice file, 70.8 s in the video take with the owner's voice approval, and 791 s over WhatsApp (that figure includes the time the plan waited for the owner).
 
