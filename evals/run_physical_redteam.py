@@ -76,7 +76,7 @@ def run_case(contract: Any, params: Any, case: dict[str, Any], defaults: dict[st
     if case.get("ground_truth_from_first_step_state") and case["steps"]:
         initial = {**defaults, **(case["steps"][0].get("state") or {})}
     decisions: list[str] = []
-    accepted: list[Any] = []
+    accepted: list[Any] = [_action(contract, h) for h in case.get("history_seed", [])]
     all_actions: list[Any] = []
     for step in case["steps"]:
         action = _action(contract, step["action"])
@@ -120,6 +120,97 @@ def run_case(contract: Any, params: Any, case: dict[str, Any], defaults: dict[st
     }
 
 
+def _gen_history(contract: Any, params: Any, gen: dict[str, Any]) -> tuple[list[Any], list[float]]:
+    """Genera (estados, reportado) deterministicos para casos de pipeline."""
+    _, thermal, (_, _, room_state) = contract
+    from shield.physics.contract import ProposedAction
+
+    minutes = int(gen.get("minutes", 120))
+    mode = gen.get("compressor", "thermostat")
+    actions = []
+    if mode == "off":
+        actions = [ProposedAction(kind="compressor_off", duration_min=float(minutes))]
+    base = _state(contract, {"air_c": 3.0, "product_c": 3.0, "product_kg": 200.0,
+                             "setpoint_c": 3.0, "compressor_on": False}, None)
+    traj = thermal.simulate(params, base, actions, horizon_min=float(minutes))
+    states, reported = [], []
+    kind = gen.get("kind", "truth")
+    for i in range(minutes):
+        idx = min(i * 2, len(traj.t_min) - 1)
+        air, prod = traj.air_c[idx], traj.product_c[idx]
+        if kind == "fake_flat":
+            air = prod = float(gen.get("reported_c", 3.0))
+            reported.append(float(gen.get("reported_c", 3.0)))
+        elif kind == "biased":
+            bias = float(gen.get("bias_c", 0.0))
+            air, prod = air + bias, prod + bias
+            reported.append(air)
+        else:
+            reported.append(air)
+        states.append(room_state(
+            t_min=float(i), air_c=air, product_c=prod, product_kg=200.0,
+            setpoint_c=3.0, compressor_on=bool(traj.compressor_on[idx]),
+            door_open=False, minutes_above_so_far=0.0))
+    return states, reported
+
+
+def run_chain_case(contract: Any, params: Any, case: dict[str, Any],
+                   defaults: dict[str, Any]) -> dict[str, Any]:
+    """Corre un caso de ronda 3 segun su nivel (pipeline/gate/autopilot)."""
+    level = case.get("level", "gate")
+    out: dict[str, Any] = {"id": case["id"], "level": level,
+                           "category": case["category"], "title": case["title"],
+                           "is_control": bool(case.get("is_control"))}
+    if level == "pipeline":
+        from shield.physics.pipeline import verify_before_actuate
+
+        states, reported = _gen_history(contract, params, case["history_gen"])
+        action = _action(contract, case["action"])
+        verdict = verify_before_actuate(params, states, reported, action)
+        pipe = verdict.evidence.get("pipeline", {})
+        out["decisions"] = [verdict.decision]
+        out["sensor_spoofed"] = pipe.get("sensor_spoofed")
+        out["result"] = {"block": "STOPPED", "ask_owner": "HELD"}.get(
+            verdict.decision, "BYPASS")
+    elif level == "autopilot":
+        from datetime import UTC, datetime, timedelta
+
+        from shield.autopilot.events import SecurityEvent
+        from shield.autopilot.respond import ContainmentEngine, run_pipeline
+
+        base_ts = datetime(2026, 11, 4, 10, 0, tzinfo=UTC)
+
+        def build(raw: dict[str, Any]) -> Any:
+            return SecurityEvent(
+                app=raw["app"], actor=raw["actor"], action=raw["action"],
+                target=raw.get("target", ""), values=dict(raw.get("values", {})),
+                source=raw.get("source", "agent"),
+                ts=base_ts + timedelta(minutes=float(raw.get("offset_min", 0))),
+                token_id=raw.get("token_id"))
+
+        events = [build(e) for e in case["events"]]
+        engine = ContainmentEngine()
+        incident, result = run_pipeline(events, engine=engine)
+        out["correlated"] = incident.correlated
+        out["severity"] = incident.severity
+        out["scope_level"] = result.scope_level
+        out["circuit_breaker"] = result.circuit_breaker
+        out["findings"] = [f.kind for f in incident.findings]
+        if case.get("retry_event"):
+            retry = build(case["retry_event"])
+            out["retry_allowed"] = engine.allows_write(retry)
+            out["result"] = "BYPASS" if out["retry_allowed"] else "STOPPED"
+        elif out["is_control"]:
+            out["result"] = "CORRELATED" if incident.correlated else "EVADED"
+        else:
+            out["result"] = "CORRELATED" if incident.correlated else "EVADED"
+    else:
+        gate_case = {**case, "history_mode": case.get("history_mode", "carry")}
+        r = run_case(contract, params, gate_case, defaults, 240.0, 720.0)
+        out.update({"decisions": r["decisions"], "result": r["result"]})
+    return out
+
+
 def main() -> int:
     """Corre todos los casos y resume; --json emite el detalle completo."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -138,6 +229,26 @@ def main() -> int:
     cold_params, _, _ = classes
     params = cold_params(**data.get("params", {}))
     contract = loaded
+    if "chain_cases" in data:
+        chain = [run_chain_case(contract, params, c, data["default_state"])
+                 for c in data["chain_cases"]]
+        counts: dict[str, int] = {}
+        for r in chain:
+            counts[r["result"]] = counts.get(r["result"], 0) + 1
+        if args.json:
+            print(json.dumps({"summary": {"label": "simulated",
+                                          "cases_file": args.cases.name,
+                                          "counts": counts},
+                              "results": chain}, ensure_ascii=False, indent=2))
+        else:
+            for r in chain:
+                extra = {k: r[k] for k in ("sensor_spoofed", "correlated", "severity",
+                                           "scope_level", "retry_allowed", "decisions")
+                         if k in r}
+                print(f"{r['id']} [{r['level']}/{r['category']}] {r['result']}: {extra}")
+            print(json.dumps({"label": "simulated", "counts": counts},
+                             ensure_ascii=False))
+        return 0
     results = [
         run_case(contract, params, case, data["default_state"],
                  float(data["gate_horizon_min"]), float(data["ground_truth_horizon_min"]))
