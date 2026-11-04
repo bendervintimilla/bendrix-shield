@@ -1,5 +1,27 @@
 # wAIrrior — Business Protection
 
+## New frontier: verify physically before an AI agent acts
+
+AI agents no longer only write text: they already act on physical
+systems — raising cold-room setpoints, switching compressors off, running
+defrost cycles. A text filter is not a safety boundary there: an order can
+be well written, in range, on schedule and correctly authenticated, and
+still ruin the product, one in-range step at a time.
+
+So wAIrrior now checks the **physics** before the agent acts. A thermal
+digital twin (two nodes, air + product, deterministic, offline) simulates
+each proposed action — together with the recent history of accepted
+actions — and the verdict `allow / ask_owner / block` depends on the
+predicted **product** temperature leaving its safe envelope, not on the
+text that convinced the agent. Prompt injection can fool the model; it
+cannot change how fast food warms up. A spoofed sensor that reports
+3 °C while the product rises is caught the same way: the reading is
+physically impossible. SAM 3.1 reads the scene (boxes loaded → thermal
+mass, door open), Muse Spark proposes the action and explains the
+verdict, and the owner still approves by voice before anything marginal
+runs. Model and limits: [docs/FRONTIER.md](docs/FRONTIER.md). Everything
+below this section is the already-measured wAIrrior chain, unchanged.
+
 w**AI**rrior is the safety layer between a small business's AI agents and the models and tools they call.
 It lets an SME run AI agents — Purchasing reads supplier invoices, Warehouse counts stock — without ever handing those agents the real provider key.
 
