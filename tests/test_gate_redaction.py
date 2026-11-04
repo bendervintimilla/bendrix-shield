@@ -56,20 +56,44 @@ def test_classify_is_honest_stub():
     assert result.model == "stub"
 
 
-def test_phone_no_toca_cve_ni_ids_con_prefijo_letra_guion():
+def test_phone_no_toca_cve():
     # Antes: 'CVE-2026-1234' salía como 'CVE-[REDACTED:phone]' en la UI del guardián.
-    for ident in (
-        "CVE-2026-1234",
-        "CVE-2026-0322",
-        "CVE-2026-105133",
-        "ref ABC-1234-5678",
-        "chatcmpl-01a19d7f-e123-4567-b54c-b421ac175146",
-        "a49e883d-1234-5678-838f-45576e2e8830",
-        "01a19d80-1234-5678-8ea5-abd08b2a7252",
-    ):
+    for ident in ("CVE-2026-1234", "CVE-2026-0322", "CVE-2026-105133", "ver CVE-2025-12345."):
         redacted, kinds = redact_text(f'{{"id": "{ident}"}}')
         assert ident in redacted, ident
         assert "phone" not in {f.kind for f in kinds}, ident
+
+
+def test_cve_y_telefono_en_el_mismo_texto():
+    redacted, kinds = redact_text("CVE-2026-1234 reportado por +593991234567")
+    assert redacted == "CVE-2026-1234 reportado por [REDACTED:phone]"
+    assert {f.kind for f in kinds} == {"phone"}
+
+
+def test_phone_con_prefijo_o_sufijo_sigue_redactado_como_en_main():
+    # Regresión del primer arreglo (lookarounds genéricos): estos se escapaban.
+    casos = {
+        "cliente tel-0991 2345": "cliente tel-[REDACTED:phone]",
+        "WA-+593991234567": "WA-[REDACTED:phone]",
+        "llamar +593991234567-ext": "llamar [REDACTED:phone]-ext",
+        "phone-555-1234": "phone-[REDACTED:phone]",
+        "+593991234567-1": "[REDACTED:phone]-1",
+    }
+    for entrada, esperado in casos.items():
+        redacted, kinds = redact_text(entrada)
+        assert redacted == esperado, entrada
+        assert "phone" in {f.kind for f in kinds}, entrada
+
+
+def test_ids_de_respuesta_igual_que_en_main():
+    # Sin empeorar ni «arreglar» por accidente: la excepción es solo para CVE.
+    redacted, _ = redact_text("chatcmpl-01a19d80-1234-5678-8ea5-abd08b2a7252")
+    assert redacted == "chatcmpl-01a19d80-[REDACTED:phone]-8ea5-abd08b2a7252"
+
+
+def test_marcador_interno_en_la_entrada_no_rompe_la_redaccion():
+    redacted, _ = redact_text("\ue0000\ue000 CVE-2026-1234 +593991234567")
+    assert "+593991234567" not in redacted
 
 
 def test_phone_sigue_redactando_telefonos():
