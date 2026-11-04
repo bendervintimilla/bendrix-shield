@@ -61,7 +61,9 @@ from web.replay_run import FIXTURES as REPLAY_FIXTURES
 from web.replay_run import ReplayStore
 from web.sentinel_scene import SentinelStore, render_sentinel_page
 from web.sentinel_witness import PLACEHOLDER_SVG as SENTINEL_WITNESS_PLACEHOLDER
+from web.sentinel_witness import room_image as sentinel_room_image
 from web.sentinel_witness import surveillance_image as sentinel_surveillance_image
+from web.surveillance_view import render_surveillance_page
 
 SENTINEL_SURVEILLANCE_KEYS = ("occupancy", "after_hours", "stock_watch", "cash_desk",
                               "security_log")
@@ -1648,6 +1650,9 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         ):
             lang = _resolve_lang(request)
             return _with_cookie(HTMLResponse(render_sentinel_page(lang)), request, lang)
+        if request.query_params.get("scene") == "surveillance":
+            lang = _resolve_lang(request)
+            return _with_cookie(HTMLResponse(render_surveillance_page(lang)), request, lang)
         if request.query_params.get("scene") == "physical":
             lang = _resolve_lang(request)
             return _with_cookie(HTMLResponse(render_physical_page(lang)), request, lang)
@@ -2233,7 +2238,7 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
         # por una persona); si no hay, placeholder neutro sin foto. El nombre
         # del archivo nunca viene del cliente: sale de observations.json.
         data = sentinel_surveillance_image(key)
-        headers = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
+        headers = {"Cache-Control": "private, max-age=60", "X-Content-Type-Options": "nosniff"}
         if data is None:
             return Response(SENTINEL_WITNESS_PLACEHOLDER, media_type="image/svg+xml",
                             headers=headers)
@@ -2242,6 +2247,17 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
     @app.get("/sentinel/witness/latest.jpg")
     def sentinel_witness_image(request: Request) -> Any:
         return _surveillance_image("occupancy")
+
+    @app.get("/sentinel/surveillance/room/{room}.jpg")
+    def sentinel_surveillance_room(room: str, request: Request) -> Any:
+        # Sala conocida en observations.json; si no, placeholder (sin rutas del cliente).
+        simple = room.replace("-", "").replace("_", "").isalnum()
+        data = sentinel_room_image(room) if simple else None
+        headers = {"Cache-Control": "private, max-age=60", "X-Content-Type-Options": "nosniff"}
+        if data is None:
+            return Response(SENTINEL_WITNESS_PLACEHOLDER, media_type="image/svg+xml",
+                            headers=headers)
+        return Response(data, media_type="image/jpeg", headers=headers)
 
     @app.get("/sentinel/surveillance/{key}.jpg")
     def sentinel_surveillance_img(key: str, request: Request) -> Any:

@@ -221,9 +221,14 @@ def verified_empty(base: Path | None) -> set[str]:
     data = _read_json(base / VERIFIED_FILE)
     rows = data if isinstance(data, list) else (data or {}).get("files", []) \
         if isinstance(data, dict) else []
+    def human_empty(r: dict[str, Any]) -> bool:
+        # Formatos de W1: ``people_human_verified: 0`` o ``human_review`` + ``sam_people: 0``.
+        if r.get("people_human_verified") == 0:
+            return True
+        return bool(r.get("human_review")) and r.get("sam_people") == 0
     return {
         str(r.get("file")) for r in rows
-        if isinstance(r, dict) and r.get("people_human_verified") == 0
+        if isinstance(r, dict) and human_empty(r)
         and _SAFE_NAME.match(str(r.get("file") or ""))
     }
 
@@ -309,37 +314,67 @@ def _card(key: str, status: str, **fields: Any) -> dict[str, Any]:
     return {"key": key, "status": status, **fields}
 
 
+def _room_order(key: str) -> tuple[int, str]:
+    order = ("cocina", "kitchen", "pasillo", "hallway", "caja", "barra", "almacen")
+    word = re.sub(r"\d+$", "", key)
+    return (order.index(word) if word in order else len(order), key)
+
+
 def _occupancy(obs: list[dict[str, Any]]) -> dict[str, Any]:
     live = [o for o in obs if o["is_live"]]
     if not live:
         return _card("occupancy", "pending")
     rooms: dict[str, dict[str, Any]] = {}
+    frames: dict[str, int] = {}
     for o in live:
         rooms[o["room_key"]] = o
-    last = live[-1]
+        frames[o["room_key"]] = frames.get(o["room_key"], 0) + 1
+    # Cuadro por defecto: la sala con más gente (muestra la redacción); una sala
+    # vacía sale difuminada entera por el redactor y no enseña nada.
+    last = max(rooms.values(), key=lambda o: (o["people"], o["_ts"]))
     return _card(
         "occupancy", "live",
-        image="/sentinel/surveillance/occupancy.jpg",
+        image=f"/sentinel/surveillance/room/{last['room_key']}.jpg",
         rooms=[{"room_en": o["room_en"], "room_es": o["room_es"], "people": o["people"],
-                "hhmm": o["captured_hhmm"]} for o in rooms.values()],
+                "frames": frames[k], "image": f"/sentinel/surveillance/room/{k}.jpg"}
+               for k, o in sorted(rooms.items(), key=lambda kv: _room_order(kv[0]))],
         frames=len(live),
         image_room_en=last["room_en"], image_room_es=last["room_es"],
-        image_people=last["people"], image_hhmm=last["captured_hhmm"],
+        image_people=last["people"],
         **_proof(last),
     )
 
 
+def _night(obs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [o for o in obs if o["is_playback"] and o["recorded_hhmm"]
+            and int(o["recorded_hhmm"][:2]) in AFTER_HOURS]
+
+
+def _night_pick(night: list[dict[str, Any]], verified: set[str]) -> dict[str, Any]:
+    occupied = [o for o in night if o["people"] > 0]
+    if occupied:
+        return occupied[-1]
+    checked = [o for o in night if _verified_name(o) in verified]
+    return (checked or night)[-1]
+
+
 def _after_hours(obs: list[dict[str, Any]], verified: set[str]) -> dict[str, Any]:
-    night = [o for o in obs if o["is_playback"] and o["recorded_hhmm"]
-             and int(o["recorded_hhmm"][:2]) in AFTER_HOURS]
+    night = _night(obs)
     if not night:
         return _card("after_hours", "pending")
     occupied = [o for o in night if o["people"] > 0]
-    pick = occupied[-1] if occupied else night[-1]
+    pick = _night_pick(night, verified)
+    rooms: dict[str, dict[str, Any]] = {}
+    for o in night:
+        r = rooms.setdefault(o["room_key"], {"room_en": o["room_en"], "room_es": o["room_es"],
+                                             "people_max": 0, "frames": 0})
+        r["people_max"] = max(r["people_max"], o["people"])
+        r["frames"] += 1
     return _card(
         "after_hours", "alert" if occupied else "all_clear",
         image="/sentinel/surveillance/after_hours.jpg",
         room_en=pick["room_en"], room_es=pick["room_es"],
+        rooms=[rooms[k] for k in sorted(rooms, key=_room_order)],
         recorded_hhmm=pick["recorded_hhmm"], people=pick["people"],
         frames=len(night), frames_empty=sum(1 for o in night if o["people"] == 0),
         human_verified=_verified_name(pick) in verified,
@@ -363,17 +398,30 @@ def _from_surveillance(key: str, surv: dict[str, Any], base: Path | None) -> dic
     if raw is None:
         return _card(key, "pending")
     card = {f: (_text(raw[f], 2000) if isinstance(raw[f], str) else raw[f])
-            for f in _SURV_FIELDS if f in raw and isinstance(raw[f], (str, int, float))}
+            for f in _SURV_FIELDS if f in raw and isinstance(raw[f], (str, int, float))
+            and not isinstance(raw[f], bool)}
+    text = raw.get("text")
+    if isinstance(text, dict):  # {"en": [...], "es": [...]} o {"en": "..."}
+        for lang in ("en", "es"):
+            val = text.get(lang)
+            if isinstance(val, list):
+                val = "\n".join(_text(x, 400) for x in val if isinstance(x, str))
+            if isinstance(val, str) and val.strip():
+                card[f"text_{lang}"] = _text(val, 3000)
+        card.pop("text", None)
     status = str(card.pop("status", "") or "ok").lower()[:20]
+    card["simulated"] = raw.get("simulated") is True
     image = str(raw.get("image") or raw.get("image_file") or "")
     has_img = safe_image(base, image) is not None
     ids = raw.get("response_ids") or raw.get("response_id") or []
     ids = [ids] if isinstance(ids, str) else ids
     return _card(
-        key, status if status in ("ok", "all_clear", "alert", "live", "pending") else "ok",
+        key, status if status in ("ok", "all_clear", "alert", "live", "pending", "expected")
+        else "ok",
         image=f"/sentinel/surveillance/{key}.jpg" if has_img else None,
         model=model_label(str(raw.get("model") or "")) if raw.get("model") else "",
         response_id_short=_short_id(ids[0]) if ids else "",
+        response_count=len(ids),
         latency_ms=_num(raw.get("latency_ms")), cost_usd=_num(raw.get("cost_usd")),
         **card,
     )
@@ -397,7 +445,16 @@ def surveillance_state(base: Path | None = None) -> dict[str, Any]:
         _from_surveillance("cash_desk", surv, base),
         _from_surveillance("security_log", surv, base),
     ]
-    return {"available": bool(obs), "cards": cards, "eval": eval_summary()}
+    real = [o for o in obs if not o["is_fixture"]]
+    models = sorted({o["model"] for o in real})
+    if cards[-1]["status"] != "pending":
+        models.append(cards[-1].get("model") or "Muse Spark")
+    stats = {
+        "cameras": len({o["room_key"] for o in real}),
+        "frames": len(real),
+        "models": ["Meta " + " + ".join(models)] if models else [],
+    }
+    return {"available": bool(obs), "cards": cards, "eval": eval_summary(), "stats": stats}
 
 
 def surveillance_image(key: str, base: Path | None = None) -> bytes | None:
@@ -412,13 +469,12 @@ def surveillance_image(key: str, base: Path | None = None) -> bytes | None:
             return safe_image(base, live[-1]["_image"])
         return safe_image(base, IMAGE_FILE)
     if key == "after_hours":
-        night = [o for o in obs if o["is_playback"] and o["recorded_hhmm"]
-                 and int(o["recorded_hhmm"][:2]) in AFTER_HOURS]
+        night = _night(obs)
         if not night:
             return None
-        occupied = [o for o in night if o["people"] > 0]
-        pick = occupied[-1] if occupied else night[-1]
-        if pick["people"] == 0 and _verified_name(pick) in verified_empty(base):
+        verified = verified_empty(base)
+        pick = _night_pick(night, verified)
+        if pick["people"] == 0 and _verified_name(pick) in verified:
             data = safe_image(base, _verified_name(pick))
             if data is not None:
                 return data
@@ -429,6 +485,15 @@ def surveillance_image(key: str, base: Path | None = None) -> bytes | None:
         if raw is not None:
             return safe_image(base, str(raw.get("image") or raw.get("image_file") or ""))
     return None
+
+
+def room_image(room_key: str, base: Path | None = None) -> bytes | None:
+    """Último cuadro redactado en vivo de una sala conocida (lista blanca)."""
+    base = base or witness_dir()
+    if base is None:
+        return None
+    live = [o for o in load_observations(base) if o["is_live"] and o["room_key"] == room_key]
+    return safe_image(base, live[-1]["_image"]) if live else None
 
 
 def latest_image(base: Path | None = None) -> bytes | None:

@@ -94,6 +94,14 @@ def test_ocupacion_y_fuera_de_horario_con_datos_reales_en_formato(client, monkey
     # Imágenes: la de ocupación es la redactada; la nocturna, la verificada vacía.
     occ_img = client.get("/sentinel/surveillance/occupancy.jpg")
     assert occ_img.headers["content-type"] == "image/jpeg" and occ_img.content == SYNTH_JPEG
+    room = client.get("/sentinel/surveillance/room/pasillo.jpg")
+    assert room.headers["content-type"] == "image/jpeg" and room.content == SYNTH_JPEG
+    for bad in ("nadie", "cocina1-noche-0300"):
+        r = client.get(f"/sentinel/surveillance/room/{bad}.jpg")
+        assert r.headers["content-type"].startswith("image/svg+xml"), bad
+    traversal = client.get("/sentinel/surveillance/room/..%2F..%2Fobservations.jpg")
+    assert traversal.headers["content-type"] != "image/jpeg"
+    assert sv["stats"] == {"cameras": 2, "frames": 3, "models": ["Meta SAM 3.1"]}
     assert client.get("/sentinel/surveillance/after_hours.jpg").content == SYNTH_EMPTY
     assert client.get("/sentinel/surveillance/nope.jpg").status_code == 404
     dumped = json.dumps(sv)
@@ -141,3 +149,46 @@ def test_precision_sale_del_eval_grabado():
     assert ev is not None and ev["frames"] > 0
     assert ev["presence_ok"] <= ev["presence_n"]
     assert ev["kitchen_exact"] <= ev["kitchen_n"]
+
+
+def test_formato_w1_surveillance_json_y_verified_empty(tmp_path):
+    # Formato publicado por W1: texto del parte como {"en": [...], "es": [...]},
+    # status «expected», varias respuestas y verified-empty con human_review.
+    obs = [_obs("almacen_noche-0300", "2026-11-04T20:59:09+01:00", 0, "playback")]
+    (tmp_path / "observations.json").write_text(json.dumps(obs))
+    (tmp_path / _img_name("almacen_noche-0300", "20261104-205909")).write_bytes(SYNTH_JPEG)
+    empty = "almacen_noche-0300_20261104-205909.verified-empty.jpg"
+    (tmp_path / empty).write_bytes(SYNTH_EMPTY)
+    (tmp_path / "verified-empty.json").write_text(json.dumps([
+        {"file": empty, "sam_people": 0, "human_review": "vacía (revisión humana)"}]))
+    (tmp_path / "surveillance.json").write_text(json.dumps({
+        "stock_watch": {"status": "expected", "metric": "18 → 12 boxes", "model": "sam-3.1",
+                        "response_ids": ["resp_a", "resp_b"], "latency_ms": 1947.1},
+        "cash_desk": {"status": "alert", "summary": "drawer opened", "simulated": True},
+        "security_log": {"status": "all_clear", "model": "muse-spark-1.3",
+                         "text": {"en": ["line 1", "line 2"], "es": ["línea 1"]}},
+    }))
+    sv = surveillance_state(tmp_path)
+    cards = {c["key"]: c for c in sv["cards"]}
+    assert cards["after_hours"]["human_verified"] is True
+    assert cards["stock_watch"]["status"] == "expected"
+    assert cards["stock_watch"]["response_count"] == 2
+    assert cards["cash_desk"]["simulated"] is True
+    assert cards["security_log"]["text_en"] == "line 1\nline 2"
+    assert cards["security_log"]["text_es"] == "línea 1"
+    assert sv["stats"]["models"] == ["Meta SAM 3.1 + Muse Spark"]
+
+
+def test_vista_dedicada_surveillance_y_enlace_desde_sentinel(client, monkeypatch, wdir):
+    monkeypatch.setenv("SHIELD_WITNESS_DIR", str(wdir))
+    page = client.get("/?scene=surveillance&lang=en")
+    assert page.status_code == 200
+    for needle in ("Surveillance · real cameras, Clara del Rey (Madrid)", "Scan the site now",
+                   "svRibbon", "svEval", "svGrid", "prefers-reduced-motion",
+                   "aria-current='true'>Surveillance"):
+        assert needle in page.text, needle
+    assert str(wdir) not in page.text and "redacted.jpg" not in page.text
+    es = client.get("/?scene=surveillance&lang=es").text
+    assert "Escanear el local ahora" in es
+    sentinel = client.get("/?scene=sentinel&lang=en").text
+    assert "Real cameras →" in sentinel and "/?scene=surveillance&lang=en" in sentinel

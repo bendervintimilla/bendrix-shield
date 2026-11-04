@@ -59,6 +59,7 @@ from shield.vault import MemoryVault
 from web.brand import BRAND, SUBTITLE, brand_mark_html, favicon_href
 from web.physical_scene import trajectory_svg
 from web.sentinel_witness import surveillance_state
+from web.surveillance_view import SV_CSS, SV_JS, SV_T
 
 SCENE = "sentinel"
 T0 = datetime(2026, 11, 4, 2, 0, tzinfo=UTC)  # reloj simulado de la ola
@@ -643,36 +644,6 @@ SENTINEL_T: dict[str, dict[str, str]] = {
         "released": "Released by the owner with a second factor (simulated): the held items are now yours to execute in your bank app — wAIrrior never pays on its own.",
         "bad_factor": "Wrong code — nothing was released.",
         "sources": "News sources",
-        "sv_title": "Surveillance · real cameras, Clara del Rey (Madrid)",
-        "sv_sub": "Meta's SAM 3.1 reads real camera frames from our site; every person is covered before a frame is shown. Each card is one security application with its real, redacted image and its real metric.",
-        "sv_eval_head": "Measured accuracy · {n} real frames · {model} · eval {date}:",
-        "sv_eval_pending": "Measured accuracy: pending (no recorded eval).",
-        "sv_presence": "presence vs empty {ok}/{n} (precision {p}, recall {r})",
-        "sv_kitchens": "exact people count {ok}/{n} in the kitchens",
-        "sv_other": "{room} crowd: {ok}/{n} exact, {w1}/{n} within ±1",
-        "sv_per_frame": " per frame",
-        "sv_occupancy": "Occupancy by room",
-        "sv_after_hours": "After-hours intrusion",
-        "sv_stock_watch": "Stock watch · storeroom",
-        "sv_cash_desk": "Unattended cash desk",
-        "sv_security_log": "Spark security log",
-        "sv_how_occupancy": "SAM 3.1 counts the people in each room, frame by frame.",
-        "sv_how_after_hours": "Out of hours (00:00–06:00): anyone on camera is an alert; nobody is all clear.",
-        "sv_how_stock_watch": "SAM 3.1 counts the boxes; a drop out of hours raises a possible-theft alert.",
-        "sv_how_cash_desk": "Nobody at the till while the POS opens the drawer = irregularity.",
-        "sv_how_security_log": "Muse Spark writes the shift's security report reading only redacted frames and the counts.",
-        "sv_st_live": "LIVE", "sv_st_all_clear": "ALL CLEAR", "sv_st_alert": "ALERT",
-        "sv_st_ok": "OK", "sv_st_pending": "PENDING",
-        "sv_pending_long": "pending — no data from the cameras yet",
-        "sv_alt": "Real camera frame, people covered",
-        "sv_person": "person", "sv_people": "people",
-        "sv_frames": "{n} frames analyzed",
-        "sv_live_label": "real camera, live capture",
-        "sv_rec_label": "real camera, recorded {hhmm} · Clara del Rey, Madrid · {n} people ({model})",
-        "sv_verified": "human-verified empty",
-        "sv_ah_clear": "{room} at {hhmm}: 0 people in {e}/{t} frames → all clear",
-        "sv_ah_alert": "{room} at {hhmm}: {n} people out of hours → alert",
-        "sv_engine": "Autopilot rule on this real frame: a remote defrost here is flagged {rule} → the owner decides.",
         "october": "Our own October incident: a leaked AI key, ~16 h of abuse, USD 310 (internal record, recorded runs in this repo).",
         "simulated": "simulated",
         "scene": "Scene",
@@ -716,36 +687,6 @@ SENTINEL_T: dict[str, dict[str, str]] = {
         "released": "Liberado por el dueño con segundo factor (simulado): lo retenido queda para que tú lo ejecutes en tu banco — wAIrrior nunca paga solo.",
         "bad_factor": "Código incorrecto: no se liberó nada.",
         "sources": "Fuentes de las noticias",
-        "sv_title": "Vigilancia · cámaras reales, Clara del Rey (Madrid)",
-        "sv_sub": "SAM 3.1 de Meta lee cuadros reales de nuestras cámaras; cada persona queda tapada antes de mostrar un cuadro. Cada tarjeta es una aplicación de seguridad con su imagen real redactada y su métrica real.",
-        "sv_eval_head": "Precisión medida · {n} cuadros reales · {model} · eval {date}:",
-        "sv_eval_pending": "Precisión medida: pendiente (no hay eval grabado).",
-        "sv_presence": "presencia vs vacío {ok}/{n} (precisión {p}, recall {r})",
-        "sv_kitchens": "conteo exacto de personas {ok}/{n} en las cocinas",
-        "sv_other": "{room} con multitud: {ok}/{n} exactos, {w1}/{n} a ±1",
-        "sv_per_frame": " por cuadro",
-        "sv_occupancy": "Ocupación por sala",
-        "sv_after_hours": "Intrusión fuera de horario",
-        "sv_stock_watch": "Vigilancia de stock · almacén",
-        "sv_cash_desk": "Caja desatendida",
-        "sv_security_log": "Parte de seguridad de Spark",
-        "sv_how_occupancy": "SAM 3.1 cuenta las personas de cada sala, cuadro a cuadro.",
-        "sv_how_after_hours": "Fuera de horario (00:00–06:00): cualquiera en cámara es alerta; nadie es todo en orden.",
-        "sv_how_stock_watch": "SAM 3.1 cuenta las cajas; una caída fuera de horario es alerta de posible robo.",
-        "sv_how_cash_desk": "Nadie en la caja mientras el POS abre el cajón = irregularidad.",
-        "sv_how_security_log": "Muse Spark redacta el parte del turno leyendo solo cuadros redactados y los conteos.",
-        "sv_st_live": "EN VIVO", "sv_st_all_clear": "TODO EN ORDEN", "sv_st_alert": "ALERTA",
-        "sv_st_ok": "OK", "sv_st_pending": "PENDIENTE",
-        "sv_pending_long": "pendiente — aún no hay datos de las cámaras",
-        "sv_alt": "Cuadro real de cámara, personas tapadas",
-        "sv_person": "persona", "sv_people": "personas",
-        "sv_frames": "{n} cuadros analizados",
-        "sv_live_label": "cámara real, captura en vivo",
-        "sv_rec_label": "cámara real, grabación de las {hhmm} · Clara del Rey, Madrid · {n} personas ({model})",
-        "sv_verified": "vacío verificado por una persona",
-        "sv_ah_clear": "{room} a las {hhmm}: 0 personas en {e}/{t} cuadros → todo en orden",
-        "sv_ah_alert": "{room} a las {hhmm}: {n} personas fuera de horario → alerta",
-        "sv_engine": "Regla del autopiloto sobre este cuadro real: un deshielo remoto aquí se marca {rule} → decide el dueño.",
         "october": "Nuestro incidente de octubre: una llave de IA filtrada, ~16 h de abuso, USD 310 (registro interno, corridas grabadas en este repo).",
         "simulated": "simulado",
         "scene": "Escena",
@@ -753,6 +694,12 @@ SENTINEL_T: dict[str, dict[str, str]] = {
         "footer_hack": "Construido durante el hackathon, del 26 de octubre al 4 de noviembre de 2026.",
     },
 }
+
+
+for _lang, _texts in SV_T.items():  # textos de la sección de vigilancia compartida
+    for _k, _v in _texts.items():
+        if _k.startswith("sv_"):
+            SENTINEL_T[_lang].setdefault(_k, _v)
 
 
 def _st(lang: str, key: str) -> str:
@@ -808,28 +755,8 @@ input[type="text"]{min-height:40px;padding:8px 12px;font:inherit;background:var(
 .legit{display:flex;gap:12px;flex-wrap:wrap}.legit .fact{background:var(--sunk);border:1px solid rgba(54,179,126,.35);border-radius:8px;padding:8px 14px}
 .legit b{font-size:24px;color:var(--ok-text)}
 .col{display:flex;flex-direction:column;gap:14px}
-.w-frame{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--sunk);aspect-ratio:16/9}
-.w-frame img{display:block;width:100%;height:100%;object-fit:cover}
-.surv{margin:18px 0 10px;border-top:1px solid var(--line);padding-top:16px}
-.surv-title{margin:0;font-size:26px}.surv-sub{margin:4px 0 8px;color:var(--muted)}
-.surv-eval{margin:0 0 12px;padding:10px 14px;border:1px solid rgba(54,179,126,.4);border-radius:8px;background:rgba(54,179,126,.07);font-size:15px}
-.surv-eval b{color:var(--ok-text)}
-.surv-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
-.sv-card{grid-column:span 2;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
-.sv-card.sv-occupancy,.sv-card.sv-after_hours{grid-column:span 3}
-.sv-card p{margin:0}.sv-head{display:flex;gap:10px;align-items:center;justify-content:space-between}
-.sv-head h3{margin:0;font-size:18px}
-.sv-chip{font-size:12px;font-weight:800;letter-spacing:.04em;padding:2px 9px;border-radius:6px;border:1px solid var(--line-strong);color:var(--muted)}
-.sv-card[data-status="live"] .sv-chip{color:#ffaaa3;border-color:rgba(229,83,75,.55);background:rgba(229,83,75,.12)}
-.sv-card[data-status="all_clear"] .sv-chip,.sv-card[data-status="ok"] .sv-chip{color:var(--ok-text);border-color:rgba(54,179,126,.55);background:rgba(54,179,126,.12)}
-.sv-card[data-status="alert"]{border-color:rgba(229,83,75,.7)}.sv-card[data-status="alert"] .sv-chip{color:#fff;background:var(--bad);border-color:var(--bad)}
-.sv-card[data-status="pending"]{opacity:.8}
-.sv-pending{border:1px dashed var(--line-strong);border-radius:8px;padding:28px 12px;text-align:center;color:var(--muted);font-size:14px}
-.sv-rooms{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
-.sv-rooms li{display:flex;gap:8px;align-items:baseline;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:5px 10px}
-.sv-rooms b{color:var(--ok-text);font-size:18px}
-.sv-metric{font-weight:650;font-size:16px}.sv-src{color:var(--warn-text);font-size:14px}
-.sv-proof{color:var(--muted);font-size:13px}.sv-log{white-space:pre-wrap;font-size:14px;background:var(--sunk);border-radius:8px;padding:8px 10px}
+.cam-link{display:inline-flex;align-items:center;min-height:36px;padding:5px 14px;border-radius:8px;border:1px solid #efa83a;color:#efa83a;font-weight:700;text-decoration:none;font-size:15px}
+.cam-link:hover{background:rgba(239,168,58,.12)}
 .footer{border-top:1px solid var(--line);color:var(--muted);font-size:14px;padding:22px 0 34px}
 @media (max-width:900px){.apps{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.surv-grid{grid-template-columns:1fr}.sv-card,.sv-card.sv-occupancy,.sv-card.sv-after_hours{grid-column:auto}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -908,52 +835,7 @@ function render(data) {
     if (data.released) { byId("releaseLine").textContent = TEXT.released; byId("releaseBtn").disabled = true; }
   }
 }
-function fill(tpl, vals) { return String(tpl || "").replace(/\{(\w+)\}/g, (m, k) => (k in vals ? String(vals[k]) : m)); }
-function fx(v) { return v == null ? "—" : Number(v).toFixed(2); }
-function fmtProof(c) { return [c.model, c.response_id_short, c.latency_ms != null ? Math.round(c.latency_ms) + " ms" : "", c.cost_usd != null ? "USD " + Number(c.cost_usd).toFixed(4) : ""].filter(Boolean).join(" · "); }
-function L(c, k) { return TEXT.lang_code === "es" ? (c[k + "_es"] || c[k + "_en"] || c[k]) : (c[k + "_en"] || c[k]); }
-function renderEval(ev) {
-  const p = byId("svEval"); clear(p);
-  if (!ev) { p.textContent = TEXT.sv_eval_pending; return; }
-  const parts = [fill(TEXT.sv_presence, {ok: ev.presence_ok, n: ev.presence_n, p: fx(ev.presence_precision), r: fx(ev.presence_recall)}),
-    fill(TEXT.sv_kitchens, {ok: ev.kitchen_exact, n: ev.kitchen_n})];
-  (ev.others || []).forEach((o) => parts.push(fill(TEXT.sv_other, {room: L(o, "room"), ok: o.exact, w1: o.within_1, n: o.n})));
-  if (ev.latency_p50_ms != null) parts.push("p50 " + Math.round(ev.latency_p50_ms) + " ms");
-  if (ev.cost_per_frame_usd != null) parts.push("USD " + Number(ev.cost_per_frame_usd).toFixed(4) + TEXT.sv_per_frame);
-  p.appendChild(el("b", fill(TEXT.sv_eval_head, {n: ev.frames, model: ev.model, date: ev.run_date}) + " "));
-  p.appendChild(el("span", parts.join(" · ")));
-}
-function renderSurveillance(sv) {
-  renderEval(sv.eval);
-  const grid = byId("svGrid"); clear(grid);
-  (sv.cards || []).forEach((c) => {
-    const card = el("article", null, "sv-card sv-" + c.key); card.dataset.status = c.status;
-    const head = el("div", null, "sv-head");
-    head.appendChild(el("h3", TEXT["sv_" + c.key]));
-    head.appendChild(el("span", TEXT["sv_st_" + c.status] || c.status, "sv-chip"));
-    card.appendChild(head);
-    card.appendChild(el("p", TEXT["sv_how_" + c.key], "hint"));
-    if (c.image) { const f = el("div", null, "w-frame"); const img = el("img"); img.src = c.image; img.alt = TEXT.sv_alt; img.loading = "lazy"; f.appendChild(img); card.appendChild(f); }
-    else if (c.status === "pending") { card.appendChild(el("div", TEXT.sv_pending_long, "sv-pending")); }
-    if (c.key === "occupancy" && c.rooms) {
-      const ul = el("ul", null, "sv-rooms");
-      c.rooms.forEach((r) => { const li = el("li"); li.appendChild(el("span", L(r, "room"))); li.appendChild(el("b", r.people + " " + (r.people === 1 ? TEXT.sv_person : TEXT.sv_people))); ul.appendChild(li); });
-      card.appendChild(ul);
-      card.appendChild(el("p", TEXT.sv_live_label + " · " + L(c, "image_room") + " · " + c.image_people + " " + TEXT.sv_people + " · " + fill(TEXT.sv_frames, {n: c.frames}), "sv-src"));
-    } else if (c.key === "after_hours" && c.status !== "pending") {
-      const m = c.status === "alert" ? TEXT.sv_ah_alert : TEXT.sv_ah_clear;
-      card.appendChild(el("p", fill(m, {room: L(c, "room"), hhmm: c.recorded_hhmm, n: c.people, e: c.frames_empty, t: c.frames}), "sv-metric"));
-      card.appendChild(el("p", fill(TEXT.sv_rec_label, {hhmm: c.recorded_hhmm, n: c.people, model: c.model}) + (c.human_verified ? " · " + TEXT.sv_verified : ""), "sv-src"));
-      if (c.engine && (c.engine.findings || []).length) card.appendChild(el("p", fill(TEXT.sv_engine, {rule: c.engine.findings.join(", ")}), "hint"));
-    } else if (c.status !== "pending") {
-      const metric = L(c, "summary") || L(c, "metric"); if (metric) card.appendChild(el("p", metric, "sv-metric"));
-      const text = L(c, "text"); if (text) card.appendChild(el("p", text, "sv-log"));
-    }
-    const proof = fmtProof(c); if (proof && c.status !== "pending") card.appendChild(el("p", proof, "sv-proof mono"));
-    grid.appendChild(card);
-  });
-}
-async function refresh() { const {data} = await api("/sentinel/state"); render(data); return data; }
+__SV_JS__async function refresh() { const {data} = await api("/sentinel/state"); render(data); return data; }
 async function runReplay() { const btn = byId("replayBtn"); btn.disabled = true; const {data} = await api("/sentinel/replay", {method: "POST"}); render(data); btn.disabled = false; }
 document.addEventListener("DOMContentLoaded", () => {
   byId("replayBtn").addEventListener("click", runReplay);
@@ -985,7 +867,8 @@ def render_sentinel_page(lang: str = "en") -> str:
 
     labels = dict(SENTINEL_T[lang])
     labels["lang_code"] = lang
-    script = _JS.replace("__TEXTS__", json.dumps(labels, ensure_ascii=False))
+    script = _JS.replace("__TEXTS__", json.dumps(labels, ensure_ascii=False)).replace(
+        "__SV_JS__", SV_JS)
     apps_html = "".join(
         f"<div class='app-card' data-state='ok'><h3>{_e(en if lang == 'en' else es)}</h3>"
         f"<div class='app-status'>● {_e(t('ok'))}</div></div>"
@@ -999,16 +882,18 @@ def render_sentinel_page(lang: str = "en") -> str:
         f"<link rel='icon' href=\"{favicon_href()}\">"
         "<meta name='viewport' content='width=device-width, initial-scale=1'>"
         f"<title>{_e(BRAND)} — Sentinel · {_e(SUBTITLE)}</title>"
-        f"<style>{_CSS}</style></head><body>"
+        f"<style>{_CSS}{SV_CSS}</style></head><body>"
         "<header class='band'><div class='inner'><div class='band-top'>"
         f"<p class='brandline'><strong>{brand_mark_html()}</strong> · {_e(SUBTITLE)}</p>"
         f"<span class='live-label'>{_e(t('label'))}</span>"
+        f"<a class='cam-link' href='/?scene=surveillance&lang={lang}'>{_e(t('sv_link'))}</a>"
         "<div style='display:flex;gap:8px;flex-wrap:wrap'>"
         f"<nav class='mode-switch scene-switch' aria-label='{_e(t('scene'))}'>"
         f"<a href='/?scene=bodega&lang={lang}'>{_e('Warehouse' if lang == 'en' else 'Bodega')}</a>"
         f"<a href='/?scene=frio&lang={lang}'>{_e('Cold chain' if lang == 'en' else 'Cadena de frío')}</a>"
         f"<a href='/?scene=physical&lang={lang}'>Physical</a>"
-        f"<a href='/?scene=sentinel&lang={lang}' aria-current='true'>Sentinel</a></nav>"
+        f"<a href='/?scene=sentinel&lang={lang}' aria-current='true'>Sentinel</a>"
+        f"<a href='/?scene=surveillance&lang={lang}'>Surveillance</a></nav>"
         f"<span class='lang'><a href='/?scene=sentinel&lang=en'{en_cur}>EN</a>"
         f"<a href='/?scene=sentinel&lang=es'{es_cur}>ES</a></span>"
         f"<button class='btn ghost' id='newRunBtn' type='button'>{_e(t('new_run'))}</button>"
@@ -1045,6 +930,7 @@ def render_sentinel_page(lang: str = "en") -> str:
         "<section class='surv' id='surveillance' aria-live='polite'>"
         f"<h2 class='surv-title'>{_e(t('sv_title'))}</h2>"
         f"<p class='surv-sub'>{_e(t('sv_sub'))}</p>"
+        "<p class='surv-ribbon' id='svRibbon' hidden></p>"
         "<p class='surv-eval' id='svEval'></p>"
         "<div class='surv-grid' id='svGrid'></div></section>"
         "</main>"
