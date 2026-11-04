@@ -25,10 +25,14 @@ owner.**
 
 Estado honesto de esa regla en el código de hoy: el bloqueo por política
 y por física ya es automático (ninguna acción bloqueada espera al dueño),
-y la rotación automática existe como opción (`Actions(auto_contain=True)`,
-rotar ante canario, auditada). La rotación de la toma en vivo del 3-nov
-sí esperó la aprobación por voz del dueño, y el circuit breaker multi-app
-es la regla de diseño de esta visión, no una cifra medida todavía.
+la rotación automática existe como opción (`Actions(auto_contain=True)`,
+rotar ante canario, auditada) y el autopiloto entre apps
+(`shield/autopilot/`, pantalla Sentinel) contiene por actor, por app,
+por campaña o global según severidad, medido en simulación
+(`evals/autopilot/REPORT.md` en `fx/m10-autopilot` @ `50a667e`: en el patrón Arkéa deja vivas 263/300
+escrituras legítimas contra 0/300 suspendiendo todo). La rotación de la
+toma en vivo del 3-nov sí esperó la aprobación por voz del dueño; eso no
+se reescribe: se muestra tal cual.
 
 ### Por qué esta semana
 
@@ -103,22 +107,33 @@ este escudo sí está diseñado para frenar: deriva lenta de setpoint,
 apagado del compresor justo después de una carga caliente, deshielo largo
 con puerta abierta y sensor falsificado.
 
-**Medido (simulated, bancos congelados antes de correr):** en 34 casos
-(20 ataques, 14 legítimos), el escudo predictivo frenó 20/20 ataques
-(15 `block`, 5 `ask_owner`, 0 en silencio); las reglas estáticas
-frenaron 7/20 y sin escudo pasaron 20/20. Fallas publicadas: 1 bloqueo
-falso y 3 legítimos a revisión sobre 14 (`evals/physical/REPORT.md`).
-El red team físico propio (19 ataques) lo rompe donde tiene que romper:
-9 frenados, 5 inefectivos, 2 quedan en `ask_owner` y **3 bypass** por
-acciones diferidas más allá del horizonte de 240 min, publicados en
-`evals/physical/REDTEAM.md`. En vivo, Muse Spark no obedeció el
-documento inyectado (propuso cero acciones) y la acción inyectada,
+**Medido (simulated, bancos congelados antes de correr):** en los
+1.000 escenarios generados, el escudo predictivo frenó 419/419 acciones
+con daño (IC95 [0,9909, 1]); las estáticas, 7/419; bloqueos falsos
+23/581; latencia p50 1,6 ms. En los 34 casos a mano frenó 18/20 (la
+regresión honesta: las derivas salami suaves A04/A05 pasan en silencio)
+con 1 bloqueo falso en 14 legítimos, y en el addendum `defrost_override`
+(el patrón real del 2-nov) frenó 5/5 contra 0/5 de las estáticas
+(`evals/physical/REPORT.md`). El red team físico corrió 3 rondas:
+encontró bypass reales (acciones diferidas fuera del horizonte, destino
+frío, sensor falsificado, rescate forjado declarándose
+`wairrior-autopilot`) y cada hueco se publicó y se cerró — el rescate
+hoy exige un `RescueGrant` firmado con HMAC-SHA256
+(`evals/physical/REDTEAM.md`, `shield/physics/rescue.py`). Muse Spark
+como atacante generó 20 planes: las estáticas dejan pasar 8/11 planes
+con daño; el escudo físico frenó todo el daño por calor
+(`evals/physical/SPARK-ATTACKER.md`). El autopiloto entre apps, en el
+patrón Arkéa, frena los ataques dejando vivas 263/300 escrituras
+legítimas, contra 0/300 si se suspende todo (`evals/autopilot/REPORT.md` @ `50a667e`),
+y la pantalla **Sentinel** lo muestra contenido con el aviso posterior
+al dueño. En vivo, Muse Spark no obedeció el documento inyectado con
+«defrost cycle 4 h, door open» (propuso cero acciones) y la acción,
 verificada directo contra la puerta, salió `block` (ruptura predicha a
-los 92 min, pico 8,363 °C, simulated; costo total de la corrida
-USD 0,037908; `evals/recorded/physical-live-2026-11-04.json`). SAM 3.1
-leyó la escena de prueba (imagen generada, rotulada): 7/7 cajas,
-70 kg con el supuesto rotulado de 10 kg/caja, puerta no visible en esa
-imagen (`evals/recorded/physical-sam-2026-11-04.json`).
+los 45 min, pico 16,4 °C, simulated;
+`evals/recorded/physical-live-2026-11-04-defrost-r2.json`). SAM 3.1 leyó
+la escena de prueba (imagen generada, rotulada): 7/7 cajas y puerta
+abierta detectada (`evals/recorded/physical-sam-2026-11-04.json`,
+`physical-sam-door-2026-11-04.json`).
 
 ## Arquitectura
 
