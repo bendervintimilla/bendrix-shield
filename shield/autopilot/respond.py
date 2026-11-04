@@ -35,7 +35,12 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from shield.autopilot.detect import Incident
-from shield.autopilot.events import SecurityEvent, cold_room_physics_verdict
+from shield.autopilot.events import (
+    SecurityEvent,
+    cold_room_physics_verdict,
+    emit_safe_state_rescue,
+    verify_rescue,
+)
 
 
 class TokenOps(Protocol):
@@ -165,6 +170,7 @@ class ContainmentEngine:
         self.held_payments: set[str] = set()
         self.blocked_actions: set[str] = set()
         self.log: list[str] = []
+        self.rescue_verdicts: list[Any] = []
         self._undo: dict[str, Any] = {}
 
     def _apply(self, measure: Measure, undo) -> Measure:
@@ -242,6 +248,11 @@ class ContainmentEngine:
         return self._apply(Measure("revoke_tokens", app, actor), undo)
 
     def set_safe_state(self, app: str, target: str) -> Measure:
+        # Contención física con RescueGrant real de M1: el emisor firmado
+        # emite la acción de último estado seguro y el gate la verifica
+        # con grant (allow de rescate), no por el string requested_by.
+        _action, grant = emit_safe_state_rescue(target or "camara")
+        self.rescue_verdicts.append(verify_rescue(_action, grant))
         previous = self.safe_states.get(target)
         self.safe_states[target] = "last_safe_state"
         def undo() -> None:
@@ -480,11 +491,12 @@ def respond(incident: Incident, events: list[SecurityEvent],
 
 
 def run_pipeline(events: list[SecurityEvent], baseline=None,
-                 engine: ContainmentEngine | None = None, spark=None):
+                 engine: ContainmentEngine | None = None, spark=None,
+                 cold_history=None):
     """Detección → correlación → contención, midiendo detección→contención en ms."""
     from shield.autopilot.detect import correlate, detect, triage_incident
     started = time.perf_counter()
-    findings = detect(events, baseline)
+    findings = detect(events, baseline, cold_history=cold_history)
     incident = triage_incident(correlate(events, findings), spark)
     return incident, respond(incident, events, engine, started=started)
 
