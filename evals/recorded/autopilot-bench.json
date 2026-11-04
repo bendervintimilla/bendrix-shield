@@ -39,7 +39,7 @@
         "defrost_anomaly",
         "physics_block"
       ],
-      "detect_to_contain_ms": 10.666,
+      "detect_to_contain_ms": 11.498,
       "measures": [
         "block_action",
         "safe_state",
@@ -85,7 +85,7 @@
         "payment_anomaly",
         "iban_then_payment"
       ],
-      "detect_to_contain_ms": 0.091,
+      "detect_to_contain_ms": 0.092,
       "measures": [
         "block_action",
         "block_action",
@@ -142,7 +142,7 @@
       "findings": [
         "token_burst"
       ],
-      "detect_to_contain_ms": 0.131,
+      "detect_to_contain_ms": 0.127,
       "measures": [
         "block_action",
         "freeze_app_scope",
@@ -202,7 +202,7 @@
       "circuit_breaker": false,
       "frozen_scopes": [],
       "findings": [],
-      "detect_to_contain_ms": 0.022,
+      "detect_to_contain_ms": 0.034,
       "measures": [
         "log"
       ],
@@ -239,7 +239,7 @@
       "circuit_breaker": false,
       "frozen_scopes": [],
       "findings": [],
-      "detect_to_contain_ms": 1.607,
+      "detect_to_contain_ms": 1.604,
       "measures": [
         "log"
       ],
@@ -280,7 +280,7 @@
         "iban_then_payment",
         "token_burst"
       ],
-      "detect_to_contain_ms": 4.321,
+      "detect_to_contain_ms": 4.166,
       "measures": [
         "block_action",
         "safe_state",

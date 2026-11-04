@@ -146,7 +146,10 @@ def main() -> int:
               "forjado) se marca sospechoso y nunca obtiene rescate. La "
               "contención física usa el RescueGrant real de M1 "
               "(issue_last_safe_action + verify_action con grant): rescate "
-              "allow solo con grant firmado válido, de un solo uso.", ""]
+              "allow solo con grant firmado válido, de un solo uso. El "
+              "veredicto por evento ya lleva estado e historia del equipo "
+              "(24 h): deshielos programados de 40 min repetidos suman "
+              "finding defrost_pattern sobre el calendario normal.", ""]
     REPORT.write_text("\n".join(lines), encoding="utf-8")
     print(f"OK {len(results)} escenarios -> {BENCH} y {REPORT}")
     return 0

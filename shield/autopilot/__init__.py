@@ -10,6 +10,7 @@ from shield.autopilot.detect import (
 )
 from shield.autopilot.events import (
     APPS,
+    ColdRoomHistory,
     SecurityEvent,
     build_internal_rescue_action,
     cold_room_physics_verdict,
@@ -37,7 +38,7 @@ from shield.autopilot.respond import (
 )
 
 __all__ = [
-    "APPS", "ActorBaseline", "ContainmentEngine", "ContainmentResult",
+    "APPS", "ActorBaseline", "ColdRoomHistory", "ContainmentEngine", "ContainmentResult",
     "Finding", "InMemoryTokenOps", "Incident", "Measure", "SecurityEvent",
     "ShieldActionsTokenOps", "build_business_notice", "operation_scope",
     "build_internal_rescue_action", "build_owner_notice",

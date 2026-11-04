@@ -15,9 +15,17 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any
 
-from shield.autopilot.events import SecurityEvent, cold_room_physics_verdict
+from shield.autopilot.events import (
+    ColdRoomHistory,
+    SecurityEvent,
+    cold_room_physics_verdict,
+)
 
 SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+# Supuesto rotulado de calendario normal: hasta un ciclo de deshielo al
+# día (<=60 min en 24 h por equipo). Sobre eso, aunque cada deshielo
+# individual sea "programado" y corto, el patrón acumulado es anómalo.
+NORMAL_DEFROST_MIN_PER_24H = 60.0
 
 
 @dataclass
@@ -83,7 +91,8 @@ def _odd_hour(event: SecurityEvent, base: ActorBaseline) -> bool:
 
 
 def detect(events: list[SecurityEvent],
-           baseline: ActorBaseline | list[SecurityEvent] | None = None) -> list[Finding]:
+           baseline: ActorBaseline | list[SecurityEvent] | None = None,
+           cold_history: ColdRoomHistory | None = None) -> list[Finding]:
     """Reglas explicables sobre eventos normalizados (ordenados por hora)."""
     evs = sorted(events, key=lambda e: e.ts)
     if isinstance(baseline, ActorBaseline):
@@ -93,6 +102,8 @@ def detect(events: list[SecurityEvent],
     else:
         base = ActorBaseline()  # sin historia: todo beneficiario es desconocido
     findings: list[Finding] = []
+    tracker = cold_history if cold_history is not None else ColdRoomHistory()
+    defrost_log: dict[str, list[tuple[Any, float]]] = {}
 
     def add(kind, severity, reason, hit):
         findings.append(Finding(kind, severity, reason, (hit.event_id,), (hit.app,), (hit.actor,)))
@@ -125,10 +136,24 @@ def detect(events: list[SecurityEvent],
                 add("defrost_anomaly", "high" if duration > 120 else "medium",
                     f"deshielo de {duration:g} min fuera de calendario o largo", e)
         if e.app == "cold_room":
-            verdict = cold_room_physics_verdict(e)
-            if verdict is not None and verdict.decision == "block":
-                add("physics_block", "critical",
-                    f"física (M1): {verdict.reason}", e)
+            verdict = cold_room_physics_verdict(
+                e, state=tracker.state_for(e.target),
+                history=tracker.recent_actions(e.target, e.ts))
+            if verdict is not None:
+                tracker.record(e, verdict.decision)
+                if verdict.decision == "block":
+                    add("physics_block", "critical",
+                        f"física (M1): {verdict.reason}", e)
+        if e.app == "cold_room" and e.action == "defrost":
+            # Patrón acumulado 24 h por equipo (deshielos lentos y bajos).
+            past = [(ts, d) for ts, d in defrost_log.get(e.target, [])
+                    if timedelta(0) <= e.ts - ts <= timedelta(hours=24)]
+            total = sum(d for _, d in past) + float(e.values.get("duration_min") or 0)
+            defrost_log[e.target] = [*past, (e.ts, float(e.values.get("duration_min") or 0))]
+            if len(past) >= 1 and total > NORMAL_DEFROST_MIN_PER_24H:
+                add("defrost_pattern", "high" if total > 120 else "medium",
+                    f"deshielos repetidos en {e.target}: {total:g} min en 24 h "
+                    f"sobre el calendario normal (<= {NORMAL_DEFROST_MIN_PER_24H:g} min)", e)
 
     # Cambio de IBAN seguido de pago al mismo objetivo (ventana 24 h).
     ibans = [e for e in evs if e.action == "iban_change"]
