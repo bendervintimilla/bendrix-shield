@@ -7,8 +7,10 @@ transporte falso. Solo afirma lo medido: cada caso adversario se cuenta como
 frenado o como paso en silencio, incluidos los bypass (`expect: gap`).
 
 Escribe su sección en `evals/report.md` y deja las filas en
-`evals/recorded/redteam-c2490.json` (la corrida anterior queda intacta en
-`evals/recorded/redteam-c2489.json`).
+`evals/recorded/redteam-c2490-post-attach.json`. La medición congelada de main
+`73875bc` (36/37) queda intacta en `evals/recorded/redteam-c2490.json` y la
+corrida anterior, en `evals/recorded/redteam-c2489.json`; este script no
+escribe ninguna de las dos.
 Uso: ``uv run python evals/run_redteam.py``
 """
 
@@ -24,7 +26,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from evals._sections import write_section  # noqa: E402
 
 CASES = Path(__file__).parent / "redteam" / "cases.json"
-RECORDED = Path(__file__).parent / "recorded" / "redteam-c2490.json"
+RECORDED = Path(__file__).parent / "recorded" / "redteam-c2490-post-attach.json"
+# Medición congelada (main 73875bc), antes del ajuste de «attach»: solo se lee.
+FROZEN = Path(__file__).parent / "recorded" / "redteam-c2490.json"
+FROZEN_SHA = "73875bc"
 RECORDED_C2489 = "evals/recorded/redteam-c2489.json"
 START, END = "<!-- C2489:redteam:start -->", "<!-- C2489:redteam:end -->"
 
@@ -478,6 +483,11 @@ def run_battery() -> list[dict]:
     return filas
 
 
+def _frozen_counts() -> tuple[int, int]:
+    casos = json.loads(FROZEN.read_text(encoding="utf-8"))["casos"]
+    return sum(1 for f in casos if f["frenado"]), len(casos)
+
+
 def _resumen(filas: list[dict]) -> str:
     total = len(filas)
     frenados = sum(1 for f in filas if f["frenado"])
@@ -491,6 +501,7 @@ def _resumen(filas: list[dict]) -> str:
         return ", ".join(f"`{f['id']}`" for f in fs) if fs else "ninguno"
 
     regresiones = [f for f in filas if f["expect"] == "contained" and not f["frenado"]]
+    frozen, total_frozen = _frozen_counts()
     lineas = [
         "## Red team C2489-4 — batería adversaria (sin red, USD 0)",
         "",
@@ -502,8 +513,14 @@ def _resumen(filas: list[dict]) -> str:
         "confusión de agentes y abuso de tasa. Sin llamadas a modelos: USD 0. "
         "Las fallas se cuentan tal cual; ningún caso se retocó tras medir.",
         "",
-        f"- Casos: {total}; frenados: {frenados}/{total}; "
-        f"pasaron en silencio: {total - frenados}/{total}.",
+        f"- Casos: {total}; frenados: {frenados}/{total}"
+        + (
+            f" ({frozen}/{total_frozen} en la medición congelada de {FROZEN_SHA}; "
+            f"{len(post)} cerrado{'s' if len(post) != 1 else ''} después de medir)"
+            if post
+            else ""
+        )
+        + f"; pasaron en silencio: {total - frenados}/{total}.",
         f"- Bypass conocidos de C2489 (`expect: gap`): {len(todos_gaps)}. "
         f"Cerrados en C2491: {len(c2491)} ({_ids(c2491)}); "
         f"cerrados en C2490: {len(c2490)} ({_ids(c2490)}); "
@@ -566,8 +583,9 @@ def _resumen(filas: list[dict]) -> str:
         "silencio, y la nota dice si la inyección en sí fue detectada o si "
         "lo frenó el campo sensible. Las notas de los casos son las de C2489 "
         "(set congelado); lo que cambió después va en negrita. El detalle por "
-        f"caso queda en `evals/recorded/{RECORDED.name}`; la corrida anterior "
-        f"(C2489, re-medida en C2491), en `{RECORDED_C2489}`.",
+        f"caso de esta corrida queda en `evals/recorded/{RECORDED.name}`; el de "
+        f"la medición congelada ({FROZEN_SHA}), en `evals/recorded/{FROZEN.name}`; "
+        f"la corrida anterior (C2489, re-medida en C2491), en `{RECORDED_C2489}`.",
     ]
     return "\n".join(lineas) + "\n"
 
