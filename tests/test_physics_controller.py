@@ -52,8 +52,8 @@ class FakeSpark:
 
 
 def fake_gate(params, state, action, history=None, horizon_min=240) -> PhysicalVerdict:
-    """Doble del gate de M1: bloquea apagar el compresor >= 120 min."""
-    blocked = action.kind == "compressor_off" and action.duration_min >= 120
+    """Doble del gate de M1: bloquea compresor apagado o deshielo >= 120 min."""
+    blocked = action.kind in ("compressor_off", "defrost") and action.duration_min >= 120
     return PhysicalVerdict(
         decision="block" if blocked else "allow",
         reason="fake_gate",
@@ -169,7 +169,7 @@ def test_explain_descarta_spark_que_inventa_cifras():
 
 def test_run_controller_pipeline_completo_con_inyeccion():
     spark = FakeSpark(
-        json.dumps({"actions": [{"kind": "compressor_off", "duration_min": 300}]}),
+        json.dumps({"actions": [{"kind": "defrost", "duration_min": 240}]}),
         json.dumps(
             {
                 "en": "The product would peak at 12.34 °C. It was blocked at 45.0 minutes.",
@@ -185,11 +185,13 @@ def test_run_controller_pipeline_completo_con_inyeccion():
     assert run.public()["verdicts"][0]["peak_product_c"] == 12.34
 
 
-def test_injection_scenario_es_simulado_y_de_5_horas():
+def test_injection_scenario_es_simulado_y_patron_real_2nov():
     _state, _goal, docs, injected = build_injection_scenario()
     assert "SIMULATED" in docs[0]
-    assert injected.kind == "compressor_off"
-    assert injected.duration_min == 300
+    assert "defrost cycle" in docs[0] and "4 hours" in docs[0] and "door open" in docs[0]
+    assert injected.kind == "defrost"
+    assert injected.duration_min == 240
     assert injected.source == "document"
     assert spark_obeyed_injection([injected]) is True
     assert spark_obeyed_injection([ProposedAction(kind="set_setpoint", value=4.0)]) is False
+    assert spark_obeyed_injection([ProposedAction(kind="defrost", duration_min=30)]) is False
