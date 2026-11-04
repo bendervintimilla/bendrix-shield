@@ -152,7 +152,7 @@ SV_JS = r"""
 function fill(tpl, vals) { return String(tpl || "").replace(/\{(\w+)\}/g, (m, k) => (k in vals ? String(vals[k]) : m)); }
 function fx(v) { return v == null ? "—" : Number(v).toFixed(2); }
 function fmtMs(ms) { return ms >= 10000 ? Math.round(ms / 1000) + " s" : Math.round(ms) + " ms"; }
-function fmtProof(c) { return [c.model, c.response_id_short ? c.response_id_short + (c.response_count > 1 ? " ×" + c.response_count : "") : "", c.latency_ms != null ? fmtMs(c.latency_ms) : "", c.cost_usd != null ? "USD " + Number(c.cost_usd).toFixed(4) : ""].filter(Boolean).join(" · "); }
+function fmtProof(c) { return [c.model, c.response_id_short ? c.response_id_short + (c.response_count > 1 ? " ×" + c.response_count : "") : "", c.latency_ms ? fmtMs(c.latency_ms) : "", c.cost_usd != null ? "USD " + Number(c.cost_usd).toFixed(4) : ""].filter(Boolean).join(" · "); }
 function L(c, k) { return TEXT.lang_code === "es" ? (c[k + "_es"] || c[k + "_en"] || c[k]) : (c[k + "_en"] || c[k]); }
 function num(n) { const b = el("b", n); b.dataset.count = String(n); return b; }
 function filled(parent, tpl, vals, counted) {
@@ -235,7 +235,8 @@ function renderSurveillance(sv) {
         const box = el("div", null, "sv-log"); const ul = el("ul");
         lines.forEach((raw, i) => {
           const t = String(raw).replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "");
-          const isTitle = /^#+\s*/.test(raw) || (i === 0 && lines.length > 2 && /:\s*$/.test(t));
+          const bullet = (x) => /^\s*(?:[-*•]|\d+[.)])\s+/.test(x);
+          const isTitle = /^#+\s*/.test(raw) || (i === 0 && !bullet(raw) && lines.slice(1).some(bullet));
           if (isTitle) { box.appendChild(el("p", t.replace(/^#+\s*/, ""), "sv-log-title")); return; }
           const li = el("li", t);
           if (/^(action needed|acción (necesaria|requerida)|accion (necesaria|requerida))\s*:/i.test(t)) li.className = "sv-action";
