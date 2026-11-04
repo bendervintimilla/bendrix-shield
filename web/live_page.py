@@ -7,7 +7,7 @@ from __future__ import annotations
 import html
 from typing import Any
 
-from web.brand import BRAND, SUBTITLE
+from web.brand import BRAND, SUBTITLE, brand_mark_html, brand_parts, favicon_href
 from web.live_page_replay import REPLAY_T
 
 __all__ = [
@@ -46,6 +46,15 @@ T: dict[str, dict[str, str]] = {
         "voice_via_whatsapp": "Owner approved via WhatsApp voice note",
         "voice_via_whatsapp_note": "Owner replied via WhatsApp voice note",
         "voice_via_browser": "Owner replied via browser microphone",
+        "voice_via_typed": "Owner typed the decision",
+        "typed_note_title": "Typed decision",
+        "typed_transcript": "What the owner typed",
+        "step5_title_typed": "You approve the plan",
+        "err_need_step": "run step {n} first",
+        "err_not_approved": "the owner has not approved yet",
+        "err_stale": "this run was reset",
+        "material_label_ai": "AI-generated test image (muse-image-1.0), not real warehouse footage",
+        "model_original_en": "",
         "voice_no_speech": "No speech detected. Check the microphone and try again.",
         "mic_silence": "The microphone recorded silence",
         "level_label": "Microphone level (RMS)",
@@ -55,7 +64,7 @@ T: dict[str, dict[str, str]] = {
         "action_verify": "Check it still works",
         "action_draft_notice": "Draft a notice",
         "action_rotate_upstream_key": "Rotate the upstream key",
-        "live_label": "LIVE — real Meta models, called from this Mac through the Wairrior gateway",
+        "live_label": f"LIVE — real Meta models, called from this Mac through the {BRAND} gateway",
         "sticky_attacker": "Attacker",
         "sticky_sdk": "SDK",
         "replay": "Replay",
@@ -126,7 +135,7 @@ T: dict[str, dict[str, str]] = {
         "record": "Record",
         "stop": "Stop",
         "typed_fallback": "Typed fallback: no Voice Transcribe is used in this path",
-        "voice_hint": 'Try: "sí, rota el token de bodega"',
+        "voice_hint": 'Try: "yes, rotate the warehouse token"',
         "send_typed": "Send typed decision",
         "transcript": "Voice Transcribe transcript",
         "spark_intent": "Muse Spark intent",
@@ -189,6 +198,15 @@ T: dict[str, dict[str, str]] = {
         "voice_via_whatsapp": "El dueño aprobó por nota de voz de WhatsApp",
         "voice_via_whatsapp_note": "El dueño respondió por nota de voz de WhatsApp",
         "voice_via_browser": "El dueño respondió por el micrófono del navegador",
+        "voice_via_typed": "El dueño escribió la decisión",
+        "typed_note_title": "Decisión escrita",
+        "typed_transcript": "Lo que escribió el dueño",
+        "step5_title_typed": "Tú apruebas el plan",
+        "err_need_step": "primero corre el paso {n}",
+        "err_not_approved": "el dueño todavía no aprueba",
+        "err_stale": "esta corrida se reinició",
+        "material_label_ai": "Imagen de prueba generada por IA (muse-image-1.0), no es material real de una bodega",
+        "model_original_en": "Respuesta original del modelo, en inglés.",
         "voice_no_speech": "No se detectó voz. Revisa el micrófono y vuelve a intentar.",
         "mic_silence": "El micrófono grabó silencio",
         "level_label": "Nivel del micrófono (RMS)",
@@ -198,7 +216,7 @@ T: dict[str, dict[str, str]] = {
         "action_verify": "Comprobar que sigue funcionando",
         "action_draft_notice": "Preparar un borrador de aviso",
         "action_rotate_upstream_key": "Rotar la clave del proveedor",
-        "live_label": "EN VIVO — modelos reales de Meta, llamados desde esta Mac a través del gateway de Shield",
+        "live_label": f"EN VIVO — modelos reales de Meta, llamados desde esta Mac a través del gateway de {BRAND}",
         "sticky_attacker": "Atacante",
         "sticky_sdk": "SDK",
         "replay": "Repetición",
@@ -419,7 +437,8 @@ code,.mono{font-family:var(--mono);font-size:.92em}
 #sphereCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
 .hero-copy{position:relative;z-index:1;flex:1 1 auto;text-align:center;min-width:0}
 .hero-brand{margin:0;font-size:clamp(76px,10.5vw,148px);line-height:.92;font-weight:800;letter-spacing:-.055em}
-.hero-fill{color:#fff}
+.hero-fill{color:#E8A33D}
+.brand-ai{color:#E8A33D}
 .hero-outline{color:transparent;-webkit-text-stroke:2px rgba(255,255,255,.92)}
 .hero-subtitle{margin:14px auto 0;max-width:640px;color:var(--muted);font-size:18px;line-height:1.45}
 .band h1,.hero-copy h1{font-size:clamp(26px,2.6vw,38px);margin:18px auto 0;max-width:760px;font-weight:700}
@@ -607,7 +626,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-width:
 section h2{font-size:21px}
 @media (max-width:1100px){.split--media{grid-template-columns:minmax(200px,280px) minmax(0,1fr)}}
 @media (max-width:900px){.hero{display:block;min-height:78vh;min-height:78svh;padding:26px 0 30px}.clockbox{text-align:center;padding-top:18px;min-width:0}.hero .attempts{justify-content:center}.split,.split--media{grid-template-columns:1fr}.shelf-wrap,.thumb{max-width:420px}}
-@media (max-width:760px){.band-tools,.band-top{max-width:100%}.hero .code-block{min-width:54px;min-height:48px;font-size:20px}.hero-brand{font-size:clamp(64px,22vw,96px)}#bigClock{font-size:56px}.ledger-row{grid-template-columns:1fr}.step{grid-template-columns:32px minmax(0,1fr);column-gap:12px}.step-num{width:32px;height:32px;font-size:14px}.step-rail::after{top:54px}.step-card{padding:16px 16px 18px}.kr-num{font-size:44px}.key-result{font-size:24px}}
+@media (max-width:760px){.sticky-inner{flex-wrap:nowrap;gap:10px;overflow:hidden}.sticky-sdk,.sticky-cost,.sticky-label{display:none}.stickybar .btn{flex:0 0 auto;white-space:nowrap}.band-tools,.band-top{max-width:100%}.hero .code-block{min-width:54px;min-height:48px;font-size:20px}.hero-brand{font-size:clamp(64px,22vw,96px)}#bigClock{font-size:56px}.ledger-row{grid-template-columns:1fr}.step{grid-template-columns:32px minmax(0,1fr);column-gap:12px}.step-num{width:32px;height:32px;font-size:14px}.step-rail::after{top:54px}.step-card{padding:16px 16px 18px}.kr-num{font-size:44px}.key-result{font-size:24px}}
 @media (max-width:480px){.band .inner,.wrap,.sticky-inner{width:calc(100% - 32px)}.hero{min-height:72vh;min-height:72svh;padding:22px 0 26px;gap:0}.hero-brand{font-size:clamp(58px,20vw,84px)}.hero-subtitle{font-size:16px}.band h1,.hero-copy h1{font-size:24px}#bigClock{font-size:48px}.clockbox{min-width:0}.step{grid-template-columns:1fr}.step-rail{display:none}.step h2{flex-basis:100%;font-size:19px}.step-head .btn{flex:1 1 auto}.stickybar .btn{margin-left:0}.sticky-cost{white-space:normal}.hero .code-block{min-width:48px;min-height:44px;font-size:19px;padding:6px 10px}.prov{padding:16px}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto;animation:none!important;transition:none!important}}
 """
@@ -731,7 +750,8 @@ function hiddenNoteLine(text) {
   return lines.find((line) => /iban/i.test(line)) || lines.find((line) => /agente|agent/i.test(line)) || lines.find((line) => /cuenta|account/i.test(line)) || "";
 }
 function plainArgs(args) {
-  return Object.entries(args || {}).map(([k, v]) => k + ": " + v).join(", ");
+  const text = Object.entries(args || {}).map(([k, v]) => k + ": " + (v && typeof v === "object" ? JSON.stringify(v) : v)).join(", ");
+  return text.length > 300 ? text.slice(0, 299) + "…" : text;
 }
 function evidenceText(items) {
   return TEXT.evidence + ": " + ((items || []).map(translateEvidence).join(", "));
@@ -817,7 +837,8 @@ function renderCount(r) {
   const countNode = byId("countValue"); clear(countNode);
   countNode.appendChild(el("span", String(r.count ?? ""), "kr-num"));
   countNode.appendChild(el("span", TEXT.boxes_counted, "kr-unit"));
-  byId("materialLabel").textContent = r.material_label || "";
+  const material = String(r.material_label || "");
+  byId("materialLabel").textContent = material.indexOf("AI-generated test image") === 0 ? TEXT.material_label_ai : material;
   byId("expectedLine").textContent = r.is_fixture ? TEXT.expected_7 : "";
   const overlay = byId("shelfOverlay"); clear(overlay);
   (r.boxes || []).forEach((item) => {
@@ -865,8 +886,9 @@ function renderGuardian(r) {
     if (turns.length) box.appendChild(turnsBox());
     return;
   }
-  const plan = r.plan;
+  const plan = (TEXT.lang_code === "en" && r.plan_en) ? r.plan_en : r.plan;
   box.appendChild(el("p", TEXT.plan_proposed, "label"));
+  if (TEXT.model_original_en && SCENE !== "frio") box.appendChild(el("p", TEXT.model_original_en, "meta"));
   const stepList = el("ol", null, "plan-steps");
   (plan.steps || []).forEach((s) => {
     const li = el("li");
@@ -904,7 +926,8 @@ function renderVoice(r) {
   byId("voiceTranscript").textContent = r.transcript || "";
   const channelNode = byId("voiceChannel");
   if (channelNode) {
-    if (r.channel === "whatsapp") channelNode.textContent = r.status === "approved" ? TEXT.voice_via_whatsapp : TEXT.voice_via_whatsapp_note;
+    if (r.input_mode === "typed") channelNode.textContent = TEXT.voice_via_typed;
+    else if (r.channel === "whatsapp") channelNode.textContent = r.status === "approved" ? TEXT.voice_via_whatsapp : TEXT.voice_via_whatsapp_note;
     else if (r.channel === "browser") channelNode.textContent = TEXT.voice_via_browser;
     else channelNode.textContent = "";
   }
@@ -922,7 +945,7 @@ function renderVoice(r) {
   byId("voiceConfirm").hidden = !showConfirm;
   byId("voiceCancel").hidden = !showConfirm;
   byId("disagreeLine").textContent = intent.source === "disagreement" ? TEXT.disagreement : "";
-  byId("voiceStatusLine").textContent = r.status === "unknown_command" ? TEXT.voice_unknown : (r.status === "no_speech" ? TEXT.voice_no_speech : ((r.status === "error" || r.status === "replayed") ? TEXT.error + ": " + (r.error || "") : (r.status || "")));
+  byId("voiceStatusLine").textContent = r.status === "unknown_command" ? TEXT.voice_unknown : (r.status === "no_speech" ? TEXT.voice_no_speech : ((r.status === "error" || r.status === "replayed") ? TEXT.error + ": " + stepErrorText(r, "") : (r.status || "")));
 }
 function sdkSequenceText(statuses) {
   const parts = [];
@@ -947,14 +970,24 @@ function renderContain(r, state) {
   byId("comprasLine").textContent = TEXT.purchasing_status + ": " + (r.compras_status ?? "");
   setContained(r);
 }
+const COLD_EQUIPMENT_EN = {"Cámara fría": "Cold room", "Congelador": "Freezer", "camara": "Cold room", "congelador": "Freezer"};
+function coldLabel(value) {
+  const raw = String(value || "");
+  return TEXT.lang_code === "en" ? (COLD_EQUIPMENT_EN[raw] || raw) : raw;
+}
+function coldReason(value) {
+  const raw = String(value || "");
+  if (TEXT.lang_code !== "en") return raw;
+  return raw.replace(/ fuera de /g, " outside ").replace(/\(esperado ([A-Z]{2})\)/, "(expected $1)");
+}
 function coldAttempt(att, label) {
   const eq = (att.equipment || {});
   const req = (att.request || {});
-  const line = ledgerRow(label || (eq.label || req.equipment || ""), "ledger-solo");
+  const line = ledgerRow(label || coldLabel(eq.label || req.equipment || ""), "ledger-solo");
   line.what.appendChild(el("code", (req.setpoint_c !== undefined ? req.setpoint_c + " °C" : "") + (req.hour !== undefined ? " · " + String(req.hour).padStart(2, "0") + ":00" : "") + (req.origin_country ? " · " + req.origin_country : "")));
   line.what.appendChild(decisionBlock(att.decision));
   line.what.appendChild(el("span", att.applied ? TEXT.cold_applied : TEXT.cold_not_applied, "chip"));
-  (att.reasons || []).forEach((reason) => line.what.appendChild(el("p", reason, "ledger-reason")));
+  (att.reasons || []).forEach((reason) => line.what.appendChild(el("p", coldReason(reason), "ledger-reason")));
   return line.row;
 }
 function renderColdLegit(r) {
@@ -996,7 +1029,7 @@ function renderResult(step, r, state) {
   if (step === "guardian") renderGuardian(r);
   if (step === "voice") {
     const base = ((state && state.results && state.results.voice) || (state && state.voice) || {});
-    renderVoice({...base, ...r, transcript: r.transcript || base.transcript || "", intent: r.intent || base.intent || {}, channel: r.channel || base.channel || ""});
+    renderVoice({...base, ...r, transcript: r.transcript || base.transcript || "", intent: r.intent || base.intent || {}, channel: r.channel || base.channel || "", input_mode: r.input_mode || base.input_mode || ""});
   }
   if (step === "contain") renderContain(r, state);
   if (step === "revoke") renderRevoke(r);
@@ -1260,6 +1293,19 @@ async function refreshState() {
   updateBand(state);
   return state;
 }
+const STEP_NUMBER = {invoice: 1, count: 2, attack: 3, guardian: 4, voice: 5, contain: 6, revoke: 7};
+/* Errores de paso en el idioma de la página (el servidor manda códigos o frases fijas en inglés). */
+function stepErrorText(data, httpStatus) {
+  const raw = String((data && data.error) || "");
+  let need = data && data.need;
+  const m = raw.match(/^first run: (\w+)$/);
+  if (!need && m) need = m[1];
+  if (!need && (raw === "run the guardian first" || raw === "no pending approval")) need = "guardian";
+  if (need && STEP_NUMBER[need]) return TEXT.err_need_step.replace("{n}", STEP_NUMBER[need]);
+  if ((data && data.status === "not_approved") || raw === "the owner has not approved yet") return TEXT.err_not_approved;
+  if (data && data.status === "stale") return TEXT.err_stale;
+  return raw || (data && data.status) || String(httpStatus || "");
+}
 async function runStep(step) {
   startStatus(step);
   try {
@@ -1278,8 +1324,8 @@ async function runStep(step) {
       res = await fetch(API + "/step/" + step, {method: "POST"});
     }
     const data = await res.json();
-    if (!res.ok || data.status === "error" || data.status === "cost_cap_reached" || data.status === "not_approved") {
-      stopStatus(step, TEXT.error + ": " + (data.error || data.status || res.status));
+    if (!res.ok || data.status === "error" || data.status === "cost_cap_reached" || data.status === "not_approved" || data.status === "stale") {
+      stopStatus(step, TEXT.error + ": " + stepErrorText(data, res.status));
     } else {
       stopStatus(step, TEXT.ok);
     }
@@ -1428,7 +1474,7 @@ document.addEventListener("DOMContentLoaded", () => {
     startStatus("voice");
     const res = await fetch(API + "/voice", {method: "POST", body: form});
     const data = await res.json();
-    stopStatus("voice", data.status === "error" ? TEXT.error + ": " + (data.error || "") : TEXT.ok + ": " + (data.status || ""));
+    stopStatus("voice", data.status === "error" ? TEXT.error + ": " + stepErrorText(data, res.status) : TEXT.ok + ": " + (data.status || ""));
     renderVoice(data);
     await refreshState();
     if (data.status === "approved") await runStep("contain");
@@ -1468,13 +1514,11 @@ def _step_html(number: int, step: str, title: str, lang: str, inner: str) -> str
 
 
 def _hero_brand_html(brand: str) -> str:
-    """Titular de marca: resalta «AI» dentro del nombre (W·ai·rrior); si no hay, las 2 primeras letras."""
-    i = brand.lower().find("ai")
-    if i > 0:
-        parts = [("outline", brand[:i]), ("fill", brand[i : i + 2]), ("outline", brand[i + 2 :])]
-    else:
-        parts = [("fill", brand[:2]), ("outline", brand[2:])]
-    return "".join(f"<span class='hero-{k}'>{_e(t)}</span>" for k, t in parts if t)
+    """Titular de marca: «w» y «rrior» en contorno, «AI» relleno en el acento (sin punto medio)."""
+    return "".join(
+        f"<span class='hero-{'fill' if kind == 'ai' else 'outline'}'>{_e(text)}</span>"
+        for kind, text in brand_parts(brand)
+    )
 
 def render_live_page(
     lang: str = "en",
@@ -1500,15 +1544,22 @@ def render_live_page(
         labels["step1_title"] = labels["cold_step1_title"]
         labels["step2_title"] = labels["cold_step2_title"]
         labels["step3_title"] = labels["cold_step3_title"]
+        labels["step4_title"] = labels["cold_step4_title"]
+        labels["live_off_note"] = labels["live_off_note_cold"]
     if replay:
-        labels["live_label"] = labels["replay_label"]
+        labels["live_label"] = labels["cold_replay_label" if cold else "replay_label"]
+        labels["spark_intent"] = labels["replay_spark_intent"]
+        # En la repetición la decisión se escribe: nada de micrófono ni nota de WhatsApp.
+        labels["whatsapp_note_title"] = labels["typed_note_title"]
+        labels["transcript"] = labels["typed_transcript"]
+        labels["step5_title"] = labels["step5_title_typed"]
         if not cold:
             labels["hero_subtitle"] = labels["replay_hero_subtitle"]
     if remote:
         labels["live_label"] = (
-            "LIVE — real Meta models through the Wairrior gateway (hosted, spend capped)"
+            f"LIVE — real Meta models through the {BRAND} gateway (hosted, spend capped)"
             if lang == "en"
-            else "EN VIVO — modelos reales de Meta a través del gateway de Shield (alojado, gasto con tope)"
+            else f"EN VIVO — modelos reales de Meta a través del gateway de {BRAND} (alojado, gasto con tope)"
         )
     def _L(key: str) -> str:
         return labels.get(key) or T["en"].get(key, key)
@@ -1618,6 +1669,11 @@ def render_live_page(
         ]
     )
     no_key_hidden = "" if no_key and not replay else " hidden"
+    # La repetición pública no es «live»: el título solo dice «Live» en /live.
+    page_title = f"{BRAND} — {SUBTITLE}" if replay else f"{BRAND} — {SUBTITLE} · Live"
+    initial_cost = (
+        _L("replay_cost") if replay else "USD 0.0000 " + _L("cost_of_cap").replace("{cap}", "1.00")
+    )
     if replay:
         mode_switch = (
             f"<nav class='mode-switch'><a href='/?scene={scene}&lang={lang}' aria-current='true'>{_e(_L('replay'))}</a>"
@@ -1643,20 +1699,20 @@ def render_live_page(
     return (
         "<!doctype html>\n"
         f"<html lang='{_e(lang)}'><head><meta charset='utf-8'>"
-        "<link rel='icon' href='data:,'>"
+        f"<link rel='icon' href=\"{favicon_href()}\">"
         "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-        f"<title>{_e(BRAND)} — {_e(SUBTITLE)} live</title>"
+        f"<title>{_e(page_title)}</title>"
         f"<style>{_CSS}</style></head><body>"
         "<header class='band'><div class='inner'>"
         "<div class='band-top'>"
-        f"<p class='brandline'><strong>{_e(BRAND)}</strong> · {_e(SUBTITLE)}</p>"
+        f"<p class='brandline'><strong>{brand_mark_html()}</strong> · {_e(SUBTITLE)}</p>"
         f"<span class='live-label'>{_e(labels['live_label'])}</span>"
         "<div class='band-tools'>"
         f"{mode_switch}"
         f"{scene_switch}"
         f"<span class='lang'><a href='{lang_base}lang=en'{en_current}>EN</a>"
         f"<a href='{lang_base}lang=es'{es_current}>ES</a></span>"
-        "<span id='costLabel'>USD 0.0000 of 1.00 cap</span>"
+        f"<span id='costLabel'>{_e(initial_cost)}</span>"
         f"<span>{_e(_L('chain_duration'))}: <span id='chainDuration'>00:00</span></span>"
         f"<button class='btn ghost' id='newRunBtn' type='button'>{_e(_L('new_run'))}</button>"
         "</div></div>"
@@ -1673,15 +1729,16 @@ def render_live_page(
         "</div>"
         f"<div class='clockbox'><p id='clockLabel'>{_e(_L('time_to_401'))}</p>"
         "<p id='bigClock'>--:--</p>"
-        f"<p class='clock-note'>{_e(_L('real_incident'))}</p></div>"
+        + ("" if cold else f"<p class='clock-note'>{_e(_L('real_incident'))}</p>")
+        + "</div>"
         "</div></div></header>"
         "<div class='stickybar'><div class='sticky-inner'>"
-        f"<span class='sticky-brand'>{_e(BRAND)}</span>"
+        f"<span class='sticky-brand'>{brand_mark_html()}</span>"
         f"<span class='sticky-group'><span class='sticky-label' id='stickyClockLabel'>{_e(_L('time_to_401'))}</span>"
         "<span class='sticky-clock' id='stickyClock'>--:--</span></span>"
         f"<span class='sticky-group'><span class='sticky-label'>{_e(_L('sticky_attacker'))}</span>"
         "<span class='sticky-group' id='stickyAttacker'></span></span>"
-        f"<span class='sticky-group'><span class='sticky-label'>{_e(_L('sticky_sdk'))}</span>"
+        f"<span class='sticky-group sticky-sdk'><span class='sticky-label'>{_e(_L('sticky_sdk'))}</span>"
         "<span class='sticky-group' id='stickySdk'></span></span>"
         "<span class='sticky-cost' id='stickyCost'>USD 0.0000</span>"
         f"<button class='btn ghost' id='stickyNewRunBtn' type='button'>{_e(_L('new_run'))}</button>"
@@ -1692,8 +1749,8 @@ def render_live_page(
         f"<section class='prov'><div class='prov-head'><h2>{_e(_L('provenance'))}</h2>"
         f"<a class='btn secondary' href='{api}/provenance.json'>{_e(_L('export_log'))}</a></div>"
         + (f"<p class='replay-note'>{_e(prov_note)}</p>" if replay else "")
-        + f"<p id='sparkOpenRow' class='spark-open'>{_e(spark_row)}</p>"
-        f"<details class='more'><summary>{_e(_L('prov_table'))} <span id='provCount'></span></summary>"
+        + ("" if replay else f"<p id='sparkOpenRow' class='spark-open'>{_e(spark_row)}</p>")
+        + f"<details class='more'><summary>{_e(_L('prov_table'))} <span id='provCount'></span></summary>"
         "<div class='tablewrap'><table><thead><tr>"
         f"<th>{_e(_L('th_step'))}</th><th>{_e(_L('th_agent'))}</th>"
         f"<th>{_e(_L('th_model'))}</th><th>{_e(_L('th_response'))}</th>"
@@ -1716,13 +1773,13 @@ def render_live_inactive_page(lang: str = "en") -> str:
     return (
         "<!doctype html>\n"
         f"<html lang='{_e(lang)}'><head><meta charset='utf-8'>"
-        "<link rel='icon' href='data:,'>"
+        f"<link rel='icon' href=\"{favicon_href()}\">"
         "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-        f"<title>{_e(BRAND)} — {_e(SUBTITLE)} live</title>"
+        f"<title>{_e(BRAND)} — {_e(SUBTITLE)} · Live</title>"
         f"<style>{_CSS}</style></head><body>"
         "<header class='band'><div class='inner'>"
         "<div class='band-top'>"
-        f"<p class='brandline'><strong>{_e(BRAND)}</strong> · {_e(SUBTITLE)}</p>"
+        f"<p class='brandline'><strong>{brand_mark_html()}</strong> · {_e(SUBTITLE)}</p>"
         "<div class='band-tools'>"
         f"<nav class='mode-switch'><a href='/'>{_e(_t(lang, 'replay'))}</a>"
         f"<a href='/live' aria-current='true'>{_e(_t(lang, 'live'))}</a></nav>"

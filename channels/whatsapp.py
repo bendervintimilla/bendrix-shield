@@ -33,6 +33,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import PlainTextResponse
 
 from channels.approvals import ApprovalBroker
+from shield.brand import BRAND
 
 # Margen de reloj entre WhatsApp y este servidor al comparar con la hora del plan.
 VOICE_CLOCK_SKEW_S = 5.0
@@ -384,7 +385,7 @@ class WhatsAppChannel:
             for s in (plan.get("steps") or [])
             if isinstance(s, dict)
         )
-        text = f"Shield plan: {summary}"
+        text = f"{BRAND} plan: {summary}"
         if steps:
             text += f" Steps: {steps}."
         text += " Reply with a voice note: “yes, rotate it” / “no”."
@@ -417,7 +418,7 @@ class WhatsAppChannel:
             except Exception as exc:  # el aviso no debe tumbar el webhook
                 print(f"[whatsapp] could not record error: {exc}", file=sys.stderr, flush=True)
         try:
-            self.send_text(f"Wairrior: {error}.")
+            self.send_text(f"{BRAND}: {error}.")
         except Exception as exc:
             print(f"[whatsapp] could not reply: {exc}", file=sys.stderr, flush=True)
 
@@ -484,7 +485,7 @@ class WhatsAppChannel:
             heard = f"Heard: “{transcript}”. Understood: {action}."
             status = str(voice.get("status") or "")
             if status == "replayed":
-                self.send_text(f"Wairrior: {voice.get('error') or 'recording already used'}.")
+                self.send_text(f"{BRAND}: {voice.get('error') or 'recording already used'}.")
                 return {**base, "status": status, "voice": voice}
             if status == "confirmation_required":
                 self.send_text(heard + " Reply “confirm” to confirm.")
@@ -583,7 +584,7 @@ class WhatsAppChannel:
                 code = getattr(exc, "code", "rejected")
                 self.send_text(f"No se aprobó {approval_id}: {code}.")
                 return {**base, "status": code, "approval_id": approval_id}
-            self.send_text(f"Aprobado {approval_id}. Shield ejecuta el plan.")
+            self.send_text(f"Aprobado {approval_id}. {BRAND} ejecuta el plan.")
             return {**base, "status": "approved", "approval_id": approval_id}
         if action == "reject":
             self.broker.reject(approval_id)

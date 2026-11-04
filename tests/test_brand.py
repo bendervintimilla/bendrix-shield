@@ -1,4 +1,4 @@
-"""Marca pública Wairrior: única fuente, reexportación y set_brand (sin red)."""
+"""Marca pública wAIrrior: única fuente, reexportación y set_brand (sin red)."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def _load_set_brand():
 def test_brand_es_wairrior_y_web_reexporta_la_misma_fuente():
     import web.brand
 
-    assert BRAND == "Wairrior"
+    assert BRAND == "wAIrrior"
     assert SUBTITLE == "Business Protection"
     assert web.brand.BRAND is BRAND
     assert web.brand.SUBTITLE is SUBTITLE
@@ -119,7 +119,7 @@ def test_set_brand_dry_run_no_toca_nada(tmp_path):
     module = _load_set_brand()
     root = _mini_tree(tmp_path)
     before = (root / "README.md").read_text(encoding="utf-8")
-    changed = module.apply_brand(root, "Wairrior", dry_run=True)
+    changed = module.apply_brand(root, "wAIrrior", dry_run=True)
     assert changed
     assert (root / "README.md").read_text(encoding="utf-8") == before
     assert module.current_brand(root) == "OldBrand"
@@ -128,30 +128,79 @@ def test_set_brand_dry_run_no_toca_nada(tmp_path):
 def test_set_brand_cambia_textos_y_conserva_nombres_tecnicos(tmp_path):
     module = _load_set_brand()
     root = _mini_tree(tmp_path)
-    module.apply_brand(root, "Wairrior")
-    assert module.current_brand(root) == "Wairrior"
+    module.apply_brand(root, "wAIrrior")
+    assert module.current_brand(root) == "wAIrrior"
     readme = (root / "README.md").read_text(encoding="utf-8")
-    assert readme.startswith("# Wairrior — Business Protection")
+    assert readme.startswith("# wAIrrior — Business Protection")
     assert "bendrix_shield" in readme and "bendrix-shield" in readme
     assert "bendrix-shield-panel-example.us-central1.run.app" in readme
     assert "OldBrand" not in readme
     assert 'name = "bendrix-shield"' in (root / "pyproject.toml").read_text(encoding="utf-8")
-    assert "Wairrior" in (root / "pyproject.toml").read_text(encoding="utf-8")
-    assert "Wairrior" in (root / "docs" / "guia.md").read_text(encoding="utf-8")
-    assert "Wairrior" in (root / "docs" / "brand" / "slides" / "01.svg").read_text(encoding="utf-8")
+    assert "wAIrrior" in (root / "pyproject.toml").read_text(encoding="utf-8")
+    assert "wAIrrior" in (root / "docs" / "guia.md").read_text(encoding="utf-8")
+    assert "wAIrrior" in (root / "docs" / "brand" / "slides" / "01.svg").read_text(encoding="utf-8")
     # De evals/report.md solo cambia el título; los datos no se tocan.
     report = (root / "evals" / "report.md").read_text(encoding="utf-8")
-    assert report == "# Evals de Wairrior — reporte completo\nDatos de OldBrand medidos.\n"
+    assert report == "# Evals de wAIrrior — reporte completo\nDatos de OldBrand medidos.\n"
 
 
 def test_set_brand_solo_toca_titulo_de_report(tmp_path):
     module = _load_set_brand()
     root = _mini_tree(tmp_path)
     before = (root / "evals" / "report.md").read_text(encoding="utf-8")
-    changed = module.apply_brand(root, "Wairrior", dry_run=True)
+    changed = module.apply_brand(root, "wAIrrior", dry_run=True)
     assert root / "evals" / "report.md" in changed
     assert (root / "evals" / "report.md").read_text(encoding="utf-8") == before
-    module.apply_brand(root, "Wairrior")
+    module.apply_brand(root, "wAIrrior")
     assert (root / "evals" / "report.md").read_text(encoding="utf-8") == (
-        "# Evals de Wairrior — reporte completo\nDatos de OldBrand medidos.\n"
+        "# Evals de wAIrrior — reporte completo\nDatos de OldBrand medidos.\n"
     )
+
+
+def test_titular_favicon_y_rotulos_escriben_wairrior_con_ai_resaltado():
+    from web.brand import brand_mark_html, favicon_href
+    from web.live_page import _hero_brand_html, render_live_page
+
+    hero = _hero_brand_html(BRAND)
+    assert hero == (
+        "<span class='hero-outline'>w</span>"
+        "<span class='hero-fill'>AI</span>"
+        "<span class='hero-outline'>rrior</span>"
+    )
+    assert "·" not in hero
+    assert brand_mark_html() == "w<span class='brand-ai'>AI</span>rrior"
+    fav = favicon_href()
+    assert fav.startswith("data:image/svg+xml,") and "%3Ew%3C" in fav and "http://" not in fav
+    for lang in ("en", "es"):
+        page = render_live_page(lang, replay=True)
+        assert f"<title>{BRAND} — {SUBTITLE}</title>" in page
+        assert " live</title>" not in page.lower()
+        assert "Wairrior" not in page and "Shield gateway" not in page
+        assert "gateway de Shield" not in page
+        live = render_live_page(lang)
+        assert f"{BRAND} gateway" in live or f"gateway de {BRAND}" in live
+
+
+def test_pantalla_de_acceso_live_usa_la_marca():
+    from web.live_access import render_login
+
+    page = render_login(5.0, 3)
+    assert f"<title>{BRAND} · live mode</title>" in page
+    assert "w<span class='brand-ai'>AI</span>rrior · live mode" in page
+    assert "Wairrior" not in page
+
+
+def test_set_brand_from_reemplaza_el_nombre_anterior_si_brand_py_ya_cambio(tmp_path):
+    module = _load_set_brand()
+    root = _mini_tree(tmp_path)
+    (root / "shield" / "brand.py").write_text(
+        'BRAND = "NewBrand"\nSUBTITLE = "Business Protection"\n', encoding="utf-8"
+    )
+    module.apply_brand(root, "NewBrand", old_name="OldBrand")
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert readme.startswith("# NewBrand — Business Protection") and "OldBrand" not in readme
+
+
+def test_wordmark_svg_resalta_ai_en_ambar():
+    svg = (ROOT / "docs" / "brand" / "wordmark.svg").read_text(encoding="utf-8")
+    assert 'w<tspan fill="#E8A33D">AI</tspan>rrior' in svg

@@ -46,7 +46,7 @@ from shield.registry import Registry
 from shield.schemas import CallLog
 from shield.sdk.token_store import InMemoryTokenStore
 from shield.vault.vault import get_vault
-from web.brand import BRAND, SUBTITLE
+from web.brand import BRAND, SUBTITLE, favicon_href
 from web.live_access import (
     COOKIE_NAME,
     COOKIE_TTL_S,
@@ -1445,12 +1445,7 @@ def _resolve_lang(request: Request | None) -> str:
 
 
 def _page(state: DemoState, lang: str = "en") -> str:
-    favicon = (
-        "data:image/svg+xml,%3Csvg viewBox='0 0 64 64'%3E"
-        "%3Crect width='64' height='64' fill='%23111113'/%3E"
-        "%3Ctext x='32' y='42' font-family='system-ui,sans-serif' font-size='28' "
-        f"fill='%23E8A33D' text-anchor='middle'%3E{(BRAND[:1] or 'N')}%3C/text%3E%3C/svg%3E"
-    )
+    favicon = favicon_href(BRAND)
     return (
         f"<!doctype html>\n<html lang='{_esc(lang)}'><head><meta charset='utf-8'>"
         f"<meta name='viewport' content='width=device-width, initial-scale=1'>"
