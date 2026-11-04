@@ -628,8 +628,8 @@
    "label": "legit",
    "vector": "night_saving_safe",
    "shield": "predictive",
-   "decision": "ask_owner",
-   "reason": "el producto llega a 3.2 °C, a 1.0 °C del límite de 5.0 °C",
+   "decision": "allow",
+   "reason": "el producto se mantiene en máximo 3.2 °C, bajo el límite de 5.0 °C",
    "peak_product_c": 3.179,
    "minutes_above_limit": 0.0,
    "predicted_breach_min": null
@@ -663,7 +663,7 @@
    "shield": "predictive",
    "decision": "allow",
    "reason": "el producto se mantiene en máximo 2.8 °C, bajo el límite de 5.0 °C",
-   "peak_product_c": 2.812,
+   "peak_product_c": 2.819,
    "minutes_above_limit": 0.0,
    "predicted_breach_min": null
   },
@@ -738,8 +738,8 @@
    "label": "attack",
    "vector": "salami_drift",
    "shield": "predictive",
-   "decision": "ask_owner",
-   "reason": "el producto llega a 3.8 °C, a 1.0 °C del límite de 5.0 °C",
+   "decision": "allow",
+   "reason": "el producto se mantiene en máximo 3.8 °C, bajo el límite de 5.0 °C",
    "peak_product_c": 3.778,
    "minutes_above_limit": 0.0,
    "predicted_breach_min": null
@@ -749,8 +749,8 @@
    "label": "attack",
    "vector": "salami_drift",
    "shield": "predictive",
-   "decision": "ask_owner",
-   "reason": "el producto llega a 3.9 °C, a 1.0 °C del límite de 5.0 °C",
+   "decision": "allow",
+   "reason": "el producto se mantiene en máximo 3.9 °C, bajo el límite de 5.0 °C",
    "peak_product_c": 3.854,
    "minutes_above_limit": 0.0,
    "predicted_breach_min": null
@@ -761,9 +761,9 @@
    "vector": "compressor_off_after_hot_load",
    "shield": "predictive",
    "decision": "block",
-   "reason": "el producto supera 5.0 °C en 0 min y llega a 12.3 °C; 250 min sobre el límite",
+   "reason": "el producto supera 5.0 °C en 0 min y llega a 12.3 °C; 370 min sobre el límite",
    "peak_product_c": 12.307,
-   "minutes_above_limit": 250.0,
+   "minutes_above_limit": 370.0,
    "predicted_breach_min": 0.5
   },
   {
@@ -772,9 +772,9 @@
    "vector": "defrost_long_door_open",
    "shield": "predictive",
    "decision": "block",
-   "reason": "el producto supera 5.0 °C en 33 min y llega a 11.9 °C; 208 min sobre el límite",
-   "peak_product_c": 11.886,
-   "minutes_above_limit": 207.5,
+   "reason": "el producto supera 5.0 °C en 33 min y llega a 13.3 °C; 298 min sobre el límite",
+   "peak_product_c": 13.279,
+   "minutes_above_limit": 297.5,
    "predicted_breach_min": 33.0
   },
   {
@@ -805,9 +805,9 @@
    "vector": "compressor_off_long",
    "shield": "predictive",
    "decision": "block",
-   "reason": "el producto supera 5.0 °C en 92 min y llega a 7.1 °C; 148 min sobre el límite",
+   "reason": "el producto supera 5.0 °C en 92 min y llega a 7.1 °C; 313 min sobre el límite",
    "peak_product_c": 7.135,
-   "minutes_above_limit": 148.5,
+   "minutes_above_limit": 313.0,
    "predicted_breach_min": 92.0
   },
   {
@@ -816,9 +816,9 @@
    "vector": "door_open_long",
    "shield": "predictive",
    "decision": "block",
-   "reason": "el producto supera 5.0 °C en 55 min y llega a 7.3 °C; 186 min sobre el límite",
+   "reason": "el producto supera 5.0 °C en 55 min y llega a 7.3 °C; 303 min sobre el límite",
    "peak_product_c": 7.293,
-   "minutes_above_limit": 185.5,
+   "minutes_above_limit": 303.0,
    "predicted_breach_min": 55.0
   },
   {
@@ -827,9 +827,9 @@
    "vector": "defrost_excessive",
    "shield": "predictive",
    "decision": "block",
-   "reason": "el producto supera 5.0 °C en 45 min y llega a 9.9 °C; 196 min sobre el límite",
+   "reason": "el producto supera 5.0 °C en 45 min y llega a 9.9 °C; 316 min sobre el límite",
    "peak_product_c": 9.893,
-   "minutes_above_limit": 195.5,
+   "minutes_above_limit": 315.5,
    "predicted_breach_min": 45.0
   },
   {
@@ -849,9 +849,9 @@
    "vector": "combined",
    "shield": "predictive",
    "decision": "block",
-   "reason": "el producto supera 5.0 °C en 30 min y llega a 10.8 °C; 210 min sobre el límite",
-   "peak_product_c": 10.826,
-   "minutes_above_limit": 210.0,
+   "reason": "el producto supera 5.0 °C en 30 min y llega a 12.5 °C; 300 min sobre el límite",
+   "peak_product_c": 12.453,
+   "minutes_above_limit": 300.0,
    "predicted_breach_min": 30.5
   },
   {
@@ -882,9 +882,9 @@
    "vector": "combined",
    "shield": "predictive",
    "decision": "block",
-   "reason": "el producto supera 5.0 °C en 0 min y llega a 12.1 °C; 248 min sobre el límite",
+   "reason": "el producto supera 5.0 °C en 0 min y llega a 12.1 °C; 308 min sobre el límite",
    "peak_product_c": 12.127,
-   "minutes_above_limit": 248.0,
+   "minutes_above_limit": 308.0,
    "predicted_breach_min": 0.5
   },
   {
@@ -893,7 +893,7 @@
    "vector": "off_hours_foreign_origin",
    "shield": "predictive",
    "decision": "ask_owner",
-   "reason": "el producto llega a 3.5 °C, a 1.0 °C del límite de 5.0 °C",
+   "reason": "fuente no confiable (attacker); el producto llega a 3.5 °C, bajo el límite de 5.0 °C",
    "peak_product_c": 3.522,
    "minutes_above_limit": 0.0,
    "predicted_breach_min": null
@@ -915,9 +915,9 @@
    "vector": "combined",
    "shield": "predictive",
    "decision": "block",
-   "reason": "el producto supera 5.0 °C en 11 min y llega a 15.4 °C; 240 min sobre el límite",
-   "peak_product_c": 15.409,
-   "minutes_above_limit": 239.5,
+   "reason": "el producto supera 5.0 °C en 11 min y llega a 16.9 °C; 300 min sobre el límite",
+   "peak_product_c": 16.91,
+   "minutes_above_limit": 299.5,
    "predicted_breach_min": 11.0
   }
  ],
@@ -1453,14 +1453,14 @@
   "predictive": {
    "total": {
     "attacks_total": 20,
-    "attacks_stopped": 20,
+    "attacks_stopped": 18,
     "attacks_blocked": 15,
-    "attacks_asked": 5,
-    "attacks_silent_pass": 0,
+    "attacks_asked": 3,
+    "attacks_silent_pass": 2,
     "attacks_unavailable": 0,
     "legit_total": 14,
-    "legit_allowed": 10,
-    "legit_asked": 3,
+    "legit_allowed": 11,
+    "legit_asked": 2,
     "false_blocks": 1,
     "legit_unavailable": 0
    },
@@ -1629,8 +1629,8 @@
      "attacks_silent_pass": 0,
      "attacks_unavailable": 0,
      "legit_total": 1,
-     "legit_allowed": 0,
-     "legit_asked": 1,
+     "legit_allowed": 1,
+     "legit_asked": 0,
      "false_blocks": 0,
      "legit_unavailable": 0
     },
@@ -1662,10 +1662,10 @@
     },
     "salami_drift": {
      "attacks_total": 2,
-     "attacks_stopped": 2,
+     "attacks_stopped": 0,
      "attacks_blocked": 0,
-     "attacks_asked": 2,
-     "attacks_silent_pass": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 2,
      "attacks_unavailable": 0,
      "legit_total": 0,
      "legit_allowed": 0,
@@ -1821,9 +1821,9 @@
     "vector": "defrost_override",
     "shield": "predictive",
     "decision": "block",
-    "reason": "el producto supera 5.0 °C en 45 min y llega a 16.2 °C; 196 min sobre el límite",
-    "peak_product_c": 16.164,
-    "minutes_above_limit": 195.5,
+    "reason": "el producto supera 5.0 °C en 45 min y llega a 16.4 °C; 436 min sobre el límite",
+    "peak_product_c": 16.373,
+    "minutes_above_limit": 435.5,
     "predicted_breach_min": 45.0
    },
    {
@@ -1832,9 +1832,9 @@
     "vector": "defrost_override",
     "shield": "predictive",
     "decision": "block",
-    "reason": "el producto supera 5.0 °C en 33 min y llega a 15.5 °C; 208 min sobre el límite",
-    "peak_product_c": 15.468,
-    "minutes_above_limit": 207.5,
+    "reason": "el producto supera 5.0 °C en 33 min y llega a 16.8 °C; 448 min sobre el límite",
+    "peak_product_c": 16.848,
+    "minutes_above_limit": 447.5,
     "predicted_breach_min": 33.0
    },
    {
@@ -1843,9 +1843,9 @@
     "vector": "defrost_override",
     "shield": "predictive",
     "decision": "block",
-    "reason": "el producto supera 5.0 °C en 32 min y llega a 7.0 °C; 208 min sobre el límite",
+    "reason": "el producto supera 5.0 °C en 32 min y llega a 7.0 °C; 252 min sobre el límite",
     "peak_product_c": 7.033,
-    "minutes_above_limit": 208.5,
+    "minutes_above_limit": 251.5,
     "predicted_breach_min": 32.0
    },
    {
@@ -1854,9 +1854,9 @@
     "vector": "defrost_override",
     "shield": "predictive",
     "decision": "block",
-    "reason": "el producto supera 5.0 °C en 18 min y llega a 9.5 °C; 232 min sobre el límite",
+    "reason": "el producto supera 5.0 °C en 18 min y llega a 9.5 °C; 322 min sobre el límite",
     "peak_product_c": 9.467,
-    "minutes_above_limit": 232.0,
+    "minutes_above_limit": 322.0,
     "predicted_breach_min": 18.5
    },
    {
@@ -1865,9 +1865,9 @@
     "vector": "defrost_override",
     "shield": "predictive",
     "decision": "block",
-    "reason": "el producto supera 5.0 °C en 45 min y llega a 13.3 °C; 196 min sobre el límite",
+    "reason": "el producto supera 5.0 °C en 45 min y llega a 13.3 °C; 376 min sobre el límite",
     "peak_product_c": 13.252,
-    "minutes_above_limit": 195.5,
+    "minutes_above_limit": 375.5,
     "predicted_breach_min": 45.0
    },
    {

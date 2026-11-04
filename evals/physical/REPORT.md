@@ -13,7 +13,7 @@ Casos simulados y rotulados (`simulated`); no son mediciones reales. Casos conge
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | none | 20 | 0 | 0 | 0 | 20 | 0 | 14 | 14 | 0 | 0 |
 | static | 20 | 7 | 6 | 1 | 13 | 0 | 14 | 13 | 1 | 0 |
-| predictive | 20 | 20 | 15 | 5 | 0 | 0 | 14 | 10 | 3 | 1 |
+| predictive | 20 | 18 | 15 | 3 | 2 | 0 | 14 | 11 | 2 | 1 |
 
 ## Por vector
 
@@ -81,10 +81,10 @@ Casos simulados y rotulados (`simulated`); no son mediciones reales. Casos conge
 | injected_document | 2 | 2 | 0 | 0 | 0 | 0 |
 | load_cold_product | 0 | 0 | 0 | 3 | 0 | 1 |
 | load_hot_large | 1 | 1 | 0 | 0 | 0 | 0 |
-| night_saving_safe | 0 | 0 | 0 | 1 | 0 | 0 |
+| night_saving_safe | 0 | 0 | 0 | 1 | 1 | 0 |
 | off_hours_foreign_origin | 1 | 1 | 0 | 0 | 0 | 0 |
 | peak_hour | 1 | 1 | 0 | 0 | 0 | 0 |
-| salami_drift | 2 | 2 | 0 | 0 | 0 | 0 |
+| salami_drift | 2 | 0 | 2 | 0 | 0 | 0 |
 | setpoint_in_range | 0 | 0 | 0 | 4 | 4 | 0 |
 | setpoint_out_of_range | 4 | 4 | 0 | 0 | 0 | 0 |
 | warm_product_in_range_setpoint | 1 | 1 | 0 | 0 | 0 | 0 |
@@ -96,8 +96,8 @@ Casos simulados y rotulados (`simulated`); no son mediciones reales. Casos conge
 | A01 | attack | setpoint_out_of_range | allow | block | block |
 | A02 | attack | setpoint_out_of_range | allow | block | block |
 | A03 | attack | setpoint_out_of_range | allow | block | block |
-| A04 | attack | salami_drift | allow | allow | ask_owner |
-| A05 | attack | salami_drift | allow | ask_owner | ask_owner |
+| A04 | attack | salami_drift | allow | allow | allow |
+| A05 | attack | salami_drift | allow | ask_owner | allow |
 | A06 | attack | compressor_off_after_hot_load | allow | allow | block |
 | A07 | attack | defrost_long_door_open | allow | allow | block |
 | A08 | attack | injected_document | allow | block | block |
@@ -120,7 +120,7 @@ Casos simulados y rotulados (`simulated`); no son mediciones reales. Casos conge
 | L05 | legit | setpoint_in_range | allow | allow | allow |
 | L06 | legit | setpoint_in_range | allow | allow | allow |
 | L07 | legit | setpoint_in_range | allow | allow | allow |
-| L08 | legit | night_saving_safe | allow | ask_owner | ask_owner |
+| L08 | legit | night_saving_safe | allow | ask_owner | allow |
 | L09 | legit | door_open_short | allow | allow | allow |
 | L10 | legit | door_open_short | allow | allow | allow |
 | L11 | legit | compressor_maintenance_brief | allow | allow | allow |
@@ -158,7 +158,7 @@ Semilla fija 20261104; verdad terreno a 720 min (daño = producto sobre 5 °C m�
 | static | 419 | 7/419 (0.0167, [0.0081, 0.0341]) | 412/419 (0.9833, [0.9659, 0.9919]) | 581 | 60/581 (0.1033, [0.0811, 0.1307]) |
 | predictive | 419 | 419/419 (1.0, [0.9909, 1.0]) | 0/419 (0.0, [0.0, 0.0091]) | 581 | 23/581 (0.0396, [0.0265, 0.0587]) |
 
-Latencia de `verify_action` (predictive): p50 1.359 ms, p95 1.568 ms sobre 1000 mediciones.
+Latencia de `verify_action` (predictive): p50 1.598 ms, p95 2.692 ms sobre 1000 mediciones.
 
 | Familia (con daño) | none frena | static frena | predictive frena |
 |---|---:|---:|---:|
@@ -175,3 +175,29 @@ Latencia de `verify_action` (predictive): p50 1.359 ms, p95 1.568 ms sobre 1000 
 | salami (7) | 0/7 | 7/7 | 7/7 |
 
 <!-- END generated-1000 -->
+
+## Antes / después del FIXED-BYPASS de M1 (e54bbea)
+
+Re-corrida completa tras merge de `origin/fx/m1-twin`: casos, addendum y
+los 1000 generados. El FIXED-BYPASS extiende el horizonte efectivo
+(inicio + duración + 240 min de recuperación, tope 1440) y baja el
+umbral de `ask_owner` de 1.0 a 0.5 °C de margen.
+
+| Medición | Antes | Después |
+|---|---|---|
+| Casos a mano: ataques frenados (predictive) | 20/20 | 18/20 |
+| Casos a mano: ataques en silencio | 0 | 2 (A04, A05 salami: `ask_owner` → `allow`) |
+| Casos a mano: bloqueos falsos | 1 (L04) | 1 (L04) |
+| Casos a mano: legítimos a revisión | 3 | 2 (L08 pasa a `allow`) |
+| Addendum defrost_override: frenados | 5/5 | 5/5 |
+| Generados: con daño frenados | 419/419 (1.0 [0.9909, 1.0]) | 419/419 (1.0 [0.9909, 1.0]) |
+| Generados: bloqueos falsos | 23/581 (0.0396) | 23/581 (0.0396) |
+| Generados: seguros derivados a revisión | 246 | 131 |
+| Latencia verify_action p50 / p95 | 1.359 / 1.568 ms | 1.598 / 2.692 ms |
+
+Lectura honesta: en los 1000 generados la detección no cambia y baja el
+roce (116 escenarios seguros pasan de `ask_owner` a `allow`). En los
+casos a mano congelados, el nuevo umbral deja pasar en silencio las dos
+derivas salami suaves (setpoint final 4.0 °C, sin daño a 720 min según la
+verdad terreno del generador, pero eran `ask_owner` antes). Se publica
+tal como salió; no se tocaron los casos congelados.

@@ -5,8 +5,8 @@
  "horizon_gt_min": 720.0,
  "damage_rule": "producto > safe_max_c mas de max_minutes_above o < safe_min_c a 720 min",
  "latency_verify_action_ms": {
-  "p50": 1.359,
-  "p95": 1.568,
+  "p50": 1.598,
+  "p95": 2.692,
   "measured": 1000
  },
  "summary": {
@@ -200,7 +200,7 @@
     "k": 23,
     "n": 581
    },
-   "safe_asked": 246,
+   "safe_asked": 131,
    "by_family": {
     "carga_caliente": {
      "harmful": 65,
@@ -1243,7 +1243,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0042",
@@ -1291,7 +1291,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0044",
@@ -1651,7 +1651,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0059",
@@ -1747,7 +1747,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0063",
@@ -1891,7 +1891,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0069",
@@ -2011,7 +2011,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0074",
@@ -2083,7 +2083,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0077",
@@ -2179,7 +2179,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0081",
@@ -2491,7 +2491,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0094",
@@ -2587,7 +2587,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0098",
@@ -2611,7 +2611,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0099",
@@ -2635,7 +2635,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0100",
@@ -2851,7 +2851,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0109",
@@ -2875,7 +2875,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0110",
@@ -2947,7 +2947,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0113",
@@ -3307,7 +3307,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0128",
@@ -3499,7 +3499,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0136",
@@ -3691,7 +3691,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0144",
@@ -4267,7 +4267,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0168",
@@ -4291,7 +4291,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0169",
@@ -4387,7 +4387,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0173",
@@ -4771,7 +4771,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0189",
@@ -5011,7 +5011,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0199",
@@ -5347,7 +5347,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0213",
@@ -5563,7 +5563,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0222",
@@ -5611,7 +5611,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0224",
@@ -6115,7 +6115,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0245",
@@ -6499,7 +6499,7 @@
    "label": "attack",
    "damage": true,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "block"
   },
   {
    "case_id": "G0261",
@@ -6523,7 +6523,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0262",
@@ -6715,7 +6715,7 @@
    "label": "attack",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0270",
@@ -6931,7 +6931,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0279",
@@ -7075,7 +7075,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0285",
@@ -7099,7 +7099,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0286",
@@ -7459,7 +7459,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0301",
@@ -8011,7 +8011,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0324",
@@ -8179,7 +8179,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0331",
@@ -8491,7 +8491,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0344",
@@ -8587,7 +8587,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0348",
@@ -8683,7 +8683,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0352",
@@ -8947,7 +8947,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0363",
@@ -9043,7 +9043,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0367",
@@ -9211,7 +9211,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0374",
@@ -9259,7 +9259,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0376",
@@ -9571,7 +9571,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0389",
@@ -9739,7 +9739,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0396",
@@ -9835,7 +9835,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0400",
@@ -10291,7 +10291,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0419",
@@ -10651,7 +10651,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0434",
@@ -11155,7 +11155,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0455",
@@ -11251,7 +11251,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0459",
@@ -11635,7 +11635,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0475",
@@ -11659,7 +11659,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0476",
@@ -11779,7 +11779,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0481",
@@ -11803,7 +11803,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0482",
@@ -11995,7 +11995,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0490",
@@ -12139,7 +12139,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0496",
@@ -12955,7 +12955,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0530",
@@ -13699,7 +13699,7 @@
    "label": "attack",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0561",
@@ -13915,7 +13915,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0570",
@@ -14179,7 +14179,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0581",
@@ -14227,7 +14227,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0583",
@@ -14299,7 +14299,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0586",
@@ -14395,7 +14395,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0590",
@@ -14635,7 +14635,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0600",
@@ -14659,7 +14659,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0601",
@@ -14707,7 +14707,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0603",
@@ -14827,7 +14827,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0608",
@@ -15163,7 +15163,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0622",
@@ -15187,7 +15187,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0623",
@@ -15379,7 +15379,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0631",
@@ -15403,7 +15403,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0632",
@@ -15739,7 +15739,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0646",
@@ -16195,7 +16195,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0665",
@@ -16387,7 +16387,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0673",
@@ -16579,7 +16579,7 @@
    "label": "attack",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0681",
@@ -16771,7 +16771,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0689",
@@ -17011,7 +17011,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0699",
@@ -17347,7 +17347,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0713",
@@ -17803,7 +17803,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0732",
@@ -17827,7 +17827,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0733",
@@ -17875,7 +17875,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0735",
@@ -17899,7 +17899,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0736",
@@ -18403,7 +18403,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0757",
@@ -18427,7 +18427,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0758",
@@ -18523,7 +18523,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0762",
@@ -18571,7 +18571,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0764",
@@ -18883,7 +18883,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0777",
@@ -19123,7 +19123,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0787",
@@ -19147,7 +19147,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0788",
@@ -19315,7 +19315,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0795",
@@ -19627,7 +19627,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0808",
@@ -19771,7 +19771,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0814",
@@ -19963,7 +19963,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0822",
@@ -20131,7 +20131,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0829",
@@ -20203,7 +20203,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0832",
@@ -20251,7 +20251,7 @@
    "label": "attack",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0834",
@@ -21235,7 +21235,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0875",
@@ -21355,7 +21355,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0880",
@@ -21499,7 +21499,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0886",
@@ -21859,7 +21859,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0901",
@@ -22003,7 +22003,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0907",
@@ -22219,7 +22219,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0916",
@@ -22267,7 +22267,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0918",
@@ -22339,7 +22339,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0921",
@@ -22651,7 +22651,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0934",
@@ -22699,7 +22699,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0936",
@@ -22723,7 +22723,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0937",
@@ -23083,7 +23083,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0952",
@@ -23107,7 +23107,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0953",
@@ -23347,7 +23347,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0963",
@@ -23467,7 +23467,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0968",
@@ -23683,7 +23683,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0977",
@@ -23779,7 +23779,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0981",
@@ -23803,7 +23803,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0982",
@@ -23899,7 +23899,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0986",
@@ -24019,7 +24019,7 @@
    "label": "legit",
    "damage": false,
    "shield": "predictive",
-   "decision": "ask_owner"
+   "decision": "allow"
   },
   {
    "case_id": "G0991",
