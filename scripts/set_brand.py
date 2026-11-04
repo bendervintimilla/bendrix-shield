@@ -53,11 +53,15 @@ def target_files(root: Path) -> list[Path]:
     return unique
 
 
-def apply_brand(root: Path, new_name: str, *, dry_run: bool = False) -> list[Path]:
+def apply_brand(
+    root: Path, new_name: str, *, dry_run: bool = False, old_name: str | None = None
+) -> list[Path]:
+    """Aplica ``new_name``. ``old_name`` sirve cuando ``shield/brand.py`` ya cambió
+    y quedan textos con el nombre anterior (p. ej. «Wairrior» → «wAIrrior»)."""
     new_name = new_name.strip()
     if not new_name or any(ch in new_name for ch in '"\\\n\r'):
         raise ValueError("nombre de marca inválido")
-    old_name = current_brand(root)
+    old_name = (old_name or "").strip() or current_brand(root)
     changed: list[Path] = []
     brand_file = root / "shield" / "brand.py"
     text = brand_file.read_text(encoding="utf-8")
@@ -91,12 +95,15 @@ def apply_brand(root: Path, new_name: str, *, dry_run: bool = False) -> list[Pat
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Cambia la marca pública (shield/brand.py).")
-    parser.add_argument("new_name", help="nuevo nombre público, ej. Wairrior")
+    parser.add_argument("new_name", help="nuevo nombre público, ej. wAIrrior")
     parser.add_argument("--dry-run", action="store_true", help="solo muestra qué cambiaría")
+    parser.add_argument(
+        "--from", dest="old_name", default=None, help="nombre anterior a reemplazar en los textos"
+    )
     parser.add_argument("--root", type=Path, default=ROOT, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
-    old = current_brand(args.root)
-    changed = apply_brand(args.root, args.new_name, dry_run=args.dry_run)
+    old = args.old_name or current_brand(args.root)
+    changed = apply_brand(args.root, args.new_name, dry_run=args.dry_run, old_name=args.old_name)
     mode = "dry-run, sin cambios" if args.dry_run else "actualizados"
     print(f"marca: {old} -> {args.new_name.strip()} ({mode}: {len(changed)} archivos)")
     for path in changed:

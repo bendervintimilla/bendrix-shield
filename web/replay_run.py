@@ -165,6 +165,7 @@ class ReplayRun:
             "provenance": self._provenance(),
             "voice": {
                 "channel": "browser" if voice else None,
+                "input_mode": "typed" if voice else None,
                 "transcript": voice.get("transcript", ""),
                 "status": voice.get("status"),
                 "intent": voice.get("intent"),
@@ -172,8 +173,17 @@ class ReplayRun:
         }
 
     # -- pasos -------------------------------------------------------------------
-    def _error(self, message: str) -> dict[str, Any]:
-        return {"status": "error", "error": message}
+    def _error(
+        self, message: str, *, need: str | None = None, code: str | None = None
+    ) -> dict[str, Any]:
+        """Error de paso. ``need`` es el paso que falta: la pantalla lo traduce."""
+        out: dict[str, Any] = {"status": "error", "error": message}
+        if code:
+            out["error_code"] = code
+        if need:
+            out["error_code"] = "needs_step"
+            out["need"] = need
+        return out
 
     def step(self, name: str) -> dict[str, Any]:
         if name not in _STEP_ORDER or name == "voice":
@@ -181,12 +191,16 @@ class ReplayRun:
         needs = {"guardian": "attack", "contain": "voice", "revoke": "attack"}
         need = needs.get(name)
         if need and need not in self.done:
-            return self._error(f"first run: {need}")
+            return self._error(f"first run: {need}", need=need)
         if name in ("attack", "guardian") and "contain" in self.done:
             # Ya contenido: repetir el ataque crearía otra aprobación con la corrida cerrada.
-            return self._error("this run is already contained: start a new run")
+            return self._error("this run is already contained: start a new run", code="contained")
         if name == "contain" and (self.results.get("voice") or {}).get("status") != "approved":
-            return {"status": "not_approved", "error": "the owner has not approved yet"}
+            return {
+                "status": "not_approved",
+                "error": "the owner has not approved yet",
+                "error_code": "not_approved",
+            }
         if self.started is None:
             self.started = time.monotonic()
             self.started_at = _now_iso()
@@ -342,10 +356,38 @@ class ReplayRun:
                 }
             ],
         }
+        # Mismo plan en inglés para la pantalla en EN (la escena es determinista, sin modelo).
+        plan_en = {
+            "summary": (
+                "Rotate only the Refrigeration token; Warehouse and Purchasing are untouched."
+            ),
+            "reasoning": (
+                "The Refrigeration token tried to set the cold room to 50 °C and the freezer to "
+                "5 °C at 03:00 from BR (expected EC): out of range, off hours and from an "
+                "unexpected origin. Rotating it locks the attacker out without stopping the "
+                "kitchen."
+            ),
+            "exposures": [],
+            "steps": [
+                {
+                    "action": "rotate_token",
+                    "target": "refrigeracion",
+                    "reason": "token used out of range, off hours and from an unexpected origin",
+                    "requires_approval": True,
+                }
+            ],
+        }
         self.plan = plan
         req = self.broker.request(plan)
         self.approval_id = req.approval_id
-        return {"status": "ok", "plan": plan, "approval_id": req.approval_id, "turns": []}
+        return {
+            "status": "ok",
+            "kind": "cold_plan_deterministic",
+            "plan": plan,
+            "plan_en": plan_en,
+            "approval_id": req.approval_id,
+            "turns": [],
+        }
 
     def _frio_contain(self) -> dict[str, Any]:
         after = self._cold_step("after_rotation")
@@ -377,7 +419,7 @@ class ReplayRun:
     # -- decisión del dueño (real, con nonce) ------------------------------------
     def voice(self, typed: str) -> dict[str, Any]:
         if not self.approval_id:
-            return self._error("run the guardian first")
+            return self._error("run the guardian first", need="guardian")
         text = (typed or "").strip()
         if not text:
             out = {"status": "no_speech", "transcript": "", "intent": {}}
@@ -392,6 +434,7 @@ class ReplayRun:
                 "intent": (self.results.get("voice") or {}).get("intent") or {},
                 "approval_id": self.approval_id,
                 "channel": "browser",
+                "input_mode": "typed",
             }
             return out
         outcome = self.flow.handle_transcript(
@@ -415,7 +458,7 @@ class ReplayRun:
 
     def voice_confirm(self) -> dict[str, Any]:
         if not self.approval_id:
-            return self._error("no pending approval")
+            return self._error("no pending approval", need="guardian")
         req = self.broker.get(self.approval_id)
         outcome = self.flow.confirm(self.approval_id, nonce=req.nonce if req else None)
         prev = self.results.get("voice") or {}
@@ -429,7 +472,7 @@ class ReplayRun:
 
     def voice_cancel(self) -> dict[str, Any]:
         if not self.approval_id:
-            return self._error("no pending approval")
+            return self._error("no pending approval", need="guardian")
         outcome = self.flow.cancel(self.approval_id)
         prev = self.results.get("voice") or {}
         out = {**prev, "status": outcome.get("status")}

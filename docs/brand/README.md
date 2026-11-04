@@ -1,6 +1,6 @@
-# Wairrior — Business Protection · identidad ligera
+# wAIrrior — Business Protection · identidad ligera
 
-**Nombre público por defecto:** Wairrior
+**Nombre público por defecto:** wAIrrior (se escribe así: «w» minúscula, «AI» en mayúsculas y resaltado en ámbar `#E8A33D`, «rrior» en minúsculas; sin punto medio)
 **Subtítulo:** Business Protection
 **Tagline (EN, para video y envío):** Your app never holds the real key. One leaked token, revoked in seconds (replay).
 **Tagline (ES):** Tu app nunca tiene la llave real. Un token filtrado, revocado en segundos.
@@ -10,13 +10,14 @@ Cifras que respaldan el tagline (solo `evals/report.md`, held-out v2):
 frente a ~16 h del incidente real · 4/12 bloqueados y 7/12 al dueño en held-out v2
 (1 lectura en inglés pasó en silencio: se dice, no se esconde).
 
-El nombre público es Wairrior. No usa marca de terceros.
+El nombre público es wAIrrior. No usa marca de terceros.
 
 ## Cómo cambiarlo (un comando)
 
 ```bash
 uv run python scripts/set_brand.py <new-name>          # aplica
 uv run python scripts/set_brand.py <new-name> --dry-run # solo muestra
+uv run python scripts/set_brand.py <new-name> --from <old-name>  # si shield/brand.py ya cambió
 ```
 
 El comando actualiza `shield/brand.py` — la única fuente de la marca en
@@ -50,9 +51,12 @@ sans para cuerpo. Sin degradados morados, sin iconos emoji.
 ## Archivos
 
 - `logo.svg` — escudo con onda/chispa ámbar. Sirve también de favicon.
+- `wordmark.svg` — escudo + wordmark «wAIrrior» con el «AI» en ámbar `#E8A33D`.
 - `slides/01-portada.svg` — portada del video (1920×1080).
 - `slides/02-problema.svg` — Black October.
 - `slides/03-cierre.svg` — resultado 200 → 401 y cifras held-out v2.
-- El panel web usa favicon textual con la inicial de `BRAND` sobre tinta
-  (data URI en `web/app.py`) y la misma paleta; no depende de archivos externos.
+- El panel web y la pantalla /live usan un favicon textual con la inicial de
+  `BRAND` («w») en ámbar sobre tinta (`favicon_href()` en `web/brand.py`, data URI)
+  y la misma paleta; no dependen de archivos externos. El titular de /live pinta
+  «w» y «rrior» en contorno y «AI» relleno en ámbar.
 
