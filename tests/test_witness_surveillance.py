@@ -212,10 +212,20 @@ def test_runner_end_to_end_offline(tmp_path):
             n = 2  # 'box' no ve el apilado: mucha variación entre escenas -> se descarta
         return "<0f>" + "".join(_box(i) for i in range(n))
 
-    lines = ["Cameras: 2.", "People in latest frames: 2.", "High alerts: 1.",
-             "Cash desk simulated drawer open: 2.", "Stock reference: 12."]
+    report = {"en": {"bullets": ["Cash desk at 03:00: drawer opened 1 time with nobody there "
+                                 "(simulated test).",
+                                 "Storeroom: 12 boxes at 03:00, 6 now, expected.",
+                                 "After hours: nobody on site.",
+                                 "Live now: Cash desk staff present."],
+                     "action": "Check the cash desk recording from 03:00."},
+              "es": {"bullets": ["Caja a las 03:00: cajón abierto 1 vez sin nadie (prueba "
+                                 "simulada).",
+                                 "Almacén: 12 cajas a las 03:00, 6 ahora, esperado.",
+                                 "Fuera de horario: nadie en el local.",
+                                 "Ahora: Caja con personal."],
+                     "action": "Revisa la grabación de la Caja de las 03:00."}}
     out = run(frames, tmp_path / "redactadas", hours=H, sam_fn=sam,
-              spark_fn=lambda m: (json.dumps({"en": lines, "es": lines}), "resp_x", 0.0),
+              spark_fn=lambda m: (json.dumps(report), "resp_x", 0.0),
               verified_empty=("caja1_noche", "almacen_noche"))
     pub = out["public"]
     for key in ("stock_watch", "cash_desk", "security_log", "after_hours"):
@@ -228,7 +238,13 @@ def test_runner_end_to_end_offline(tmp_path):
     assert pub["stock_watch"]["status"] == "expected" and "12 → 6" in pub["stock_watch"]["metric"]
     assert pub["cash_desk"]["status"] == "alert"
     assert pub["cash_desk"]["image"] == "caja1_noche-0300_20261104-212500.redacted.jpg"
-    assert pub["security_log"]["text"]["en"] == lines
+    log_text = pub["security_log"]["text"]["en"]
+    assert log_text[0].startswith("Night & shift security report")
+    assert log_text[-1].startswith("Action needed:")
+    assert pub["security_log"]["model"] == "muse-spark-1.3", pub["security_log_detail"]
+    facts = pub["security_log_detail"]["facts"]
+    assert facts[0].startswith("Cash desk at 03:00: 0 people") and "simulated" in facts[0]
+    assert any(f.startswith("Storeroom: 12 boxes at 03:00, 6 at") for f in facts)
     assert pub["after_hours"]["status"] == "all_clear"
     obs = out["private"]["observations"]
     assert all("recorded_at" in o for o in obs)
@@ -258,3 +274,71 @@ def test_runner_end_to_end_offline(tmp_path):
     assert not clean.info.get("exif")
     with pytest.raises(SystemExit):
         run(frames, Path(__file__).resolve().parents[1] / "evals" / "nope", hours=H, sam_fn=sam)
+
+
+REPORT_FACTS = ["Cash desk at 03:00: 0 people on camera while the POS reported 6 drawer "
+                "openings (simulated test events) - needs review.",
+                "Storeroom: 18 boxes at 03:00, 12 at 20:57, during opening hours - expected.",
+                "After hours (00:30-12:00): 22 camera checks across 3 cameras, nobody on site.",
+                "Live now: Kitchen 1 one person, Hallway several people."]
+
+
+def _report(first="Cash desk: drawer opened 6 times at 03:00 with nobody there (simulated).",
+            n=4, action="Check the cash desk recording from 03:00."):
+    bullets = [first, "Storeroom: 18 boxes at 03:00, 12 at 20:57, expected.",
+               "After hours: nobody on site.", "Live now: kitchens and hallway busy.",
+               "Nothing else to report."][:n]
+    es = ["Caja: cajón abierto 6 veces a las 03:00 sin nadie (simulado).",
+          "Almacén: 18 cajas a las 03:00, 12 a las 20:57, esperado.",
+          "Fuera de horario: nadie en el local.", "Ahora: cocinas y pasillo con actividad.",
+          "Nada más."][:n]
+    return {"en": {"bullets": bullets, "action": action},
+            "es": {"bullets": es, "action": "Revisa la grabación de la Caja de las 03:00."}}
+
+
+def test_shift_report_valid_composes_title_and_action():
+    from shield.witness.surveillance import REPORT_TITLE_EN, REPORT_TITLE_ES, shift_report
+    calls = []
+
+    def spark(messages):
+        calls.append(messages)
+        return json.dumps(_report()), "chatcmpl-1", 0.004
+
+    obs = [_obs(0, "2026-11-04T03:00:00+01:00", camera="caja1", img=_jpeg())]
+    log = shift_report(obs, REPORT_FACTS, spark_fn=spark)
+    assert log.valid and log.source == "muse-spark-1.3" and log.attempts == 1
+    assert log.en[0] == REPORT_TITLE_EN and log.es[0] == REPORT_TITLE_ES
+    assert log.en[-1] == "Action needed: Check the cash desk recording from 03:00."
+    assert log.es[-1].startswith("Acción necesaria:")
+    assert len(log.en) == 6 and log.response_ids == ["chatcmpl-1"]
+    prompt = calls[0][0]["content"][0]["text"]
+    assert "FACTS" in prompt and REPORT_FACTS[0] in prompt
+
+
+@pytest.mark.parametrize("bad,why", [
+    (_report(first="Storeroom first, 18 boxes."), "first bullet"),
+    (_report(n=3), "bullets"),
+    (_report(first="Cash desk: a man wearing a cap opened the drawer 6 times."), "personas"),
+    (_report(first="Cash desk: drawer opened 9 times."), "'9'"),
+    (_report(action=""), "missing action"),
+])
+def test_validate_report_rejects(bad, why):
+    from shield.witness.surveillance import validate_report
+    assert any(why in p for p in validate_report(bad, REPORT_FACTS)), why
+
+
+def test_fast_spark_fn_falls_back_without_params():
+    from shield.meta_client import CallResult
+    from shield.witness.surveillance import make_meta_spark_fn
+    seen = []
+
+    class Client:
+        def chat_completions(self, **kw):
+            seen.append(sorted(kw))
+            if "reasoning_effort" in kw:
+                raise RuntimeError("Meta Model API HTTP 400: unsupported")
+            return CallResult(data={"id": "c1", "choices": [{"message": {"content": "{}"}}]},
+                              model="muse-spark-1.3", cost_usd=0.001)
+
+    text, rid, cost = make_meta_spark_fn(Client())([{"role": "user", "content": "x"}])
+    assert (text, rid) == ("{}", "c1") and len(seen) == 2

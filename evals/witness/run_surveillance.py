@@ -47,7 +47,8 @@ from shield.witness.surveillance import (  # noqa: E402
     count_concept,
     occupancy,
     playback_time,
-    shift_log,
+    room_name,
+    shift_report,
     stock_watch,
     unattended_cash_desk,
 )
@@ -233,16 +234,20 @@ def run(frames_dir: Path, out_dir: Path | None, *, hours: OpeningHours, site: st
         }
         latest_per_cam: dict[str, WitnessObservation] = {}
         for o in observations:
-            if o.ok and (o.camera not in latest_per_cam
-                         or latest_per_cam[o.camera].captured_dt() <= o.captured_dt()):
+            if o.ok and o.source == "live_capture" and (
+                    o.camera not in latest_per_cam
+                    or latest_per_cam[o.camera].captured_dt() <= o.captured_dt()):
                 latest_per_cam[o.camera] = o
+        report_facts = business_facts(stock=stock, cash=cash, alerts=alerts, hours=hours,
+                                      live=latest_per_cam, autopilot=autopilot)
+        facts["report_facts"] = report_facts
+        # Imágenes (ya redactadas) de lo prioritario: caja desatendida y almacén.
+        log_obs = _report_images(cash, stock, by_name)
         if use_spark and (spark_fn is not None or client is not None):
-            log_obs = [o for o in latest_per_cam.values() if o.redacted_image][:6]
-            log = shift_log(log_obs, facts, spark_fn=spark_fn,
-                            meta_client=client if spark_fn is None else None)
+            log = shift_report(log_obs, report_facts, spark_fn=spark_fn,
+                               meta_client=client if spark_fn is None else None)
         else:
-            log_obs = []
-            log = shift_log([], facts)
+            log = shift_report([], report_facts)
     finally:
         if owns and meta_client is not None:
             meta_client.close()
@@ -314,7 +319,7 @@ def run(frames_dir: Path, out_dir: Path | None, *, hours: OpeningHours, site: st
         "stock_detail": dict(stock),
         "cash_desk_detail": cash,
         "autopilot": autopilot,
-        "security_log_detail": log.to_dict(),
+        "security_log_detail": {**log.to_dict(), "facts": facts.get("report_facts", [])},
         "verified_empty": {"frames": len(verified),
                            "written": sum(1 for v in verified if v.get("file")),
                            "withheld": sum(1 for v in verified if not v.get("file"))},
@@ -329,6 +334,85 @@ def run(frames_dir: Path, out_dir: Path | None, *, hours: OpeningHours, site: st
                "stock_calls": stock_calls, "all_alerts": [a.to_dict() for a in alerts],
                "facts_for_spark": facts}
     return {"private": private, "public": public}
+
+
+_WORDS = {0: "nobody", 1: "one person", 2: "two people"}
+
+
+def _hhmm(iso: str) -> str:
+    return datetime.fromisoformat(iso).strftime("%H:%M")
+
+
+def business_facts(*, stock: dict[str, Any], cash: list[dict[str, Any]], alerts: list[Any],
+                   hours: OpeningHours, live: dict[str, WitnessObservation],
+                   autopilot: dict[str, Any]) -> list[str]:
+    """Hechos ya redactados en lenguaje de negocio (lo único que lee Muse Spark)."""
+    facts: list[str] = []
+    unattended = [c for c in cash if c["kind"] == "drawer_open_unattended"]
+    if unattended:
+        when = sorted({_hhmm(c["pos_event"]["ts"]) for c in unattended})
+        at = when[0] if len(when) == 1 else f"{when[0]}-{when[-1]}"
+        facts.append(
+            f"Cash desk at {at}: 0 people on camera while the POS reported {len(unattended)} "
+            "drawer openings (simulated test events) - needs review.")
+        if autopilot.get("incident_severity") in ("high", "critical"):
+            facts.append("The autopilot automatically contained the cash desk incident "
+                         f"(severity {autopilot['incident_severity']}).")
+    actual = stock.get("actual") or {}
+    if actual:
+        ref, cur = stock["reference_median"], stock["current_median"]
+        cur_at = _hhmm(actual["at"])
+        if actual["kind"] == "stock_drop_open_hours":
+            facts.append(f"Storeroom: {ref} boxes at 03:00, {cur} at {cur_at}, during opening "
+                         "hours - expected; the same drop after hours would raise an alert.")
+        elif actual["kind"] == "stock_drop_after_hours":
+            facts.append(f"Storeroom: {ref} boxes at 03:00, {cur} at {cur_at}, AFTER HOURS - "
+                         "alert.")
+        else:
+            facts.append(f"Storeroom: {cur} boxes at {cur_at}, in line with the 03:00 "
+                         f"reference of {ref}.")
+    ah = [a for a in alerts if a.app == "after_hours" and a.kind != "open_hours"]
+    if ah:
+        people = [a for a in ah if a.kind == "after_hours_presence"]
+        cams = {a.camera for a in ah}
+        window = f"{hours.closes.strftime('%H:%M')}-{hours.opens.strftime('%H:%M')}"
+        facts.append(
+            f"After hours ({window}): {len(ah)} camera checks across {len(cams)} cameras, "
+            + ("nobody on site." if not people else
+               f"people seen in {len(people)} checks - alert."))
+    parts = []
+    for cam in ("cocina1", "cocina2", "pasillo", "caja1", "almacen"):
+        obs = live.get(cam)
+        if obs is None:
+            continue
+        if cam == "caja1" and obs.people > 0:
+            state = "staff present"
+        elif cam == "pasillo" and obs.people >= 3:
+            state = "several people"
+        elif obs.people == 0:
+            state = "empty"
+        else:
+            state = _WORDS.get(obs.people, "several people")
+        parts.append(f"{room_name(cam)} {state}")
+    if parts:
+        facts.append("Live now: " + ", ".join(parts) + ".")
+    return facts
+
+
+def _report_images(cash: list[dict[str, Any]], stock: dict[str, Any],
+                   by_name: dict[str, WitnessObservation]) -> list[WitnessObservation]:
+    names: list[str] = []
+    unattended = [c["frame"] for c in cash if c["kind"] == "drawer_open_unattended"]
+    names += unattended[:1]
+    actual = stock.get("actual") or {}
+    if actual:
+        cur = [n for n, o in by_name.items() if o.camera == actual["camera"]
+               and o.captured_at == actual["at"]]
+        names += cur[:1]
+        night = sorted(n for n, o in by_name.items() if o.camera == actual["camera"]
+                       and o.source == "playback")
+        names += night[:1]
+    return [by_name[n] for n in names if n in by_name and by_name[n].redacted_image]
 
 
 def _card(status: str, summary: str, summary_es: str, metric: str, *, image: str | None,
@@ -430,13 +514,17 @@ def build_cards(*, stock: dict[str, Any], stock_calls: list[dict[str, Any]],
         latency_ms=sample_obs.latency_ms if sample_obs else 0,
         cost_usd=sample_obs.cost_usd if sample_obs else 0)
     # security_log
+    action_en = log.en[-1] if log.en else ""
+    action_es = log.es[-1] if log.es else ""
     cards["security_log"] = _card(
-        "all_clear" if log.valid else "pending",
-        f"Shift log by {log.source} from {log.images_sent} redacted frames + counts "
-        f"({'validated' if log.valid else 'not validated'}).",
-        f"Parte de turno de {log.source} con {log.images_sent} cuadros redactados + conteos "
-        f"({'validado' if log.valid else 'sin validar'}).",
-        f"{len(log.en)} lines EN / {len(log.es)} ES",
+        "alert" if log.valid and cash and any(
+            c["kind"] == "drawer_open_unattended" for c in cash) else (
+            "all_clear" if log.valid else "pending"),
+        f"Owner report by {log.source} from {log.images_sent} redacted frames + business "
+        f"facts ({'validated' if log.valid else 'not validated'}). {action_en}",
+        f"Parte para el dueño de {log.source} con {log.images_sent} cuadros redactados + "
+        f"hechos ({'validado' if log.valid else 'sin validar'}). {action_es}",
+        f"{max(len(log.en) - 2, 0)} bullets EN/ES · {log.latency_ms / 1000:.1f} s",
         image=log_images[0] if log_images else None, model=log.source,
         response_ids=log.response_ids, latency_ms=log.latency_ms, cost_usd=log.cost_usd,
         text={"en": log.en, "es": log.es}, images=log_images)
@@ -491,8 +579,10 @@ def main(argv: list[str] | None = None) -> int:
     print(json.dumps({k: pub[k] for k in ("alerts_by_kind", "occupancy_by_camera", "autopilot",
                                           "costs", "latency_ms_p50", "latency_ms_p95")},
                      ensure_ascii=False, indent=2))
-    print("\n".join(pub["shift_log"]["en"] + [""] + pub["shift_log"]["es"]))
-    print(f"stock: {json.dumps(pub['stock_watch'].get('concept_choice', {}).get('why'))}")
+    text = pub["security_log"]["text"]
+    print("\n".join(text["en"] + [""] + text["es"]))
+    why = pub["stock_detail"].get("concept_choice", {}).get("why")
+    print(f"stock: {json.dumps(why, ensure_ascii=False)}")
     return 0
 
 
