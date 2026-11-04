@@ -48,8 +48,13 @@ def test_nivel_app_solo_ese_tipo_de_operacion():
     _, result = run_pipeline(ataque, base, engine=engine)
     assert result.scope_level in ("actor", "app")
     assert not result.circuit_breaker
-    # Pago recurrente a beneficiario conocido sigue; a beneficiario nuevo, no.
-    assert engine.allows_write(legit_payments())
+    # Ronda 3: el actor contenido queda congelado en pagos (toda escritura);
+    # el pago recurrente de OTRO actor a beneficiario conocido sigue.
+    assert not engine.allows_write(legit_payments())
+    assert engine.allows_write(ev(
+        app="payments", actor="finance-bot", action="transfer",
+        target="supplier:known", values={"amount": 500, "beneficiary": "KNOWN",
+                                         "beneficiary_known": True}))
     assert not engine.allows_write(ev(app="payments", actor="payments-bot",
                                       action="transfer", target="supplier:otro",
                                       values={"amount": 100, "beneficiary": "OTRO"}))

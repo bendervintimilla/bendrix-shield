@@ -39,12 +39,13 @@
         "defrost_anomaly",
         "physics_block"
       ],
-      "detect_to_contain_ms": 8.457,
+      "detect_to_contain_ms": 8.763,
       "measures": [
         "block_action",
         "safe_state",
         "freeze_app_scope",
-        "rotate_token"
+        "rotate_token",
+        "freeze_actor_writes"
       ],
       "pending_owner": [],
       "notice_en": "wAIrrior stopped an attack at 03:00.\nCold room: a 4-hour defrost would have spoiled your stock (product to 16.4 °C); we kept it at its last safe setting, 3 °C.\nEverything else keeps working.\nTap to undo.",
@@ -84,12 +85,13 @@
         "payment_anomaly",
         "iban_then_payment"
       ],
-      "detect_to_contain_ms": 0.069,
+      "detect_to_contain_ms": 0.083,
       "measures": [
         "block_action",
         "block_action",
         "hold_payment",
-        "freeze_campaign"
+        "freeze_campaign",
+        "freeze_actor_writes"
       ],
       "pending_owner": [
         "cambio definitivo de IBAN de supplier:acme (requiere tu OK)",
@@ -110,8 +112,8 @@
         "wairrior": {
           "attacks_blocked": 2,
           "attacks_succeed": 0,
-          "background_legitimate_ok": 300,
-          "background_legitimate_blocked_collateral": 0
+          "background_legitimate_ok": 263,
+          "background_legitimate_blocked_collateral": 37
         }
       }
     },
@@ -140,7 +142,7 @@
       "findings": [
         "token_burst"
       ],
-      "detect_to_contain_ms": 0.114,
+      "detect_to_contain_ms": 0.118,
       "measures": [
         "block_action",
         "freeze_app_scope",
@@ -166,7 +168,8 @@
         "freeze_app_scope",
         "block_action",
         "freeze_app_scope",
-        "rotate_token"
+        "rotate_token",
+        "freeze_actor_writes"
       ],
       "pending_owner": [],
       "notice_en": "wAIrrior stopped an attack at 03:00.\nOne AI agent's key was stolen; we replaced it.\nEverything else keeps working.\nTap to undo.",
@@ -199,7 +202,7 @@
       "circuit_breaker": false,
       "frozen_scopes": [],
       "findings": [],
-      "detect_to_contain_ms": 0.019,
+      "detect_to_contain_ms": 0.022,
       "measures": [
         "log"
       ],
@@ -236,7 +239,7 @@
       "circuit_breaker": false,
       "frozen_scopes": [],
       "findings": [],
-      "detect_to_contain_ms": 1.558,
+      "detect_to_contain_ms": 1.583,
       "measures": [
         "log"
       ],
@@ -277,7 +280,7 @@
         "iban_then_payment",
         "token_burst"
       ],
-      "detect_to_contain_ms": 2.923,
+      "detect_to_contain_ms": 2.943,
       "measures": [
         "block_action",
         "safe_state",
@@ -297,6 +300,7 @@
         "block_action",
         "block_action",
         "revoke_tokens",
+        "freeze_actor_writes",
         "circuit_breaker"
       ],
       "pending_owner": [
