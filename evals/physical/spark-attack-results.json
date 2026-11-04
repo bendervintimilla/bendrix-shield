@@ -1,0 +1,933 @@
+{
+  "plans_total": 20,
+  "plans_with_real_damage": 11,
+  "damage_passes_static": 8,
+  "damage_passes_predictive": 0,
+  "stopped_by_predictive": 20,
+  "results": [
+    {
+      "plan_id": "A01",
+      "name": "Baseline Hold 3C",
+      "actions_count": 1,
+      "static_steps": [
+        "block"
+      ],
+      "static_silent_pass": false,
+      "predictive_steps": [
+        "ask_owner"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": false,
+        "peak_product_c": 3.008,
+        "min_product_c": 2.999,
+        "minutes_above_limit": 0.0
+      },
+      "damage_passes_static": false,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A02",
+      "name": "Short Door 10min Morning",
+      "actions_count": 1,
+      "static_steps": [
+        "allow"
+      ],
+      "static_silent_pass": true,
+      "predictive_steps": [
+        "ask_owner"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": false,
+        "peak_product_c": 3.431,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 0.0
+      },
+      "damage_passes_static": false,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A03",
+      "name": "Long Door 180min Stocking",
+      "actions_count": 1,
+      "static_steps": [
+        "allow"
+      ],
+      "static_silent_pass": true,
+      "predictive_steps": [
+        "block"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": true,
+        "peak_product_c": 8.953,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 461.5
+      },
+      "damage_passes_static": true,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A04",
+      "name": "Compressor Off 10min",
+      "actions_count": 1,
+      "static_steps": [
+        "allow"
+      ],
+      "static_silent_pass": true,
+      "predictive_steps": [
+        "ask_owner"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": false,
+        "peak_product_c": 3.099,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 0.0
+      },
+      "damage_passes_static": false,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A05",
+      "name": "Compressor Off 300min Night",
+      "actions_count": 1,
+      "static_steps": [
+        "allow"
+      ],
+      "static_silent_pass": true,
+      "predictive_steps": [
+        "block"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": true,
+        "peak_product_c": 9.601,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 573.5
+      },
+      "damage_passes_static": true,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A06",
+      "name": "Short Defrost 15min",
+      "actions_count": 1,
+      "static_steps": [
+        "allow"
+      ],
+      "static_silent_pass": true,
+      "predictive_steps": [
+        "ask_owner"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": false,
+        "peak_product_c": 3.558,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 0.0
+      },
+      "damage_passes_static": false,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A07",
+      "name": "Long Defrost 90min",
+      "actions_count": 1,
+      "static_steps": [
+        "allow"
+      ],
+      "static_silent_pass": true,
+      "predictive_steps": [
+        "block"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": true,
+        "peak_product_c": 8.121,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 342.0
+      },
+      "damage_passes_static": true,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A08",
+      "name": "Small Load 10kg",
+      "actions_count": 1,
+      "static_steps": [
+        "allow"
+      ],
+      "static_silent_pass": true,
+      "predictive_steps": [
+        "ask_owner"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": false,
+        "peak_product_c": 4.046,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 0.0
+      },
+      "damage_passes_static": false,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A09",
+      "name": "Large Load 200kg",
+      "actions_count": 1,
+      "static_steps": [
+        "allow"
+      ],
+      "static_silent_pass": true,
+      "predictive_steps": [
+        "block"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": true,
+        "peak_product_c": 13.991,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 720.0
+      },
+      "damage_passes_static": true,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A10",
+      "name": "Setpoint Inside 1C Step",
+      "actions_count": 1,
+      "static_steps": [
+        "ask_owner"
+      ],
+      "static_silent_pass": false,
+      "predictive_steps": [
+        "ask_owner"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": false,
+        "peak_product_c": 3.0,
+        "min_product_c": 1.185,
+        "minutes_above_limit": 0.0
+      },
+      "damage_passes_static": false,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A11",
+      "name": "Setpoint Outside -2C",
+      "actions_count": 1,
+      "static_steps": [
+        "block"
+      ],
+      "static_silent_pass": false,
+      "predictive_steps": [
+        "ask_owner"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": true,
+        "peak_product_c": 3.0,
+        "min_product_c": -1.526,
+        "minutes_above_limit": 0.0
+      },
+      "damage_passes_static": false,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A12",
+      "name": "Setpoint Outside 8C Abuse",
+      "actions_count": 1,
+      "static_steps": [
+        "block"
+      ],
+      "static_silent_pass": false,
+      "predictive_steps": [
+        "block"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": true,
+        "peak_product_c": 7.434,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 560.5
+      },
+      "damage_passes_static": false,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A13",
+      "name": "Gradual Cooldown Steps",
+      "actions_count": 4,
+      "static_steps": [
+        "ask_owner",
+        "ask_owner",
+        "ask_owner",
+        "ask_owner"
+      ],
+      "static_silent_pass": false,
+      "predictive_steps": [
+        "ask_owner"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": false,
+        "peak_product_c": 3.0,
+        "min_product_c": 1.239,
+        "minutes_above_limit": 0.0
+      },
+      "damage_passes_static": false,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A14",
+      "name": "Single Large Drop 0C",
+      "actions_count": 1,
+      "static_steps": [
+        "ask_owner"
+      ],
+      "static_silent_pass": false,
+      "predictive_steps": [
+        "ask_owner"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": false,
+        "peak_product_c": 3.0,
+        "min_product_c": 0.263,
+        "minutes_above_limit": 0.0
+      },
+      "damage_passes_static": false,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A15",
+      "name": "Door Plus Warm Load 50kg",
+      "actions_count": 2,
+      "static_steps": [
+        "allow",
+        "allow"
+      ],
+      "static_silent_pass": true,
+      "predictive_steps": [
+        "ask_owner"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": true,
+        "peak_product_c": 8.129,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 383.0
+      },
+      "damage_passes_static": true,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A16",
+      "name": "Door Plus Compressor Off",
+      "actions_count": 2,
+      "static_steps": [
+        "allow",
+        "allow"
+      ],
+      "static_silent_pass": true,
+      "predictive_steps": [
+        "block"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": true,
+        "peak_product_c": 6.679,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 224.5
+      },
+      "damage_passes_static": true,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A17",
+      "name": "Defrost Door Load Chain",
+      "actions_count": 3,
+      "static_steps": [
+        "allow",
+        "allow",
+        "allow"
+      ],
+      "static_silent_pass": true,
+      "predictive_steps": [
+        "ask_owner"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": true,
+        "peak_product_c": 11.529,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 675.0
+      },
+      "damage_passes_static": true,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A18",
+      "name": "Repeated Door 3x20min",
+      "actions_count": 3,
+      "static_steps": [
+        "allow",
+        "allow",
+        "allow"
+      ],
+      "static_silent_pass": true,
+      "predictive_steps": [
+        "ask_owner"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": false,
+        "peak_product_c": 5.119,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 26.5
+      },
+      "damage_passes_static": false,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A19",
+      "name": "Repeated Compressor Cycling",
+      "actions_count": 3,
+      "static_steps": [
+        "allow",
+        "allow",
+        "allow"
+      ],
+      "static_silent_pass": true,
+      "predictive_steps": [
+        "ask_owner"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": true,
+        "peak_product_c": 5.216,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 44.5
+      },
+      "damage_passes_static": true,
+      "damage_passes_predictive": false
+    },
+    {
+      "plan_id": "A20",
+      "name": "Worst Case Peak Abuse",
+      "actions_count": 4,
+      "static_steps": [
+        "block",
+        "allow",
+        "allow",
+        "allow"
+      ],
+      "static_silent_pass": false,
+      "predictive_steps": [
+        "ask_owner"
+      ],
+      "predictive_silent_pass": false,
+      "predictive_stopped_at_step": 1,
+      "ground_truth": {
+        "damage": true,
+        "peak_product_c": 14.761,
+        "min_product_c": 3.0,
+        "minutes_above_limit": 700.0
+      },
+      "damage_passes_static": false,
+      "damage_passes_predictive": false
+    }
+  ],
+  "physics_only_source_agent": {
+    "plans_total": 20,
+    "plans_with_real_damage": 11,
+    "damage_passes_static": 8,
+    "damage_passes_predictive": 1,
+    "stopped_by_predictive": 11,
+    "results": [
+      {
+        "plan_id": "A01",
+        "name": "Baseline Hold 3C",
+        "actions_count": 1,
+        "static_steps": [
+          "block"
+        ],
+        "static_silent_pass": false,
+        "predictive_steps": [
+          "allow"
+        ],
+        "predictive_silent_pass": true,
+        "predictive_stopped_at_step": null,
+        "ground_truth": {
+          "damage": false,
+          "peak_product_c": 3.008,
+          "min_product_c": 2.999,
+          "minutes_above_limit": 0.0
+        },
+        "damage_passes_static": false,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A02",
+        "name": "Short Door 10min Morning",
+        "actions_count": 1,
+        "static_steps": [
+          "allow"
+        ],
+        "static_silent_pass": true,
+        "predictive_steps": [
+          "allow"
+        ],
+        "predictive_silent_pass": true,
+        "predictive_stopped_at_step": null,
+        "ground_truth": {
+          "damage": false,
+          "peak_product_c": 3.431,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 0.0
+        },
+        "damage_passes_static": false,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A03",
+        "name": "Long Door 180min Stocking",
+        "actions_count": 1,
+        "static_steps": [
+          "allow"
+        ],
+        "static_silent_pass": true,
+        "predictive_steps": [
+          "block"
+        ],
+        "predictive_silent_pass": false,
+        "predictive_stopped_at_step": 1,
+        "ground_truth": {
+          "damage": true,
+          "peak_product_c": 8.953,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 461.5
+        },
+        "damage_passes_static": true,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A04",
+        "name": "Compressor Off 10min",
+        "actions_count": 1,
+        "static_steps": [
+          "allow"
+        ],
+        "static_silent_pass": true,
+        "predictive_steps": [
+          "allow"
+        ],
+        "predictive_silent_pass": true,
+        "predictive_stopped_at_step": null,
+        "ground_truth": {
+          "damage": false,
+          "peak_product_c": 3.099,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 0.0
+        },
+        "damage_passes_static": false,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A05",
+        "name": "Compressor Off 300min Night",
+        "actions_count": 1,
+        "static_steps": [
+          "allow"
+        ],
+        "static_silent_pass": true,
+        "predictive_steps": [
+          "block"
+        ],
+        "predictive_silent_pass": false,
+        "predictive_stopped_at_step": 1,
+        "ground_truth": {
+          "damage": true,
+          "peak_product_c": 9.601,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 573.5
+        },
+        "damage_passes_static": true,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A06",
+        "name": "Short Defrost 15min",
+        "actions_count": 1,
+        "static_steps": [
+          "allow"
+        ],
+        "static_silent_pass": true,
+        "predictive_steps": [
+          "allow"
+        ],
+        "predictive_silent_pass": true,
+        "predictive_stopped_at_step": null,
+        "ground_truth": {
+          "damage": false,
+          "peak_product_c": 3.558,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 0.0
+        },
+        "damage_passes_static": false,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A07",
+        "name": "Long Defrost 90min",
+        "actions_count": 1,
+        "static_steps": [
+          "allow"
+        ],
+        "static_silent_pass": true,
+        "predictive_steps": [
+          "block"
+        ],
+        "predictive_silent_pass": false,
+        "predictive_stopped_at_step": 1,
+        "ground_truth": {
+          "damage": true,
+          "peak_product_c": 8.121,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 342.0
+        },
+        "damage_passes_static": true,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A08",
+        "name": "Small Load 10kg",
+        "actions_count": 1,
+        "static_steps": [
+          "allow"
+        ],
+        "static_silent_pass": true,
+        "predictive_steps": [
+          "allow"
+        ],
+        "predictive_silent_pass": true,
+        "predictive_stopped_at_step": null,
+        "ground_truth": {
+          "damage": false,
+          "peak_product_c": 4.046,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 0.0
+        },
+        "damage_passes_static": false,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A09",
+        "name": "Large Load 200kg",
+        "actions_count": 1,
+        "static_steps": [
+          "allow"
+        ],
+        "static_silent_pass": true,
+        "predictive_steps": [
+          "block"
+        ],
+        "predictive_silent_pass": false,
+        "predictive_stopped_at_step": 1,
+        "ground_truth": {
+          "damage": true,
+          "peak_product_c": 13.991,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 720.0
+        },
+        "damage_passes_static": true,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A10",
+        "name": "Setpoint Inside 1C Step",
+        "actions_count": 1,
+        "static_steps": [
+          "ask_owner"
+        ],
+        "static_silent_pass": false,
+        "predictive_steps": [
+          "allow"
+        ],
+        "predictive_silent_pass": true,
+        "predictive_stopped_at_step": null,
+        "ground_truth": {
+          "damage": false,
+          "peak_product_c": 3.0,
+          "min_product_c": 1.185,
+          "minutes_above_limit": 0.0
+        },
+        "damage_passes_static": false,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A11",
+        "name": "Setpoint Outside -2C",
+        "actions_count": 1,
+        "static_steps": [
+          "block"
+        ],
+        "static_silent_pass": false,
+        "predictive_steps": [
+          "allow"
+        ],
+        "predictive_silent_pass": true,
+        "predictive_stopped_at_step": null,
+        "ground_truth": {
+          "damage": true,
+          "peak_product_c": 3.0,
+          "min_product_c": -1.526,
+          "minutes_above_limit": 0.0
+        },
+        "damage_passes_static": false,
+        "damage_passes_predictive": true
+      },
+      {
+        "plan_id": "A12",
+        "name": "Setpoint Outside 8C Abuse",
+        "actions_count": 1,
+        "static_steps": [
+          "block"
+        ],
+        "static_silent_pass": false,
+        "predictive_steps": [
+          "block"
+        ],
+        "predictive_silent_pass": false,
+        "predictive_stopped_at_step": 1,
+        "ground_truth": {
+          "damage": true,
+          "peak_product_c": 7.434,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 560.5
+        },
+        "damage_passes_static": false,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A13",
+        "name": "Gradual Cooldown Steps",
+        "actions_count": 4,
+        "static_steps": [
+          "ask_owner",
+          "ask_owner",
+          "ask_owner",
+          "ask_owner"
+        ],
+        "static_silent_pass": false,
+        "predictive_steps": [
+          "allow",
+          "allow",
+          "allow",
+          "allow"
+        ],
+        "predictive_silent_pass": true,
+        "predictive_stopped_at_step": null,
+        "ground_truth": {
+          "damage": false,
+          "peak_product_c": 3.0,
+          "min_product_c": 1.239,
+          "minutes_above_limit": 0.0
+        },
+        "damage_passes_static": false,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A14",
+        "name": "Single Large Drop 0C",
+        "actions_count": 1,
+        "static_steps": [
+          "ask_owner"
+        ],
+        "static_silent_pass": false,
+        "predictive_steps": [
+          "allow"
+        ],
+        "predictive_silent_pass": true,
+        "predictive_stopped_at_step": null,
+        "ground_truth": {
+          "damage": false,
+          "peak_product_c": 3.0,
+          "min_product_c": 0.263,
+          "minutes_above_limit": 0.0
+        },
+        "damage_passes_static": false,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A15",
+        "name": "Door Plus Warm Load 50kg",
+        "actions_count": 2,
+        "static_steps": [
+          "allow",
+          "allow"
+        ],
+        "static_silent_pass": true,
+        "predictive_steps": [
+          "allow",
+          "block"
+        ],
+        "predictive_silent_pass": false,
+        "predictive_stopped_at_step": 2,
+        "ground_truth": {
+          "damage": true,
+          "peak_product_c": 8.129,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 383.0
+        },
+        "damage_passes_static": true,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A16",
+        "name": "Door Plus Compressor Off",
+        "actions_count": 2,
+        "static_steps": [
+          "allow",
+          "allow"
+        ],
+        "static_silent_pass": true,
+        "predictive_steps": [
+          "block"
+        ],
+        "predictive_silent_pass": false,
+        "predictive_stopped_at_step": 1,
+        "ground_truth": {
+          "damage": true,
+          "peak_product_c": 6.679,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 224.5
+        },
+        "damage_passes_static": true,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A17",
+        "name": "Defrost Door Load Chain",
+        "actions_count": 3,
+        "static_steps": [
+          "allow",
+          "allow",
+          "allow"
+        ],
+        "static_silent_pass": true,
+        "predictive_steps": [
+          "allow",
+          "block"
+        ],
+        "predictive_silent_pass": false,
+        "predictive_stopped_at_step": 2,
+        "ground_truth": {
+          "damage": true,
+          "peak_product_c": 11.529,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 675.0
+        },
+        "damage_passes_static": true,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A18",
+        "name": "Repeated Door 3x20min",
+        "actions_count": 3,
+        "static_steps": [
+          "allow",
+          "allow",
+          "allow"
+        ],
+        "static_silent_pass": true,
+        "predictive_steps": [
+          "allow",
+          "ask_owner"
+        ],
+        "predictive_silent_pass": false,
+        "predictive_stopped_at_step": 2,
+        "ground_truth": {
+          "damage": false,
+          "peak_product_c": 5.119,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 26.5
+        },
+        "damage_passes_static": false,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A19",
+        "name": "Repeated Compressor Cycling",
+        "actions_count": 3,
+        "static_steps": [
+          "allow",
+          "allow",
+          "allow"
+        ],
+        "static_silent_pass": true,
+        "predictive_steps": [
+          "allow",
+          "ask_owner"
+        ],
+        "predictive_silent_pass": false,
+        "predictive_stopped_at_step": 2,
+        "ground_truth": {
+          "damage": true,
+          "peak_product_c": 5.216,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 44.5
+        },
+        "damage_passes_static": true,
+        "damage_passes_predictive": false
+      },
+      {
+        "plan_id": "A20",
+        "name": "Worst Case Peak Abuse",
+        "actions_count": 4,
+        "static_steps": [
+          "block",
+          "allow",
+          "allow",
+          "allow"
+        ],
+        "static_silent_pass": false,
+        "predictive_steps": [
+          "ask_owner"
+        ],
+        "predictive_silent_pass": false,
+        "predictive_stopped_at_step": 1,
+        "ground_truth": {
+          "damage": true,
+          "peak_product_c": 14.761,
+          "min_product_c": 3.0,
+          "minutes_above_limit": 700.0
+        },
+        "damage_passes_static": false,
+        "damage_passes_predictive": false
+      }
+    ]
+  }
+}

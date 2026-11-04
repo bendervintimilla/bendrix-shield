@@ -18,8 +18,13 @@ COPY sandbox ./sandbox
 COPY crew ./crew
 # El modo en vivo lee estas imágenes y avisos (web/live_chain.py).
 COPY evals/fixtures/live ./evals/fixtures/live
-COPY evals/recorded/live-run-video-take-2026-11-02.json evals/recorded/cold-chain-replay.json ./evals/recorded/
+# Corridas grabadas (públicas en el repo): replay, testigo, vigilancia, física.
+COPY evals/recorded ./evals/recorded
 COPY evals/advisories ./evals/advisories
+# Cámaras: SOLO cuadros ya redactados o verificados vacíos. deploy/witness se llena
+# en el momento del despliegue (deploy/cloudrun-panel.sh) y NUNCA entra al repo.
+COPY deploy/witness ./witness
+ENV SHIELD_WITNESS_DIR=/app/witness
 
 RUN pip install --upgrade pip && pip install .
 

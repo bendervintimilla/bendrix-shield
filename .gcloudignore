@@ -1,0 +1,16 @@
+# Contexto de Cloud Build. Existe para que gcloud NO use .gitignore:
+# deploy/witness (cuadros ya redactados) sí debe subir a la imagen.
+.git
+.gitignore
+.venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+replay-cache
+.smoke-audio
+evals/private
+*.db
+.env
+.env.*
+scratch

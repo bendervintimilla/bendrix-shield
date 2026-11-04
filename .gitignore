@@ -30,3 +30,7 @@ evals/private/
 replay-cache/
 .smoke-audio/
 shield-registry.db
+
+# Cuadros redactados solo para el despliegue (nunca al repo)
+deploy/witness/*
+!deploy/witness/README.md

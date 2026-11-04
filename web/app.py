@@ -56,8 +56,17 @@ from web.live_access import (
     render_login,
 )
 from web.live_page import render_live_inactive_page, render_live_page
+from web.physical_scene import PhysicalStore, render_physical_page
 from web.replay_run import FIXTURES as REPLAY_FIXTURES
 from web.replay_run import ReplayStore
+from web.sentinel_scene import SentinelStore, render_sentinel_page
+from web.sentinel_witness import PLACEHOLDER_SVG as SENTINEL_WITNESS_PLACEHOLDER
+from web.sentinel_witness import room_image as sentinel_room_image
+from web.sentinel_witness import surveillance_image as sentinel_surveillance_image
+from web.surveillance_view import render_surveillance_page
+
+SENTINEL_SURVEILLANCE_KEYS = ("occupancy", "after_hours", "stock_watch", "cash_desk",
+                              "security_log")
 
 UPSTREAM_KEY = "upstream-demo-key-0000"
 
@@ -1607,6 +1616,10 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
     replay_home = sessions and _replay_home_enabled()
     replay_store = ReplayStore() if replay_home else None
     app.state.replay_store = replay_store
+    physical_store = PhysicalStore()
+    app.state.physical_store = physical_store
+    sentinel_store = SentinelStore()
+    app.state.sentinel_store = sentinel_store
     if sessions:
         # Demo pública: sin webhook de WhatsApp (no hay canal que atender) y
         # una corrida de replay por visitante.
@@ -1631,6 +1644,18 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
     # HEAD también: los chequeos de salud y los previsualizadores de enlaces usan HEAD /.
     @app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
     async def index(request: Request) -> Any:
+        if request.query_params.get("scene") == "sentinel" or (
+            request.query_params.get("scene") is None
+            and os.environ.get("SHIELD_SENTINEL_HOME") == "1"
+        ):
+            lang = _resolve_lang(request)
+            return _with_cookie(HTMLResponse(render_sentinel_page(lang)), request, lang)
+        if request.query_params.get("scene") == "surveillance":
+            lang = _resolve_lang(request)
+            return _with_cookie(HTMLResponse(render_surveillance_page(lang)), request, lang)
+        if request.query_params.get("scene") == "physical":
+            lang = _resolve_lang(request)
+            return _with_cookie(HTMLResponse(render_physical_page(lang)), request, lang)
         if remote:
             return RedirectResponse("/live", status_code=303)
         if replay_store is not None:
@@ -2110,6 +2135,174 @@ def create_panel_app(state: DemoState | None = None, *, live_chain: Any = None) 
             media_type="application/json",
             headers={"Content-Disposition": "attachment; filename=provenance-replay.json"},
         )
+
+    # -- escena Physical (M5): replay determinista del escudo físico --
+    def _physical_run(request: Request) -> Any:
+        return physical_store.get(_current_sid.get())
+
+    def _physical_guard(request: Request) -> JSONResponse | None:
+        if request.method == "POST":
+            origin = request.headers.get("origin")
+            host_header = request.headers.get("host", "")
+            if origin and urlparse(origin).netloc.lower() != host_header.strip().lower():
+                return JSONResponse(
+                    {"error": "cross-origin requests are not allowed"}, status_code=403
+                )
+        return None
+
+    @app.get("/physical", response_class=HTMLResponse)
+    def physical_page(request: Request) -> Any:
+        lang = _resolve_lang(request)
+        return _with_cookie(HTMLResponse(render_physical_page(lang)), request, lang)
+
+    @app.get("/physical/state")
+    def physical_state(request: Request) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        return JSONResponse(_physical_run(request).state())
+
+    @app.post("/physical/reset")
+    def physical_reset(request: Request) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _physical_run(request)
+        with run.lock:
+            return JSONResponse(run.reset())
+
+    @app.post("/physical/step/{name}")
+    def physical_step(name: str, request: Request) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _physical_run(request)
+        lang = _resolve_lang(request)
+        with run.lock:
+            out = run.step(name, lang)
+        status = 409 if isinstance(out, dict) and out.get("status") in ("error", "stale") else 200
+        return JSONResponse(out, status_code=status)
+
+    @app.post("/physical/undo")
+    def physical_undo(request: Request) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _physical_run(request)
+        with run.lock:
+            out = run.undo_containment()
+        return JSONResponse(out, status_code=409 if out.get("status") == "error" else 200)
+
+    @app.post("/physical/voice")
+    async def physical_voice(request: Request, typed: str | None = Form(None)) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _physical_run(request)
+        with run.lock:
+            return JSONResponse(run.voice(typed or ""))
+
+    @app.post("/physical/voice/confirm")
+    def physical_voice_confirm(request: Request) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _physical_run(request)
+        with run.lock:
+            return JSONResponse(run.voice_confirm())
+
+    @app.post("/physical/voice/cancel")
+    def physical_voice_cancel(request: Request) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _physical_run(request)
+        with run.lock:
+            return JSONResponse(run.voice_cancel())
+
+    # -- escena Sentinel (M3): ola de ataques contenida por el autopiloto --
+    def _sentinel_run(request: Request) -> Any:
+        return sentinel_store.get(_current_sid.get())
+
+    @app.get("/sentinel", response_class=HTMLResponse)
+    def sentinel_page(request: Request) -> Any:
+        lang = _resolve_lang(request)
+        return _with_cookie(HTMLResponse(render_sentinel_page(lang)), request, lang)
+
+    @app.get("/sentinel/state")
+    def sentinel_state(request: Request) -> Any:
+        return JSONResponse(_sentinel_run(request).state())
+
+    def _surveillance_image(key: str) -> Response:
+        # Solo cuadros YA redactados de SHIELD_WITNESS_DIR (o verificados vacíos
+        # por una persona); si no hay, placeholder neutro sin foto. El nombre
+        # del archivo nunca viene del cliente: sale de observations.json.
+        data = sentinel_surveillance_image(key)
+        headers = {"Cache-Control": "private, max-age=60", "X-Content-Type-Options": "nosniff"}
+        if data is None:
+            return Response(SENTINEL_WITNESS_PLACEHOLDER, media_type="image/svg+xml",
+                            headers=headers)
+        return Response(data, media_type="image/jpeg", headers=headers)
+
+    @app.get("/sentinel/witness/latest.jpg")
+    def sentinel_witness_image(request: Request) -> Any:
+        return _surveillance_image("occupancy")
+
+    @app.get("/sentinel/surveillance/room/{room}.jpg")
+    def sentinel_surveillance_room(room: str, request: Request) -> Any:
+        # Sala conocida en observations.json; si no, placeholder (sin rutas del cliente).
+        simple = room.replace("-", "").replace("_", "").isalnum()
+        data = sentinel_room_image(room) if simple else None
+        headers = {"Cache-Control": "private, max-age=60", "X-Content-Type-Options": "nosniff"}
+        if data is None:
+            return Response(SENTINEL_WITNESS_PLACEHOLDER, media_type="image/svg+xml",
+                            headers=headers)
+        return Response(data, media_type="image/jpeg", headers=headers)
+
+    @app.get("/sentinel/surveillance/{key}.jpg")
+    def sentinel_surveillance_img(key: str, request: Request) -> Any:
+        if key not in SENTINEL_SURVEILLANCE_KEYS:
+            return JSONResponse({"error": "unknown card"}, status_code=404)
+        return _surveillance_image(key)
+
+    @app.post("/sentinel/reset")
+    def sentinel_reset(request: Request) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _sentinel_run(request)
+        with run.lock:
+            return JSONResponse(run.reset())
+
+    @app.post("/sentinel/replay")
+    def sentinel_replay(request: Request) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _sentinel_run(request)
+        lang = _resolve_lang(request)
+        with run.lock:
+            return JSONResponse(run.replay(lang))
+
+    @app.post("/sentinel/undo")
+    async def sentinel_undo(request: Request, undo_id: str | None = Form(None)) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _sentinel_run(request)
+        with run.lock:
+            out = run.undo(undo_id or "")
+        return JSONResponse(out, status_code=409 if out.get("status") == "error" else 200)
+
+    @app.post("/sentinel/release")
+    async def sentinel_release(request: Request, factor: str | None = Form(None)) -> Any:
+        guard = _physical_guard(request)
+        if guard is not None:
+            return guard
+        run = _sentinel_run(request)
+        with run.lock:
+            out = run.release(factor or "")
+        return JSONResponse(out, status_code=400 if out.get("status") == "error" else 200)
 
     @app.get("/live", response_class=HTMLResponse)
     def live_page(request: Request) -> Any:

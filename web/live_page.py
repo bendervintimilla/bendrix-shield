@@ -1828,7 +1828,9 @@ def render_live_page(
         scene_switch = (
             f"<nav class='mode-switch scene-switch' aria-label='{_e(_L('scene_label'))}'>"
             f"<a href='/?scene=bodega&lang={lang}'{' aria-current=\'true\'' if scene == 'bodega' else ''}>{_e(_L('scene_bodega'))}</a>"
-            f"<a href='/?scene=frio&lang={lang}'{' aria-current=\'true\'' if scene == 'frio' else ''}>{_e(_L('scene_frio'))}</a></nav>"
+            f"<a href='/?scene=frio&lang={lang}'{' aria-current=\'true\'' if scene == 'frio' else ''}>{_e(_L('scene_frio'))}</a>"
+            f"<a href='/?scene=physical&lang={lang}'>Physical</a>"
+            f"<a href='/?scene=sentinel&lang={lang}'>Sentinel</a></nav>"
         )
         lang_base = f"/?scene={scene}&"
         live_off_block = f"<p class='live-off-note'>{_e(_L('live_off_note'))}</p>"

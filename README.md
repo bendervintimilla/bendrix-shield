@@ -1,5 +1,24 @@
 # wAIrrior — Business Protection
 
+**wAIrrior is the AI warrior that watches every app and machine your business runs, spots irregularities, and contains the attack on its own.**
+
+This week made it real: on 2 Nov attackers remotely forced supermarket freezers across Europe into defrost, up to 50 °C, ~40 Delhaize stores ([Tom's Hardware](https://www.tomshardware.com/tech-industry/cyber-security/supermarket-freezers-across-europe-struck-in-second-crippling-cyberattack-hackers-raise-temperatures-to-50-degrees-celsius-in-belgium-and-sweden-destroying-food-stocks), [CBS](https://www.cbsnews.com/news/europe-grocery-store-refrigerator-freezer-cyberattack-hack-food-wasted/), [Al Jazeera](https://www.aljazeera.com/news/2026/11/3/very-cold-war-whos-attacking-europes-supermarket-freezers)); on 4 Nov Crédit Mutuel Arkéa suspended transfers for **all** clients after fraudulent operations (press figure of 118 M€ unconfirmed by the bank; [Euronews](https://www.euronews.com/2026/11/04/credit-mutuel-arkea-reports-cyberattack-says-clients-will-be-fully-protected), [Le JDD](https://www.lejdd.fr/economie/cyberattaque-le-credit-mutuel-arkea-victime-doperations-frauduleuses-des-millions-deuros-potentiellement-detournes-187779)); and in October our own AI keys were abused for ~16 hours, USD 310 (`docs/DEMO.md`).
+
+**Contain first, ask later: anything reversible wAIrrior does on its own in seconds; anything irreversible waits for the owner.** Then the owner hears: "You were attacked. We already did X, Y, Z. Tap to undo." The **Sentinel** screen shows exactly that: every connected app and machine on one timeline, a combined attack wave contained per app (blocked defrost, held payment, rotated token) while normal work continues, and the owner's WhatsApp notice after containment.
+
+Why physics? Text is not a security boundary: a defrost is a legitimate command and a slow, in-range drift passes every static rule. Before an agent acts, a thermal twin (two nodes, air + product, deterministic, offline) predicts the **product** temperature with the accepted history included; the verdict depends on physics, not on the text that convinced the agent.
+
+| Strongest figures | Result | Source (label) |
+|---|---|---|
+| 1,000 generated scenarios | Predictive shield stopped 419/419 damaging actions (95% CI [0.9909, 1]); static rules 7/419; false blocks 23/581; verdict p50 1.6 ms | `evals/physical/REPORT.md` (simulated) |
+| Physical red team, 3 rounds | Every bypass found was published and then closed: deferred actions, cold-freeze destination, spoofed sensor, forged rescue (now an HMAC-signed `RescueGrant`) | `evals/physical/REDTEAM.md`, `shield/physics/rescue.py` (simulated) |
+| Spark as attacker (20 plans) | Static rules pass 8/11 damaging plans silently; physics-only shield stops all heat damage (1 cold plan passed then, closed in round 2) | `evals/physical/SPARK-ATTACKER.md` (live-generated, simulated eval) |
+| Autopilot vs suspend-everything (Arkéa pattern) | Attacks 2 → 0 while 263/300 legitimate writes stay alive; suspending everything keeps 0/300 | `evals/autopilot/REPORT.md` @ `50a667e` (simulated) |
+| Live controller, real 2-Nov pattern | Muse Spark refused the injected "defrost 4 h, door open" document (0 actions); the physical gate blocked it (breach at 45 min, peak 16.4 °C) | `evals/recorded/physical-live-2026-11-04-defrost-r2.json` (live model, simulated physics) |
+| SAM 3.1 scene reading | 7/7 boxes counted; open door detected in the cold-room scene (AI-generated test images, labeled) | `evals/recorded/physical-sam-2026-11-04.json`, `physical-sam-door-2026-11-04.json` (live) |
+
+**Connect any app with one webhook:** `POST /autopilot/webhook` with a `SecurityEvent` JSON (`app`, `actor`, `action`, `target`, `values`; no secrets, only IDs/hashes). Detection, correlation and containment do not need to know your app (`shield/autopilot/events.py`). Full thesis, architecture and honest limits: [docs/FRONTIER.md](docs/FRONTIER.md). Everything below is the previously measured chain, unchanged (submitted earlier as NoKey).
+
 w**AI**rrior is the safety layer between a small business's AI agents and the models and tools they call.
 It lets an SME run AI agents — Purchasing reads supplier invoices, Warehouse counts stock — without ever handing those agents the real provider key.
 

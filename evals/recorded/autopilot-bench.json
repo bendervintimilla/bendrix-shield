@@ -1,0 +1,331 @@
+{
+  "simulated": true,
+  "label": "SIMULACIÓN — sin datos reales, tiempos locales en ms",
+  "background": {
+    "n": 300,
+    "seed": 20261104,
+    "apps": [
+      "payments",
+      "pos_erp",
+      "cold_room",
+      "ai_gateway"
+    ]
+  },
+  "sources": {
+    "defrost_2nov": [
+      "https://www.tomshardware.com/tech-industry/cyber-security/supermarket-freezers-across-europe-struck-in-second-crippling-cyberattack-hackers-raise-temperatures-to-50-degrees-celsius-in-belgium-and-sweden-destroying-food-stocks",
+      "https://www.cbsnews.com/news/europe-grocery-store-refrigerator-freezer-cyberattack-hack-food-wasted/"
+    ],
+    "arkea_4nov": [
+      "https://www.euronews.com/2026/11/04/credit-mutuel-arkea-reports-cyberattack-says-clients-will-be-fully-protected"
+    ],
+    "stolen_token_oct": [
+      "ORDENES.md: incidente propio de octubre (llave filtrada, ~16 h)"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "defrost_forced_2nov",
+      "title": "Deshielo forzado remoto (patrón real 2-nov, Europa)",
+      "simulated": true,
+      "severity": "critical",
+      "correlated": false,
+      "scope_level": "app",
+      "circuit_breaker": false,
+      "frozen_scopes": [
+        "cold_room:defrost:camara"
+      ],
+      "findings": [
+        "defrost_anomaly",
+        "physics_block"
+      ],
+      "detect_to_contain_ms": 11.498,
+      "measures": [
+        "block_action",
+        "safe_state",
+        "freeze_app_scope",
+        "rotate_token",
+        "freeze_actor_writes"
+      ],
+      "pending_owner": [],
+      "notice_en": "wAIrrior stopped an attack at 03:00.\nCold room: a 4-hour defrost would have spoiled your stock (product to 16.4 °C); we kept it at its last safe setting, 3 °C.\nEverything else keeps working.\nTap to undo.",
+      "notice_es": "wAIrrior detuvo un ataque a las 03:00.\nCámara de frío: un deshielo de 4 horas habría dañado tu stock (producto a 16.4 °C); quedó en su último estado seguro a 3 °C.\nTodo lo demás sigue funcionando.\nToca para deshacer.",
+      "comparison": {
+        "background_legitimate_writes_total": 300,
+        "no_shield": {
+          "attacks_succeed": 1,
+          "background_legitimate_ok": 300
+        },
+        "suspend_all_arkea_style": {
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 0
+        },
+        "wairrior": {
+          "attacks_blocked": 1,
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 300,
+          "background_legitimate_blocked_collateral": 0
+        }
+      }
+    },
+    {
+      "id": "arkea_iban_fraud_4nov",
+      "title": "Fraude de transferencias con cambio de IBAN por documento inyectado (patrón Arkéa 4-nov)",
+      "simulated": true,
+      "severity": "critical",
+      "correlated": true,
+      "scope_level": "campaign",
+      "circuit_breaker": false,
+      "frozen_scopes": [
+        "campaign:actor:payments-bot",
+        "payments:transfer:new_or_changed_24h",
+        "campaign:supplier:supplier:acme"
+      ],
+      "findings": [
+        "payment_anomaly",
+        "iban_then_payment"
+      ],
+      "detect_to_contain_ms": 0.092,
+      "measures": [
+        "block_action",
+        "block_action",
+        "hold_payment",
+        "freeze_campaign",
+        "freeze_actor_writes"
+      ],
+      "pending_owner": [
+        "cambio definitivo de IBAN de supplier:acme (requiere tu OK)",
+        "pagar a supplier:acme (retenido, requiere tu OK)"
+      ],
+      "notice_en": "wAIrrior stopped an attack at 02:10.\nPayments: a payment of 8,000 to a new IBAN for Acme is on hold; Acme's bank details are frozen.\nEverything else keeps working.\nTap to undo · Approve the IBAN change only with your second factor.",
+      "notice_es": "wAIrrior detuvo un ataque a las 02:10.\nPagos: un pago de 8,000 a un IBAN nuevo para Acme está retenido; los datos bancarios de Acme están congelados.\nTodo lo demás sigue funcionando.\nToca para deshacer · Aprueba el cambio de IBAN solo con tu segundo factor.",
+      "comparison": {
+        "background_legitimate_writes_total": 300,
+        "no_shield": {
+          "attacks_succeed": 2,
+          "background_legitimate_ok": 300
+        },
+        "suspend_all_arkea_style": {
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 0
+        },
+        "wairrior": {
+          "attacks_blocked": 2,
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 263,
+          "background_legitimate_blocked_collateral": 37
+        }
+      }
+    },
+    {
+      "id": "stolen_token_oct",
+      "title": "Token de IA robado (incidente propio de octubre): ráfaga desde el gateway",
+      "simulated": true,
+      "severity": "high",
+      "correlated": false,
+      "scope_level": "app",
+      "circuit_breaker": false,
+      "frozen_scopes": [
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot",
+        "ai_gateway:model_call:crew-bot"
+      ],
+      "findings": [
+        "token_burst"
+      ],
+      "detect_to_contain_ms": 0.127,
+      "measures": [
+        "block_action",
+        "freeze_app_scope",
+        "block_action",
+        "freeze_app_scope",
+        "block_action",
+        "freeze_app_scope",
+        "block_action",
+        "freeze_app_scope",
+        "block_action",
+        "freeze_app_scope",
+        "block_action",
+        "freeze_app_scope",
+        "block_action",
+        "freeze_app_scope",
+        "block_action",
+        "freeze_app_scope",
+        "block_action",
+        "freeze_app_scope",
+        "block_action",
+        "freeze_app_scope",
+        "block_action",
+        "freeze_app_scope",
+        "block_action",
+        "freeze_app_scope",
+        "rotate_token",
+        "freeze_actor_writes"
+      ],
+      "pending_owner": [],
+      "notice_en": "wAIrrior stopped an attack at 03:00.\nOne AI agent's key was stolen; we replaced it.\nEverything else keeps working.\nTap to undo.",
+      "notice_es": "wAIrrior detuvo un ataque a las 03:00.\nUna llave de un agente de IA fue robada; ya la reemplazamos.\nTodo lo demás sigue funcionando.\nToca para deshacer.",
+      "comparison": {
+        "background_legitimate_writes_total": 300,
+        "no_shield": {
+          "attacks_succeed": 12,
+          "background_legitimate_ok": 300
+        },
+        "suspend_all_arkea_style": {
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 0
+        },
+        "wairrior": {
+          "attacks_blocked": 12,
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 300,
+          "background_legitimate_blocked_collateral": 0
+        }
+      }
+    },
+    {
+      "id": "legit_recurring_payment",
+      "title": "Legítimo: pago normal recurrente a proveedor conocido",
+      "simulated": true,
+      "severity": "low",
+      "correlated": false,
+      "scope_level": "none",
+      "circuit_breaker": false,
+      "frozen_scopes": [],
+      "findings": [],
+      "detect_to_contain_ms": 0.034,
+      "measures": [
+        "log"
+      ],
+      "pending_owner": [
+        "pagar a supplier:known (retenido, requiere tu OK)"
+      ],
+      "notice_en": "wAIrrior stopped an attack at 10:00.\nPayments: a payment of 520 to a new IBAN for Known is on hold; Known's bank details are frozen.\nTap to undo · Approving the payment needs your second factor.",
+      "notice_es": "wAIrrior detuvo un ataque a las 10:00.\nPagos: un pago de 520 a un IBAN nuevo para Known está retenido; los datos bancarios de Known están congelados.\nToca para deshacer · Aprobar el pago requiere tu segundo factor.",
+      "comparison": {
+        "background_legitimate_writes_total": 300,
+        "no_shield": {
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 300
+        },
+        "suspend_all_arkea_style": {
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 0
+        },
+        "wairrior": {
+          "attacks_blocked": 0,
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 300,
+          "background_legitimate_blocked_collateral": 0
+        }
+      }
+    },
+    {
+      "id": "legit_scheduled_defrost",
+      "title": "Legítimo: deshielo programado en calendario",
+      "simulated": true,
+      "severity": "low",
+      "correlated": false,
+      "scope_level": "none",
+      "circuit_breaker": false,
+      "frozen_scopes": [],
+      "findings": [],
+      "detect_to_contain_ms": 1.604,
+      "measures": [
+        "log"
+      ],
+      "pending_owner": [],
+      "notice_en": "wAIrrior stopped an attack at 06:00.\nCold room: a 20 min defrost would have spoiled your stock (product to 3.8 °C); we kept it at its last safe setting, 3 °C.\nTap to undo.",
+      "notice_es": "wAIrrior detuvo un ataque a las 06:00.\nCámara de frío: un deshielo de 20 min habría dañado tu stock (producto a 3.8 °C); quedó en su último estado seguro a 3 °C.\nToca para deshacer.",
+      "comparison": {
+        "background_legitimate_writes_total": 300,
+        "no_shield": {
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 300
+        },
+        "suspend_all_arkea_style": {
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 0
+        },
+        "wairrior": {
+          "attacks_blocked": 0,
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 300,
+          "background_legitimate_blocked_collateral": 0
+        }
+      }
+    },
+    {
+      "id": "combined_wave",
+      "title": "Ola combinada: mismo actor en frío + pagos/ERP + gateway en 10 min",
+      "simulated": true,
+      "severity": "critical",
+      "correlated": true,
+      "scope_level": "global",
+      "circuit_breaker": true,
+      "frozen_scopes": [],
+      "findings": [
+        "defrost_anomaly",
+        "physics_block",
+        "payment_anomaly",
+        "iban_then_payment",
+        "token_burst"
+      ],
+      "detect_to_contain_ms": 4.166,
+      "measures": [
+        "block_action",
+        "safe_state",
+        "block_action",
+        "block_action",
+        "hold_payment",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "block_action",
+        "revoke_tokens",
+        "freeze_actor_writes",
+        "circuit_breaker"
+      ],
+      "pending_owner": [
+        "cambio definitivo de IBAN de supplier:acme (requiere tu OK)",
+        "pagar a supplier:acme (retenido, requiere tu OK)"
+      ],
+      "notice_en": "wAIrrior stopped an attack at 10:00.\nCold room: a 4-hour defrost would have spoiled your stock (product to 16.4 °C); we kept it at its last safe setting, 3 °C.\nPayments: a payment of 9,000 to a new IBAN for Acme is on hold; Acme's bank details are frozen.\nOne AI agent's key was stolen; we replaced it.\nOther agent writes are paused; your usual human payments to known suppliers keep working.\nTap to undo · Approve the IBAN change only with your second factor.",
+      "notice_es": "wAIrrior detuvo un ataque a las 10:00.\nCámara de frío: un deshielo de 4 horas habría dañado tu stock (producto a 16.4 °C); quedó en su último estado seguro a 3 °C.\nPagos: un pago de 9,000 a un IBAN nuevo para Acme está retenido; los datos bancarios de Acme están congelados.\nUna llave de un agente de IA fue robada; ya la reemplazamos.\nLas demás escrituras de agentes están en pausa; tus pagos humanos habituales a proveedores conocidos siguen.\nToca para deshacer · Aprueba el cambio de IBAN solo con tu segundo factor.",
+      "comparison": {
+        "background_legitimate_writes_total": 300,
+        "no_shield": {
+          "attacks_succeed": 15,
+          "background_legitimate_ok": 300
+        },
+        "suspend_all_arkea_style": {
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 0
+        },
+        "wairrior": {
+          "attacks_blocked": 15,
+          "attacks_succeed": 0,
+          "background_legitimate_ok": 38,
+          "background_legitimate_blocked_collateral": 262
+        }
+      }
+    }
+  ]
+}

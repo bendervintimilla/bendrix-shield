@@ -19,6 +19,14 @@ fi
 # NO_TRAFFIC_TAG=<tag>: publica la revisión SIN tráfico y con esa etiqueta (URL de prueba
 # https://<tag>---<servicio>-...run.app); se pasa al 100 % con
 #   gcloud run services update-traffic "$SERVICE" --to-latest ...
+# WITNESS_SRC=<carpeta>: copia SOLO cuadros redactados/verificados vacíos y sus JSON a
+# deploy/witness (ignorada por git) para que la demo pública muestre las cámaras.
+if [[ -n "${WITNESS_SRC:-}" ]]; then
+  find deploy/witness -mindepth 1 ! -name README.md -delete
+  cp "$WITNESS_SRC"/*.redacted.jpg "$WITNESS_SRC"/*.verified-empty.jpg deploy/witness/
+  cp "$WITNESS_SRC"/observations.json "$WITNESS_SRC"/surveillance.json "$WITNESS_SRC"/verified-empty.json deploy/witness/
+fi
+
 EXTRA=()
 if [[ -n "${NO_TRAFFIC_TAG:-}" ]]; then
   EXTRA+=(--no-traffic "--tag=${NO_TRAFFIC_TAG}")
