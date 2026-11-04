@@ -48,7 +48,7 @@ def _truth_series(
         )
         truth.append(air)
         ua = PARAMS.ua_wall_w_per_k + (PARAMS.ua_door_open_w_per_k if door_open else 0.0)
-        ha = PARAMS.ha_air_product_w_per_k * 2.0  # 200 kg / 100 kg
+        ha = PARAMS.ha_air_product_w_per_k  # mismo acople que el gemelo M1
         c_prod = 200.0 * PARAMS.product_cp_j_per_kgk
         for _ in range(2):  # subpasos de 30 s
             d_air = (

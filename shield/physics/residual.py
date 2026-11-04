@@ -181,7 +181,8 @@ def _predict_internal(
         ua = params.ua_wall_w_per_k + (
             params.ua_door_open_w_per_k if s.door_open else 0.0
         )
-        ha = params.ha_air_product_w_per_k * (s.product_kg / 100.0) if s.product_kg > 0 else 0.0
+        # Mismo acople que M1: ha_air_product directo, sin escalar por kg.
+        ha = params.ha_air_product_w_per_k if s.product_kg > 0 else 0.0
         c_prod = max(s.product_kg, 0.0) * params.product_cp_j_per_kgk
         cooling = params.cooling_capacity_w if s.compressor_on else 0.0
         for _ in range(sub):
