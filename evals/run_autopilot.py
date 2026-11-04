@@ -132,12 +132,19 @@ def main() -> int:
     if wave:
         lines += ["", "## Ola combinada (único caso global): aviso completo al dueño", "",
                   f"> EN: {wave['notice_en']}", "", f"> ES: {wave['notice_es']}", ""]
-    lines += ["Lectura: Arkéa es nivel campaign (no global): quedan vivas las "
-              "recurrentes a beneficiarios conocidos, que es lo que el banco no "
-              "pudo separar. Solo la ola en >=3 apps llega a global, y aun ahí "
-              "sobreviven las operaciones humanas recurrentes del fondo (la mitad "
-              "de los pagos de fondo, 38 de 300 en esta semilla). Cada medida "
-              "tiene undo y lo irreversible queda para el dueño.", ""]
+    lines += ["Lectura: Arkéa es nivel campaign (no global): 263/300 legítimas "
+              "vivas; las 37 pausadas son los pagos de agente del bot contenido "
+              "(congelado en físico y pagos tras la contención, ronda 3 de M7: "
+              "cambiar target o clase de acción ya no evade). Solo la ola en "
+              ">=3 apps llega a global, y aun ahí sobreviven las operaciones "
+              "humanas recurrentes (38/300). Cada medida tiene undo y lo "
+              "irreversible queda para el dueño.", "",
+              "Ronda 3 (M7): C3-11 (otro target) y C3-12 (otra clase de acción) "
+              "quedan bloqueados por el congelamiento del actor/token; C3-13 "
+              "(90 min, actores/tokens distintos) correlaciona por objetivo y "
+              "firma de campaña en 24 h; C3-16 (actor 'wairrior-autopilot' "
+              "forjado) se marca sospechoso y nunca obtiene rescate: el grant "
+              "firmado de M1 se pasará solo cuando la cadena lo acepte.", ""]
     REPORT.write_text("\n".join(lines), encoding="utf-8")
     print(f"OK {len(results)} escenarios -> {BENCH} y {REPORT}")
     return 0

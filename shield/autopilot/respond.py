@@ -159,6 +159,8 @@ class ContainmentEngine:
         self.revoked_actors: set[str] = set()
         self.campaign_actors: set[str] = set()
         self.campaign_suppliers: set[str] = set()
+        self.contained_actors: set[str] = set()
+        self.contained_tokens: set[str] = set()
         self.safe_states: dict[str, str] = {}
         self.held_payments: set[str] = set()
         self.blocked_actions: set[str] = set()
@@ -189,6 +191,12 @@ class ContainmentEngine:
             if event.source == "human":
                 return event.app != "payments" or bool(
                     event.values.get("beneficiary_known"))
+            return False
+        if (event.app in ("cold_room", "payments") and event.source != "human"
+                and (event.actor in self.contained_actors
+                     or (event.token_id and event.token_id in self.contained_tokens))):
+            # Actor/token contenido: TODA escritura física y de pagos
+            # cae hasta liberación, cambie el target o la acción (C3-11/12).
             return False
         if event.actor in self.campaign_actors:
             # Actor de la campaña congelado: solo sobrevive su pago
@@ -268,6 +276,17 @@ class ContainmentEngine:
             self.tokens.restore(actor)
         return self._apply(Measure("freeze_campaign", "*", actor,
                                    detail="actor, proveedor y beneficiarios nuevos"),
+                           undo)
+
+    def contain_actor_writes(self, actor: str, tokens: list[str]) -> Measure:
+        self.contained_actors.add(actor)
+        self.contained_tokens.update(tokens)
+        def undo() -> None:
+            self.contained_actors.discard(actor)
+            for tok in tokens:
+                self.contained_tokens.discard(tok)
+        return self._apply(Measure("freeze_actor_writes", "*", actor,
+                                   detail="toda escritura física y de pagos"),
                            undo)
 
     def circuit_breaker(self, apps: list[str]) -> Measure:
@@ -394,8 +413,11 @@ def respond(incident: Incident, events: list[SecurityEvent],
     t0 = started if started is not None else time.perf_counter()
     by_id = {e.event_id: e for e in events}
     flagged = [by_id[i] for i in incident.event_ids if i in by_id]
-    # Global solo con >=3 apps o compromiso de plataforma (varios actores).
-    platform = bool(incident.correlated and len(incident.actors) >= 2)
+    # Global solo con >=3 apps o compromiso de plataforma: varios actores
+    # Y el gateway comprometido (ráfaga de tokens), no dos agentes sueltos.
+    platform = bool(incident.correlated and len(incident.actors) >= 2
+                    and "ai_gateway" in incident.apps
+                    and any(f.kind == "token_burst" for f in incident.findings))
     if not incident.findings or incident.severity == "low":
         level = "none"
     elif incident.correlated and (len(incident.apps) >= 3 or platform):
@@ -432,6 +454,13 @@ def respond(incident: Incident, events: list[SecurityEvent],
             else:
                 result.measures.append(
                     engine.rotate_token(actor, flagged[0].app if flagged else "*"))
+        tokens_by_actor: dict[str, list[str]] = {}
+        for e in flagged:
+            if e.token_id:
+                tokens_by_actor.setdefault(e.actor, []).append(e.token_id)
+        for actor in incident.actors:
+            result.measures.append(engine.contain_actor_writes(
+                actor, tokens_by_actor.get(actor, [])))
         if level == "campaign":
             result.frozen_scopes.append("payments:transfer:new_or_changed_24h")
             result.frozen_scopes.extend(f"campaign:supplier:{s}" for s in suppliers)
