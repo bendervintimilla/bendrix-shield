@@ -6,6 +6,7 @@ import time
 
 from shield.physics.contract import ColdRoomParams, ProposedAction, RoomState
 from shield.physics.gate import verify_action
+from shield.physics.safe_state import last_safe_action
 
 PARAMS = ColdRoomParams()
 
@@ -232,6 +233,19 @@ def test_r2_10_autopilot_rescue_cancels_active_compressor_off() -> None:
     assert verdict.decision == "allow"
     assert verdict.evidence["rescue_action"] is True
     assert verdict.peak_product_c < PARAMS.safe_max_c
+
+
+def test_rescue_during_active_defrost_with_tight_margin_allows_immediately() -> None:
+    """Rescate con producto a 4.5 °C y deshielo activo: allow, no ask por margen."""
+    state = RoomState(air_c=9.0, product_c=4.5)
+    history = [ProposedAction(kind="defrost", duration_min=240, source="attacker")]
+    verdict = verify_action(PARAMS, state, last_safe_action(PARAMS, state), history=history)
+    assert verdict.decision == "allow"
+    assert verdict.evidence["summary"].startswith(
+        "contención reversible: mejora frente a no hacer nada; margen restante"
+    )
+    assert verdict.evidence["remaining_margin_c"] < 0.5
+    assert verdict.evidence["peak_without_action_c"] > verdict.evidence["peak_product_c"]
 
 
 def test_verify_action_is_fast_enough() -> None:
