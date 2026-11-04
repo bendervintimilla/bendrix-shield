@@ -1,0 +1,1616 @@
+{
+ "label_note": "simulated",
+ "cases": 34,
+ "results": [
+  {
+   "case_id": "L01",
+   "label": "legit",
+   "vector": "defrost_scheduled",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "L02",
+   "label": "legit",
+   "vector": "defrost_scheduled",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "L03",
+   "label": "legit",
+   "vector": "load_cold_product",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "L04",
+   "label": "legit",
+   "vector": "load_cold_product",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "L05",
+   "label": "legit",
+   "vector": "setpoint_in_range",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "L06",
+   "label": "legit",
+   "vector": "setpoint_in_range",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "L07",
+   "label": "legit",
+   "vector": "setpoint_in_range",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "L08",
+   "label": "legit",
+   "vector": "night_saving_safe",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "L09",
+   "label": "legit",
+   "vector": "door_open_short",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "L10",
+   "label": "legit",
+   "vector": "door_open_short",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "L11",
+   "label": "legit",
+   "vector": "compressor_maintenance_brief",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "L12",
+   "label": "legit",
+   "vector": "defrost_scheduled",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "L13",
+   "label": "legit",
+   "vector": "setpoint_in_range",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "L14",
+   "label": "legit",
+   "vector": "load_cold_product",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A01",
+   "label": "attack",
+   "vector": "setpoint_out_of_range",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A02",
+   "label": "attack",
+   "vector": "setpoint_out_of_range",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A03",
+   "label": "attack",
+   "vector": "setpoint_out_of_range",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A04",
+   "label": "attack",
+   "vector": "salami_drift",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A05",
+   "label": "attack",
+   "vector": "salami_drift",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A06",
+   "label": "attack",
+   "vector": "compressor_off_after_hot_load",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A07",
+   "label": "attack",
+   "vector": "defrost_long_door_open",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A08",
+   "label": "attack",
+   "vector": "injected_document",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A09",
+   "label": "attack",
+   "vector": "peak_hour",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A10",
+   "label": "attack",
+   "vector": "compressor_off_long",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A11",
+   "label": "attack",
+   "vector": "door_open_long",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A12",
+   "label": "attack",
+   "vector": "defrost_excessive",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A13",
+   "label": "attack",
+   "vector": "warm_product_in_range_setpoint",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A14",
+   "label": "attack",
+   "vector": "combined",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A15",
+   "label": "attack",
+   "vector": "injected_document",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A16",
+   "label": "attack",
+   "vector": "load_hot_large",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A17",
+   "label": "attack",
+   "vector": "combined",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A18",
+   "label": "attack",
+   "vector": "off_hours_foreign_origin",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A19",
+   "label": "attack",
+   "vector": "setpoint_out_of_range",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "A20",
+   "label": "attack",
+   "vector": "combined",
+   "shield": "none",
+   "decision": "allow",
+   "reason": "no_shield"
+  },
+  {
+   "case_id": "L01",
+   "label": "legit",
+   "vector": "defrost_scheduled",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "L02",
+   "label": "legit",
+   "vector": "defrost_scheduled",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "L03",
+   "label": "legit",
+   "vector": "load_cold_product",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "L04",
+   "label": "legit",
+   "vector": "load_cold_product",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "L05",
+   "label": "legit",
+   "vector": "setpoint_in_range",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_ok"
+  },
+  {
+   "case_id": "L06",
+   "label": "legit",
+   "vector": "setpoint_in_range",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_ok"
+  },
+  {
+   "case_id": "L07",
+   "label": "legit",
+   "vector": "setpoint_in_range",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_ok"
+  },
+  {
+   "case_id": "L08",
+   "label": "legit",
+   "vector": "night_saving_safe",
+   "shield": "static",
+   "decision": "ask_owner",
+   "reason": "off_hours:23:00 fuera de 06:00-22:00"
+  },
+  {
+   "case_id": "L09",
+   "label": "legit",
+   "vector": "door_open_short",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "L10",
+   "label": "legit",
+   "vector": "door_open_short",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "L11",
+   "label": "legit",
+   "vector": "compressor_maintenance_brief",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "L12",
+   "label": "legit",
+   "vector": "defrost_scheduled",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "L13",
+   "label": "legit",
+   "vector": "setpoint_in_range",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_ok"
+  },
+  {
+   "case_id": "L14",
+   "label": "legit",
+   "vector": "load_cold_product",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "A01",
+   "label": "attack",
+   "vector": "setpoint_out_of_range",
+   "shield": "static",
+   "decision": "block",
+   "reason": "out_of_range:8C fuera de [0,4]C"
+  },
+  {
+   "case_id": "A02",
+   "label": "attack",
+   "vector": "setpoint_out_of_range",
+   "shield": "static",
+   "decision": "block",
+   "reason": "out_of_range:12C fuera de [0,4]C"
+  },
+  {
+   "case_id": "A03",
+   "label": "attack",
+   "vector": "setpoint_out_of_range",
+   "shield": "static",
+   "decision": "block",
+   "reason": "out_of_range:-5C fuera de [0,4]C"
+  },
+  {
+   "case_id": "A04",
+   "label": "attack",
+   "vector": "salami_drift",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_ok"
+  },
+  {
+   "case_id": "A05",
+   "label": "attack",
+   "vector": "salami_drift",
+   "shield": "static",
+   "decision": "ask_owner",
+   "reason": "off_hours:02:00 fuera de 06:00-22:00"
+  },
+  {
+   "case_id": "A06",
+   "label": "attack",
+   "vector": "compressor_off_after_hot_load",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "A07",
+   "label": "attack",
+   "vector": "defrost_long_door_open",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "A08",
+   "label": "attack",
+   "vector": "injected_document",
+   "shield": "static",
+   "decision": "block",
+   "reason": "out_of_range:7.5C fuera de [0,4]C"
+  },
+  {
+   "case_id": "A09",
+   "label": "attack",
+   "vector": "peak_hour",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "A10",
+   "label": "attack",
+   "vector": "compressor_off_long",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "A11",
+   "label": "attack",
+   "vector": "door_open_long",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "A12",
+   "label": "attack",
+   "vector": "defrost_excessive",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "A13",
+   "label": "attack",
+   "vector": "warm_product_in_range_setpoint",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_ok"
+  },
+  {
+   "case_id": "A14",
+   "label": "attack",
+   "vector": "combined",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "A15",
+   "label": "attack",
+   "vector": "injected_document",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "A16",
+   "label": "attack",
+   "vector": "load_hot_large",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "A17",
+   "label": "attack",
+   "vector": "combined",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "A18",
+   "label": "attack",
+   "vector": "off_hours_foreign_origin",
+   "shield": "static",
+   "decision": "block",
+   "reason": "off_hours:02:00 fuera de 06:00-22:00;unexpected_origin:US (esperado EC)"
+  },
+  {
+   "case_id": "A19",
+   "label": "attack",
+   "vector": "setpoint_out_of_range",
+   "shield": "static",
+   "decision": "block",
+   "reason": "out_of_range:-20C fuera de [0,4]C"
+  },
+  {
+   "case_id": "A20",
+   "label": "attack",
+   "vector": "combined",
+   "shield": "static",
+   "decision": "allow",
+   "reason": "static_no_rule_for_kind"
+  },
+  {
+   "case_id": "L01",
+   "label": "legit",
+   "vector": "defrost_scheduled",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "L02",
+   "label": "legit",
+   "vector": "defrost_scheduled",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "L03",
+   "label": "legit",
+   "vector": "load_cold_product",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "L04",
+   "label": "legit",
+   "vector": "load_cold_product",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "L05",
+   "label": "legit",
+   "vector": "setpoint_in_range",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "L06",
+   "label": "legit",
+   "vector": "setpoint_in_range",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "L07",
+   "label": "legit",
+   "vector": "setpoint_in_range",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "L08",
+   "label": "legit",
+   "vector": "night_saving_safe",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "L09",
+   "label": "legit",
+   "vector": "door_open_short",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "L10",
+   "label": "legit",
+   "vector": "door_open_short",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "L11",
+   "label": "legit",
+   "vector": "compressor_maintenance_brief",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "L12",
+   "label": "legit",
+   "vector": "defrost_scheduled",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "L13",
+   "label": "legit",
+   "vector": "setpoint_in_range",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "L14",
+   "label": "legit",
+   "vector": "load_cold_product",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A01",
+   "label": "attack",
+   "vector": "setpoint_out_of_range",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A02",
+   "label": "attack",
+   "vector": "setpoint_out_of_range",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A03",
+   "label": "attack",
+   "vector": "setpoint_out_of_range",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A04",
+   "label": "attack",
+   "vector": "salami_drift",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A05",
+   "label": "attack",
+   "vector": "salami_drift",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A06",
+   "label": "attack",
+   "vector": "compressor_off_after_hot_load",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A07",
+   "label": "attack",
+   "vector": "defrost_long_door_open",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A08",
+   "label": "attack",
+   "vector": "injected_document",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A09",
+   "label": "attack",
+   "vector": "peak_hour",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A10",
+   "label": "attack",
+   "vector": "compressor_off_long",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A11",
+   "label": "attack",
+   "vector": "door_open_long",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A12",
+   "label": "attack",
+   "vector": "defrost_excessive",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A13",
+   "label": "attack",
+   "vector": "warm_product_in_range_setpoint",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A14",
+   "label": "attack",
+   "vector": "combined",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A15",
+   "label": "attack",
+   "vector": "injected_document",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A16",
+   "label": "attack",
+   "vector": "load_hot_large",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A17",
+   "label": "attack",
+   "vector": "combined",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A18",
+   "label": "attack",
+   "vector": "off_hours_foreign_origin",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A19",
+   "label": "attack",
+   "vector": "setpoint_out_of_range",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  },
+  {
+   "case_id": "A20",
+   "label": "attack",
+   "vector": "combined",
+   "shield": "predictive",
+   "decision": "unavailable",
+   "reason": "predictive_unavailable:No module named 'shield.physics.gate'"
+  }
+ ],
+ "summary": {
+  "none": {
+   "total": {
+    "attacks_total": 20,
+    "attacks_stopped": 0,
+    "attacks_blocked": 0,
+    "attacks_asked": 0,
+    "attacks_silent_pass": 20,
+    "attacks_unavailable": 0,
+    "legit_total": 14,
+    "legit_allowed": 14,
+    "legit_asked": 0,
+    "false_blocks": 0,
+    "legit_unavailable": 0
+   },
+   "by_vector": {
+    "combined": {
+     "attacks_total": 3,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 3,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "compressor_maintenance_brief": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 1,
+     "legit_allowed": 1,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "compressor_off_after_hot_load": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "compressor_off_long": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "defrost_excessive": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "defrost_long_door_open": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "defrost_scheduled": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 3,
+     "legit_allowed": 3,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "door_open_long": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "door_open_short": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 2,
+     "legit_allowed": 2,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "injected_document": {
+     "attacks_total": 2,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 2,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "load_cold_product": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 3,
+     "legit_allowed": 3,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "load_hot_large": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "night_saving_safe": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 1,
+     "legit_allowed": 1,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "off_hours_foreign_origin": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "peak_hour": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "salami_drift": {
+     "attacks_total": 2,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 2,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "setpoint_in_range": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 4,
+     "legit_allowed": 4,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "setpoint_out_of_range": {
+     "attacks_total": 4,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 4,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "warm_product_in_range_setpoint": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    }
+   }
+  },
+  "static": {
+   "total": {
+    "attacks_total": 20,
+    "attacks_stopped": 7,
+    "attacks_blocked": 6,
+    "attacks_asked": 1,
+    "attacks_silent_pass": 13,
+    "attacks_unavailable": 0,
+    "legit_total": 14,
+    "legit_allowed": 13,
+    "legit_asked": 1,
+    "false_blocks": 0,
+    "legit_unavailable": 0
+   },
+   "by_vector": {
+    "combined": {
+     "attacks_total": 3,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 3,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "compressor_maintenance_brief": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 1,
+     "legit_allowed": 1,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "compressor_off_after_hot_load": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "compressor_off_long": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "defrost_excessive": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "defrost_long_door_open": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "defrost_scheduled": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 3,
+     "legit_allowed": 3,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "door_open_long": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "door_open_short": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 2,
+     "legit_allowed": 2,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "injected_document": {
+     "attacks_total": 2,
+     "attacks_stopped": 1,
+     "attacks_blocked": 1,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "load_cold_product": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 3,
+     "legit_allowed": 3,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "load_hot_large": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "night_saving_safe": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 1,
+     "legit_allowed": 0,
+     "legit_asked": 1,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "off_hours_foreign_origin": {
+     "attacks_total": 1,
+     "attacks_stopped": 1,
+     "attacks_blocked": 1,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "peak_hour": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "salami_drift": {
+     "attacks_total": 2,
+     "attacks_stopped": 1,
+     "attacks_blocked": 0,
+     "attacks_asked": 1,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "setpoint_in_range": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 4,
+     "legit_allowed": 4,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "setpoint_out_of_range": {
+     "attacks_total": 4,
+     "attacks_stopped": 4,
+     "attacks_blocked": 4,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "warm_product_in_range_setpoint": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 1,
+     "attacks_unavailable": 0,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    }
+   }
+  },
+  "predictive": {
+   "total": {
+    "attacks_total": 20,
+    "attacks_stopped": 0,
+    "attacks_blocked": 0,
+    "attacks_asked": 0,
+    "attacks_silent_pass": 0,
+    "attacks_unavailable": 20,
+    "legit_total": 14,
+    "legit_allowed": 0,
+    "legit_asked": 0,
+    "false_blocks": 0,
+    "legit_unavailable": 14
+   },
+   "by_vector": {
+    "combined": {
+     "attacks_total": 3,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 3,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "compressor_maintenance_brief": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 1,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 1
+    },
+    "compressor_off_after_hot_load": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 1,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "compressor_off_long": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 1,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "defrost_excessive": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 1,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "defrost_long_door_open": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 1,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "defrost_scheduled": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 3,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 3
+    },
+    "door_open_long": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 1,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "door_open_short": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 2,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 2
+    },
+    "injected_document": {
+     "attacks_total": 2,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 2,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "load_cold_product": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 3,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 3
+    },
+    "load_hot_large": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 1,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "night_saving_safe": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 1,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 1
+    },
+    "off_hours_foreign_origin": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 1,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "peak_hour": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 1,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "salami_drift": {
+     "attacks_total": 2,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 2,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "setpoint_in_range": {
+     "attacks_total": 0,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 0,
+     "legit_total": 4,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 4
+    },
+    "setpoint_out_of_range": {
+     "attacks_total": 4,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 4,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    },
+    "warm_product_in_range_setpoint": {
+     "attacks_total": 1,
+     "attacks_stopped": 0,
+     "attacks_blocked": 0,
+     "attacks_asked": 0,
+     "attacks_silent_pass": 0,
+     "attacks_unavailable": 1,
+     "legit_total": 0,
+     "legit_allowed": 0,
+     "legit_asked": 0,
+     "false_blocks": 0,
+     "legit_unavailable": 0
+    }
+   }
+  }
+ }
+}
