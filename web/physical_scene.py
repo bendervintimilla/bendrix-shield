@@ -703,7 +703,7 @@ class PhysicalStore:
 
 _CSS = """
 :root{--bg:#0a0d12;--surface:#10151c;--sunk:#0c1016;--line:#212935;--line-strong:#2f3946;--text:#e8ecf2;--muted:#9aa5b4;--ok:#36b37e;--ok-text:#7fe0b4;--bad:#e5534b;--bad-text:#ffaaa3;--warn:#efa83a;--warn-text:#ffd28a;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:17px;line-height:1.55}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:17px;line-height:1.55}
 a{color:#ffd28a}.wrap{width:min(1320px,calc(100% - 48px));margin:0 auto}
 .band{border-bottom:1px solid var(--line)}.band .inner{width:min(1320px,calc(100% - 48px));margin:0 auto;padding:16px 0 8px}
 .band-top{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between}
@@ -781,7 +781,7 @@ function renderVoice(r) { byId("voiceTranscript").textContent = r.transcript || 
   byId("voiceConfirm").hidden = r.status !== "confirmation_required"; byId("voiceCancel").hidden = r.status !== "confirmation_required"; }
 function renderResult(step, r) { if (step === "normal") renderNormal(r); if (step === "document") renderDocument(r); if (step === "shield") renderShield(r); if (step === "drift") renderDrift(r); if (step === "safe") renderSafe(r); if (step === "execute") renderExecute(r); if (step === "voice") renderVoice(r); }
 async function api(path, opts) { const q = RUN_ID ? ("?run=" + encodeURIComponent(RUN_ID) + "&lang=" + LANG) : ("?lang=" + LANG); const res = await fetch(path + q, opts || {}); const data = await res.json().catch(() => ({})); if (data.run_id) RUN_ID = data.run_id; return {res, data}; }
-async function refresh() { const {data} = await api("/physical/state"); if (data.run_id) RUN_ID = data.run_id; const results = data.results || {}; Object.keys(results).forEach((k) => { renderResult(k, results[k]); setStatus(k === "voice" ? "safe" : k, TEXT.ok, "ok"); }); if (results.voice) renderVoice(results.voice); return data; }
+async function refresh() { const {data} = await api("/physical/state"); if (data.run_id) RUN_ID = data.run_id; const results = data.results || {}; Object.keys(results).forEach((k) => { renderResult(k, results[k]); setStatus(k === "voice" ? "safe" : k, TEXT.ok, (k === "shield" || k === "drift") ? "blocked" : "ok"); }); if (results.voice) renderVoice(results.voice); return data; }
 async function runStep(step) { setStatus(step, TEXT.running, "running"); try { const {res, data} = await api("/physical/step/" + step, {method: "POST"});
   if (!res.ok || data.status === "error" || data.status === "not_approved") { setStatus(step, TEXT.error + ": " + (data.status === "not_approved" ? TEXT.err_not_approved : TEXT.err_need), "error"); return data; }
   renderResult(step, data); setStatus(step, TEXT.ok, step === "shield" || step === "drift" ? "blocked" : "ok"); await refresh(); return data; } catch (err) { setStatus(step, TEXT.error + ": " + err.message, "error"); return {status: "error"}; } }
