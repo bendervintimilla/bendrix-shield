@@ -26,9 +26,15 @@ PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("iban", re.compile(r"\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){2,7}(?:[ ]?[A-Z0-9]{1,3})?\b")),
     ("email", re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")),
     # Teléfono internacional (+593…) o nacional largo con separadores.
+    # No toca identificadores: nada pegado a una letra o a «letra-guion»
+    # (CVE-2026-1234, segmentos de UUID/ids de respuesta) ni seguido de «-x».
     (
         "phone",
-        re.compile(r"(?:\+\d{1,3}[ ]?)?(?:\(?\d{2,4}\)?[ ]?)?\d{3,4}[ \-]\d{4}\b|\+\d{10,15}\b"),
+        re.compile(
+            r"(?<![A-Za-z]-)(?<!\w)"
+            r"(?:(?:\+\d{1,3}[ ]?)?(?:\(?\d{2,4}\)?[ ]?)?\d{3,4}[ \-]\d{4}\b|\+\d{10,15}\b)"
+            r"(?!-\w)"
+        ),
     ),
 ]
 
