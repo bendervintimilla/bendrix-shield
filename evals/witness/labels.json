@@ -1,0 +1,3 @@
+{
+  "_comment": "Llenar a mano: {\"<camara>_<YYYYmmdd-HHMMSS>.jpg\": {\"people\": N, \"door_open\": true|false|null}}. Solo nombres de archivo; las imágenes viven fuera del repo."
+}

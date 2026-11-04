@@ -498,11 +498,11 @@ def respond(incident: Incident, events: list[SecurityEvent],
 
 def run_pipeline(events: list[SecurityEvent], baseline=None,
                  engine: ContainmentEngine | None = None, spark=None,
-                 cold_history=None):
+                 cold_history=None, witness=None):
     """Detección → correlación → contención, midiendo detección→contención en ms."""
     from shield.autopilot.detect import correlate, detect, triage_incident
     started = time.perf_counter()
-    findings = detect(events, baseline, cold_history=cold_history)
+    findings = detect(events, baseline, cold_history=cold_history, witness=witness)
     incident = triage_incident(correlate(events, findings), spark)
     return incident, respond(incident, events, engine, started=started)
 

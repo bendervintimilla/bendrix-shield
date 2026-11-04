@@ -27,6 +27,90 @@ SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2, "critical": 3}
 # individual sea "programado" y corto, el patrón acumulado es anómalo.
 NORMAL_DEFROST_MIN_PER_24H = 60.0
 
+# Testigo físico (shield.witness): comandos físicos y orden de decisiones.
+PHYSICAL_ACTIONS = frozenset({
+    "set_setpoint", "setpoint", "defrost", "compressor_off",
+    "door", "door_open", "open_door", "door_close", "door_unlock",
+})
+DECISION_ORDER = {"allow": 0, "ask_owner": 1, "block": 2}
+WITNESS_MAX_AGE_S = 120.0
+_WITNESS_SKEW_S = 2.0  # tolerancia de reloj cámara/comando
+
+
+def harden_decision(decision: str, floor: str | None) -> str:
+    """Endurece una decisión física con el piso del testigo. Nunca la relaja."""
+    if floor is None:
+        return decision
+    if DECISION_ORDER.get(floor, 0) > DECISION_ORDER.get(decision, 0):
+        return floor
+    return decision
+
+
+def _room_of(event: SecurityEvent) -> tuple[str, str]:
+    site = str(event.values.get("site") or "").strip().casefold()
+    room = str(event.values.get("room") or event.target or "").strip().casefold()
+    return site, room
+
+
+def witness_state(event: SecurityEvent, cameras: list[SecurityEvent], witness: Any = None,
+                  *, max_age_s: float = WITNESS_MAX_AGE_S) -> dict[str, Any] | None:
+    """Testimonio de la sala del comando en su instante. ``None`` = sala sin testigo.
+
+    Fuentes: eventos ``camera`` de la misma tanda (``camera_event``) y/o un
+    ``WitnessRegistry``. Stale (sin observación previa, vieja, futura o con
+    error de SAM) => ``{"stale": True, "people": None}``: falla cerrado.
+    """
+    site, room = _room_of(event)
+    if not room:
+        return None
+    same = [c for c in cameras if _room_of(c)[1] == room and (not site or _room_of(c)[0] == site)]
+    if same:
+        prior = [c for c in same
+                 if (c.ts - event.ts).total_seconds() <= _WITNESS_SKEW_S]
+        if not prior:
+            return {"stale": True, "people": None, "camera": same[0].actor, "age_s": None}
+        last = max(prior, key=lambda c: c.ts)
+        age = (event.ts - last.ts).total_seconds()
+        stale = age > max_age_s or not bool(last.values.get("ok", True))
+        return {"stale": stale, "people": None if stale else int(last.values.get("people") or 0),
+                "camera": last.actor, "age_s": round(age, 3)}
+    if witness is not None and witness.watches(site, room):
+        stale = witness.is_stale(site, room, event.ts, max_age_s)
+        obs = witness.latest(site, room)
+        return {"stale": stale,
+                "people": None if stale or obs is None else int(obs.people),
+                "camera": f"camera:{obs.camera}" if obs is not None else None,
+                "age_s": None if obs is None else round(
+                    (event.ts - obs.captured_dt()).total_seconds(), 3)}
+    return None
+
+
+def witness_findings(event: SecurityEvent, state: dict[str, Any] | None
+                     ) -> tuple[list[Finding], str | None]:
+    """Reglas del testigo para un comando físico -> (findings, piso de decisión)."""
+    if state is None or event.app == "camera" or event.action not in PHYSICAL_ACTIONS:
+        return [], None
+    hit = ((event.event_id,), (event.app,), (event.actor,))
+    remote = event.source != "on_site"
+    stale = bool(state["stale"])
+    people = state.get("people")
+    where = event.values.get("room") or event.target
+    if remote and (stale or people == 0):
+        why = ("testigo de cámara sin dato fresco (falla cerrado)" if stale
+               else "la cámara ve 0 personas en la sala")
+        return [Finding("unattended_remote_physical_command", "high",
+                        f"{event.action} remoto (source={event.source}) en {where}: {why}",
+                        *hit)], "ask_owner"
+    if not remote and not stale and people == 0:
+        return [Finding("on_site_claim_contradicted", "critical",
+                        f"{event.action} dice venir de personal en sitio pero la cámara "
+                        f"ve 0 personas en {where}", *hit)], "block"
+    if not remote and stale:
+        return [Finding("on_site_claim_unverified", "high",
+                        f"{event.action} dice venir de personal en sitio y el testigo de "
+                        f"{where} no tiene dato fresco (falla cerrado)", *hit)], "ask_owner"
+    return [], None
+
 
 @dataclass
 class ActorBaseline:
@@ -92,8 +176,14 @@ def _odd_hour(event: SecurityEvent, base: ActorBaseline) -> bool:
 
 def detect(events: list[SecurityEvent],
            baseline: ActorBaseline | list[SecurityEvent] | None = None,
-           cold_history: ColdRoomHistory | None = None) -> list[Finding]:
-    """Reglas explicables sobre eventos normalizados (ordenados por hora)."""
+           cold_history: ColdRoomHistory | None = None, witness: Any = None,
+           *, witness_max_age_s: float = WITNESS_MAX_AGE_S) -> list[Finding]:
+    """Reglas explicables sobre eventos normalizados (ordenados por hora).
+
+    ``witness``: ``shield.witness.WitnessRegistry`` opcional; también cuentan
+    los eventos ``camera`` de la tanda. Sin testigo para la sala, las
+    reglas del testigo no aplican (comportamiento previo intacto).
+    """
     evs = sorted(events, key=lambda e: e.ts)
     if isinstance(baseline, ActorBaseline):
         base = baseline
@@ -104,11 +194,16 @@ def detect(events: list[SecurityEvent],
     findings: list[Finding] = []
     tracker = cold_history if cold_history is not None else ColdRoomHistory()
     defrost_log: dict[str, list[tuple[Any, float]]] = {}
+    cameras = [e for e in evs if e.app == "camera"]
 
     def add(kind, severity, reason, hit):
         findings.append(Finding(kind, severity, reason, (hit.event_id,), (hit.app,), (hit.actor,)))
 
     for e in evs:
+        w_findings, w_floor = witness_findings(
+            e, witness_state(e, cameras, witness, max_age_s=witness_max_age_s)
+            if e.action in PHYSICAL_ACTIONS else None)
+        findings.extend(w_findings)
         if e.actor == "wairrior-autopilot":
             add("forged_autopilot_actor", "high",
                 "actor auto-declarado 'wairrior-autopilot' en un evento "
@@ -140,7 +235,8 @@ def detect(events: list[SecurityEvent],
                 e, state=tracker.state_for(e.target),
                 history=tracker.recent_actions(e.target, e.ts))
             if verdict is not None:
-                tracker.record(e, verdict.decision)
+                # El testigo solo endurece: nunca relaja la decisión física.
+                tracker.record(e, harden_decision(verdict.decision, w_floor))
                 if verdict.decision == "block":
                     add("physics_block", "critical",
                         f"física (M1): {verdict.reason}", e)
