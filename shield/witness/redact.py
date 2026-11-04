@@ -59,6 +59,19 @@ def blur_whole(image_bytes: bytes) -> bytes:
         return placeholder_jpeg()
 
 
+def reencode_without_exif(image_bytes: bytes) -> bytes:
+    """Re-codifica a JPEG sin EXIF ni metadatos. Solo para cuadros con revisión
+    humana de sala vacía; ante cualquier fallo devuelve el placeholder gris."""
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as img:
+            img.load()
+            clean = Image.new("RGB", img.size)
+            clean.paste(img.convert("RGB"))
+            return _to_jpeg(clean)
+    except Exception:  # noqa: BLE001
+        return placeholder_jpeg()
+
+
 def scale_box(
     box: dict[str, Any], src_w: int, src_h: int, *, margin: float = MARGIN
 ) -> tuple[int, int, int, int]:

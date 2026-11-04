@@ -2,41 +2,77 @@
   "meta": {
     "eval": "witness-camera",
     "model": "sam-3.1",
-    "run_at": "2026-11-04T19:52:55+00:00",
+    "run_at": "2026-11-04T20:04:19+00:00",
     "site": "madrid",
     "person_concepts": [
       "person"
     ],
     "door_concepts": [],
-    "labels_total": 46,
+    "labels_total": 78,
     "labeled_frames_missing": [],
-    "privacy": "sin imágenes, cajas ni rutas absolutas; cuadros fuera del repo"
+    "privacy": "sin imágenes, cajas ni rutas absolutas; cuadros fuera del repo",
+    "billed_usd": 0.0,
+    "calls": {
+      "sam_replay": 78
+    }
   },
   "summary": {
-    "frames": 46,
+    "frames": 78,
     "sam_errors": 0,
-    "people_scored": 46,
-    "people_exact": 37,
-    "people_exact_rate": 0.8043,
-    "people_mae": 0.3478,
-    "people_within_1": 39,
+    "people_scored": 78,
+    "people_exact": 59,
+    "people_exact_rate": 0.7564,
+    "people_mae": 0.3333,
+    "people_within_1": 71,
     "count": {
-      "n": 46,
-      "exact": 37,
-      "exact_rate": 0.8043,
-      "mae": 0.3478,
-      "within_1": 39,
-      "within_1_rate": 0.8478
+      "n": 78,
+      "exact": 59,
+      "exact_rate": 0.7564,
+      "mae": 0.3333,
+      "within_1": 71,
+      "within_1_rate": 0.9103
     },
     "count_unambiguous": {
-      "n": 31,
-      "exact": 31,
-      "exact_rate": 1.0,
-      "mae": 0.0,
-      "within_1": 31,
+      "n": 63,
+      "exact": 53,
+      "exact_rate": 0.8413,
+      "mae": 0.1587,
+      "within_1": 63,
       "within_1_rate": 1.0
     },
     "count_by_camera": {
+      "almacen": {
+        "n": 10,
+        "exact": 10,
+        "exact_rate": 1.0,
+        "mae": 0.0,
+        "within_1": 10,
+        "within_1_rate": 1.0
+      },
+      "almacen_noche-0300": {
+        "n": 6,
+        "exact": 6,
+        "exact_rate": 1.0,
+        "mae": 0.0,
+        "within_1": 6,
+        "within_1_rate": 1.0
+      },
+      "caja1": {
+        "n": 10,
+        "exact": 0,
+        "exact_rate": 0.0,
+        "mae": 1.0,
+        "within_1": 10,
+        "within_1_rate": 1.0
+      },
+      "caja1_noche-0300": {
+        "n": 6,
+        "exact": 6,
+        "exact_rate": 1.0,
+        "mae": 0.0,
+        "within_1": 6,
+        "within_1_rate": 1.0
+      },
       "cocina1": {
         "n": 10,
         "exact": 10,
@@ -71,11 +107,11 @@
       }
     },
     "presence": {
-      "n": 46,
-      "tp": 36,
+      "n": 78,
+      "tp": 46,
       "fp": 0,
       "fn": 0,
-      "tn": 10,
+      "tn": 32,
       "precision": 1.0,
       "recall": 1.0,
       "accuracy": 1.0,
@@ -83,6 +119,54 @@
       "empty_recall": 1.0
     },
     "presence_by_camera": {
+      "almacen": {
+        "n": 10,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 10,
+        "precision": null,
+        "recall": null,
+        "accuracy": 1.0,
+        "empty_precision": 1.0,
+        "empty_recall": 1.0
+      },
+      "almacen_noche-0300": {
+        "n": 6,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 6,
+        "precision": null,
+        "recall": null,
+        "accuracy": 1.0,
+        "empty_precision": 1.0,
+        "empty_recall": 1.0
+      },
+      "caja1": {
+        "n": 10,
+        "tp": 10,
+        "fp": 0,
+        "fn": 0,
+        "tn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "accuracy": 1.0,
+        "empty_precision": null,
+        "empty_recall": null
+      },
+      "caja1_noche-0300": {
+        "n": 6,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 6,
+        "precision": null,
+        "recall": null,
+        "accuracy": 1.0,
+        "empty_precision": 1.0,
+        "empty_recall": 1.0
+      },
       "cocina1": {
         "n": 10,
         "tp": 10,
@@ -137,12 +221,556 @@
     "door_abstained": 0,
     "door_correct": 0,
     "door_accuracy_on_decided": null,
-    "latency_ms_p50": 1298.857,
-    "latency_ms_p95": 2196.205,
-    "cost_usd_total": 0.115,
+    "latency_ms_p50": 297.924,
+    "latency_ms_p95": 431.893,
+    "cost_usd_total": 0.195,
     "cost_usd_per_frame": 0.0025
   },
   "frames": [
+    {
+      "frame": "almacen_20261104-205737.jpg",
+      "camera": "almacen",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 313.866,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f435014b6c1d1234b17"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_20261104-205739.jpg",
+      "camera": "almacen",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 291.513,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f45e3a4dfd58d1e4b79"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_20261104-205742.jpg",
+      "camera": "almacen",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 296.671,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f470db95ce443eb493a"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_20261104-205744.jpg",
+      "camera": "almacen",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 303.702,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f498c32703396794137"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_20261104-205747.jpg",
+      "camera": "almacen",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 293.497,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f4a13816896b5dd4531"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_20261104-205749.jpg",
+      "camera": "almacen",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 301.386,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f4d51c096cec4014cef"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_20261104-205752.jpg",
+      "camera": "almacen",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 298.443,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f4e4217db0e62f74d20"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_20261104-205754.jpg",
+      "camera": "almacen",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 294.621,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f507c7afc8d34424274"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_20261104-205757.jpg",
+      "camera": "almacen",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 297.924,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f5316bb3bd10f6a498d"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_20261104-205759.jpg",
+      "camera": "almacen",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 296.239,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f548df950f7bf484224"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_noche-0300_20261104-205909.jpg",
+      "camera": "almacen_noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 135.568,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f5600d2ea071b364748"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_noche-0300_20261104-205911.jpg",
+      "camera": "almacen_noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 130.557,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f574ccdf827751e4961"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_noche-0300_20261104-205914.jpg",
+      "camera": "almacen_noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 146.772,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f5829ad4e1688424624"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_noche-0300_20261104-205916.jpg",
+      "camera": "almacen_noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 147.616,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f59eecef3e43a964f7b"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_noche-0300_20261104-205918.jpg",
+      "camera": "almacen_noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 157.659,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f5b60e92fead0394219"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "almacen_noche-0300_20261104-205921.jpg",
+      "camera": "almacen_noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 158.853,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f5cf790a89a8c8f4809"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_20261104-205645.jpg",
+      "camera": "caja1",
+      "expected_people": 2,
+      "people": 3,
+      "abs_error": 1,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 329.671,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f5ea4910667a856413f"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_20261104-205647.jpg",
+      "camera": "caja1",
+      "expected_people": 2,
+      "people": 3,
+      "abs_error": 1,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 333.019,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f60a649705ef5a14fb1"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_20261104-205650.jpg",
+      "camera": "caja1",
+      "expected_people": 2,
+      "people": 3,
+      "abs_error": 1,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 510.701,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f623ae7294a813c4ced"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_20261104-205652.jpg",
+      "camera": "caja1",
+      "expected_people": 2,
+      "people": 3,
+      "abs_error": 1,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 387.527,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f64398f9b8633b54c4f"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_20261104-205654.jpg",
+      "camera": "caja1",
+      "expected_people": 2,
+      "people": 3,
+      "abs_error": 1,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 358.098,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f6680d628f34d8044ba"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_20261104-205657.jpg",
+      "camera": "caja1",
+      "expected_people": 2,
+      "people": 3,
+      "abs_error": 1,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 362.615,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f676f525f27e8894df0"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_20261104-205659.jpg",
+      "camera": "caja1",
+      "expected_people": 2,
+      "people": 3,
+      "abs_error": 1,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 362.961,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f6a9729fe134b48499a"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_20261104-205702.jpg",
+      "camera": "caja1",
+      "expected_people": 2,
+      "people": 3,
+      "abs_error": 1,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 363.494,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f6deb7198904cec4419"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_20261104-205704.jpg",
+      "camera": "caja1",
+      "expected_people": 2,
+      "people": 3,
+      "abs_error": 1,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 358.086,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f6f9f6e7a361aad4a4f"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_20261104-205707.jpg",
+      "camera": "caja1",
+      "expected_people": 2,
+      "people": 3,
+      "abs_error": 1,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 371.705,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f71d1b7052dba8e423d"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205833.jpg",
+      "camera": "caja1_noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 149.028,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f72517b094caf684b2d"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205836.jpg",
+      "camera": "caja1_noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 152.296,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f7370ae280b57d34a40"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205838.jpg",
+      "camera": "caja1_noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 165.544,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f75a5ad3b5d903c49c8"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205840.jpg",
+      "camera": "caja1_noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 179.502,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f76ec1fce0ed5b74678"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205843.jpg",
+      "camera": "caja1_noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 196.451,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f77aa3f2da2a32c431b"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "caja1_noche-0300_20261104-205845.jpg",
+      "camera": "caja1_noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 203.094,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8f798cd5efe62ac843cc"
+      ],
+      "ok": true,
+      "error": null
+    },
     {
       "frame": "cocina1-noche-0300_20261104-204645.jpg",
       "camera": "cocina1-noche-0300",
@@ -152,7 +780,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 2701.758,
+      "latency_ms": 275.296,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cc686bb3921e64041ee"
@@ -169,7 +797,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1997.243,
+      "latency_ms": 176.685,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cc9da26c40bbbc844ae"
@@ -186,7 +814,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1436.629,
+      "latency_ms": 198.508,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8ccb3888410f19674e91"
@@ -203,7 +831,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 2019.34,
+      "latency_ms": 272.243,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8ccd516a5817853e4062"
@@ -220,7 +848,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1677.091,
+      "latency_ms": 175.085,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8ccf191eac33bc0d4fc2"
@@ -237,7 +865,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 871.774,
+      "latency_ms": 183.359,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cd060a83e3084b64e1b"
@@ -254,7 +882,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1043.327,
+      "latency_ms": 245.822,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cd21544ce8c13544257"
@@ -271,7 +899,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 830.084,
+      "latency_ms": 165.862,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cd3e9041fbe5e584deb"
@@ -288,7 +916,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 976.106,
+      "latency_ms": 180.237,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cd4216271218e5c4ce7"
@@ -305,7 +933,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1685.326,
+      "latency_ms": 222.8,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cd6ef0c438a2c224850"
@@ -322,7 +950,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1475.489,
+      "latency_ms": 404.131,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cd7ef1cf3a5047d44c3"
@@ -339,7 +967,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1298.857,
+      "latency_ms": 416.537,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cd940338963e5f04b73"
@@ -356,7 +984,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1189.71,
+      "latency_ms": 430.359,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cdbcbbfba7c60dd44f8"
@@ -373,7 +1001,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 2050.645,
+      "latency_ms": 430.432,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cddd21a51d7ccf5441f"
@@ -390,7 +1018,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1407.997,
+      "latency_ms": 431.494,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cdf36f43773c7514480"
@@ -407,7 +1035,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1305.154,
+      "latency_ms": 437.241,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8ce1ec7a5c71c6db41d5"
@@ -424,7 +1052,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1758.378,
+      "latency_ms": 431.893,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8ce3b8f765c8d34c4691"
@@ -441,7 +1069,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1215.592,
+      "latency_ms": 432.739,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8ce57efe6f98d8b34d6c"
@@ -458,7 +1086,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 2061.611,
+      "latency_ms": 427.43,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8ce813b15c27a08b4234"
@@ -475,7 +1103,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1195.937,
+      "latency_ms": 431.815,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8ce96601efd1e0b34bdd"
@@ -492,7 +1120,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 2511.029,
+      "latency_ms": 285.511,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cec5086b82766fe4d43"
@@ -509,7 +1137,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1235.997,
+      "latency_ms": 296.037,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cee19c3821b8a774347"
@@ -526,7 +1154,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1396.72,
+      "latency_ms": 291.163,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cef411d1a4d789949b3"
@@ -543,7 +1171,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1055.845,
+      "latency_ms": 285.871,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cf1fe661216e5bc4134"
@@ -560,7 +1188,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1006.205,
+      "latency_ms": 281.984,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cf2151cf832e6974085"
@@ -577,7 +1205,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1574.333,
+      "latency_ms": 266.845,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cf348caaf1970f9474f"
@@ -594,7 +1222,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1242.56,
+      "latency_ms": 262.386,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cf539f4311c9438454e"
@@ -611,7 +1239,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 969.423,
+      "latency_ms": 280.631,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cf74b9f917d6bed45a6"
@@ -628,7 +1256,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 954.138,
+      "latency_ms": 285.43,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cf8eba843b61f1942f6"
@@ -645,7 +1273,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 901.799,
+      "latency_ms": 286.05,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cf9c6a075738a87422f"
@@ -662,7 +1290,7 @@
       "ambiguous": false,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1538.644,
+      "latency_ms": 297.2,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cfb57a7c76fb44e4eda"
@@ -679,7 +1307,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1196.121,
+      "latency_ms": 402.05,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cfd7c3c45a521fb4b32"
@@ -696,7 +1324,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1434.076,
+      "latency_ms": 395.418,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8cfed43b9e3f43c846f8"
@@ -713,7 +1341,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1148.854,
+      "latency_ms": 388.495,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8d006c6aaf30b0f04cda"
@@ -730,7 +1358,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1436.565,
+      "latency_ms": 380.687,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8d022ba8df176d9849c1"
@@ -747,7 +1375,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1125.885,
+      "latency_ms": 397.526,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8d04517c91edda6d4c71"
@@ -764,7 +1392,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1224.186,
+      "latency_ms": 385.859,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8d0512d092b1d9a747b2"
@@ -781,7 +1409,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1332.634,
+      "latency_ms": 386.597,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8d07ce3f410f27084542"
@@ -798,7 +1426,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1156.323,
+      "latency_ms": 406.698,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8d086ef5f631916b45af"
@@ -815,7 +1443,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1884.911,
+      "latency_ms": 395.663,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8d0ad281adaa25de4dcd"
@@ -832,7 +1460,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1203.091,
+      "latency_ms": 412.984,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8d0c8a54eff8d5674d4a"
@@ -849,7 +1477,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1367.713,
+      "latency_ms": 399.2,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8d0e9e14878def6244d9"
@@ -866,7 +1494,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1645.349,
+      "latency_ms": 391.601,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8d10558532b5e33d41b6"
@@ -883,7 +1511,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1251.982,
+      "latency_ms": 385.216,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8d125c72e81b29ee4b8a"
@@ -900,7 +1528,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 2196.205,
+      "latency_ms": 389.961,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8d143daefda5d80e4091"
@@ -917,7 +1545,7 @@
       "ambiguous": true,
       "expected_door_open": null,
       "door_open": null,
-      "latency_ms": 1254.237,
+      "latency_ms": 377.802,
       "cost_usd": 0.0025,
       "response_ids": [
         "resp_6aeb8d16625e1ef39af74543"
