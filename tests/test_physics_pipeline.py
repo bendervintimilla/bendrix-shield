@@ -125,6 +125,65 @@ def test_percepcion_puerta_no_visible_no_inventa_cierre():
     assert pipe["corrected_state"]["door_open"] is True  # se conserva
 
 
+def test_rescate_con_grant_por_el_pipeline_es_allow():
+    """Rescate firmado por la cadena completa: el privilegio sobrevive."""
+    from shield.physics.rescue import issue_last_safe_action
+
+    states, truth = _truth_series(40, door_open=False, compressor_mode="off")
+    history = [
+        ProposedAction(kind="defrost", duration_min=120, start_in_min=0, source="attacker")
+    ]
+    action, grant = issue_last_safe_action(PARAMS, states[-1])
+    verdict = verify_before_actuate(
+        PARAMS, states, list(truth), action, history, rescue_grant=grant
+    )
+    assert verdict.decision == "allow"
+    assert verdict.evidence["rescue_action"] is True
+    pipe = verdict.evidence["pipeline"]
+    assert pipe["rescue_grant_forwarded"] is True
+    assert pipe["rescue_grant_status"] == "valid"
+    assert pipe["sensor_spoofed"] is False
+
+
+def test_rescate_sin_grant_por_el_pipeline_no_tiene_privilegio():
+    """El mismo rescate sin grant: sospechoso y sin allow de rescate."""
+    from shield.physics.rescue import issue_last_safe_action
+
+    states, truth = _truth_series(40, door_open=False, compressor_mode="off")
+    history = [
+        ProposedAction(kind="defrost", duration_min=120, start_in_min=0, source="attacker")
+    ]
+    action, _grant = issue_last_safe_action(PARAMS, states[-1])
+    verdict = verify_before_actuate(PARAMS, states, list(truth), action, history)
+    assert verdict.decision != "allow"
+    assert verdict.evidence["suspicious_rescue_claim"] is True
+    assert verdict.evidence["rescue_action"] is False
+    assert verdict.evidence["pipeline"]["rescue_grant_status"] == "missing"
+
+
+def test_c3_05_sensor_falso_con_grant_igual_corrige_el_estado():
+    """C3-05: spoofing + rescate real con grant: no block, estado corregido."""
+    from shield.physics.rescue import issue_last_safe_action
+
+    history = _fake_flat_history()
+    action, grant = issue_last_safe_action(PARAMS, history[-1])
+    verdict = verify_before_actuate(
+        PARAMS, history, [3.0] * len(history), action, None, rescue_grant=grant
+    )
+    assert verdict.decision in ("allow", "ask_owner")  # la contención no se frena
+    pipe = verdict.evidence["pipeline"]
+    assert pipe["sensor_spoofed"] is True
+    assert pipe["state_corrected"] is True
+    assert pipe["corrected_state"]["product_c"] > PARAMS.safe_max_c
+    assert pipe["reported_state"]["product_c"] == 3.0
+    assert pipe["rescue_grant_status"] == "valid"
+    assert "rescue:valid-grant" in pipe["layers"]
+    # Y sin grant, el mismo caso sí cae en la falla cerrada.
+    action2, _ = issue_last_safe_action(PARAMS, history[-1])
+    sin = verify_before_actuate(PARAMS, history, [3.0] * len(history), action2, None)
+    assert sin.decision == "block"
+
+
 def test_percepcion_objeto_m3_sobre_sensor_falso():
     """Con spoofing y percepción, corrigen física y cámara a la vez."""
     from shield.physics.perception import PerceptionResult
