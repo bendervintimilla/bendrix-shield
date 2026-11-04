@@ -32,6 +32,7 @@ gcloud run deploy "$SERVICE" \
   --max-instances=1 \
   --concurrency=80 \
   --cpu-boost \
+  --session-affinity \
   --ingress=all \
   --allow-unauthenticated \
   ${EXTRA[@]+"${EXTRA[@]}"} \

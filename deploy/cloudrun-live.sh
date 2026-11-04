@@ -36,6 +36,7 @@ gcloud run deploy "$SERVICE" \
   --concurrency=20 \
   --timeout=300 \
   --cpu-boost \
+  --session-affinity \
   --ingress=all \
   --allow-unauthenticated \
   ${EXTRA[@]+"${EXTRA[@]}"} \
