@@ -1,0 +1,147 @@
+{
+  "run_id": "physical_sam_d3233a514ca0",
+  "started_at": "2026-11-04T18:14:17.351322+00:00",
+  "total_cost_usd": 0.0075,
+  "duration_s": 10.628,
+  "material_label": "AI-generated test image (muse-image-1.0), not real warehouse footage",
+  "image": {
+    "path": "evals/fixtures/live/shelf-boxes.png",
+    "sha256": "737d601484e76367e2208328afeb79f5635a2a968758cfeee4d9bd8bb0c5bc0f",
+    "expected_box_count": 7
+  },
+  "result": {
+    "box_count": 7,
+    "product_kg": 70.0,
+    "door_open": false,
+    "door_visible": false,
+    "state": {
+      "t_min": 0.0,
+      "air_c": 3.0,
+      "product_c": 3.0,
+      "product_kg": 70.0,
+      "setpoint_c": 3.0,
+      "compressor_on": false,
+      "door_open": false,
+      "minutes_above_so_far": 0.0
+    },
+    "evidence": {
+      "model": "sam-3.1",
+      "via": "shield-meta-client (gate.check; gateway si base_url es el gateway)",
+      "material_label": "AI-generated test image (muse-image-1.0), not real warehouse footage",
+      "prompts": [
+        "cardboard box",
+        "open door",
+        "door"
+      ],
+      "calls": [
+        {
+          "prompt": "cardboard box",
+          "response_id": "resp_6aeb75fc4976fe89bec345a0",
+          "upstream_request_id": "33f4804b-b639-43bb-88fa-806e702972fc",
+          "latency_ms": 2392.428,
+          "cost_usd": 0.0025,
+          "count": 7,
+          "track_ids": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "from_replay": false,
+          "from_cache": false
+        },
+        {
+          "prompt": "open door",
+          "response_id": "resp_6aeb75fee817af57b79d4809",
+          "upstream_request_id": "989cc2c7-8ff6-4e3e-b207-9f5f5760448c",
+          "latency_ms": 2674.512,
+          "cost_usd": 0.0025,
+          "count": 0,
+          "track_ids": [],
+          "from_replay": false,
+          "from_cache": false
+        },
+        {
+          "prompt": "door",
+          "response_id": "resp_6aeb7602444d7de5e09d4680",
+          "upstream_request_id": "1bb43d34-400b-48d9-b5be-187e2e9fe055",
+          "latency_ms": 3201.575,
+          "cost_usd": 0.0025,
+          "count": 0,
+          "track_ids": [],
+          "from_replay": false,
+          "from_cache": false
+        }
+      ],
+      "total_cost_usd": 0.0075,
+      "total_latency_ms": 8268.515,
+      "box_count": 7,
+      "open_door_count": 0,
+      "door_count": 0,
+      "door_visible": false,
+      "kg_per_box": 10.0,
+      "kg_per_box_label": "assumption (not measured): kg_per_box=10.0 kg per cardboard box, order-of-magnitude for a restaurant cold room",
+      "assumptions": [
+        "assumption (not measured): kg_per_box=10.0 kg per cardboard box, order-of-magnitude for a restaurant cold room"
+      ]
+    }
+  },
+  "matches_expected_box_count": true,
+  "note": "Corrida real SAM 3.1 (Meta Model API vía MetaClient/gate.check). product_kg usa supuesto rotulado de 10 kg/caja, no medición. Si door_visible=false, door_open conserva el estado previo.",
+  "provenance": [
+    {
+      "step": "physical_perception",
+      "agent": "physics",
+      "model": "sam-3.1",
+      "response_id": "resp_6aeb75fc4976fe89bec345a0",
+      "upstream_request_id": "33f4804b-b639-43bb-88fa-806e702972fc",
+      "latency_ms": 2392.428,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cost_usd": 0.0025,
+      "via": "shield-meta-client",
+      "http_status": 200,
+      "started_at": "2026-11-04T18:14:17.351322+00:00",
+      "request_summary": "SAM cardboard box",
+      "error": null,
+      "decision": null
+    },
+    {
+      "step": "physical_perception",
+      "agent": "physics",
+      "model": "sam-3.1",
+      "response_id": "resp_6aeb75fee817af57b79d4809",
+      "upstream_request_id": "989cc2c7-8ff6-4e3e-b207-9f5f5760448c",
+      "latency_ms": 2674.512,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cost_usd": 0.0025,
+      "via": "shield-meta-client",
+      "http_status": 200,
+      "started_at": "2026-11-04T18:14:17.351322+00:00",
+      "request_summary": "SAM open door",
+      "error": null,
+      "decision": null
+    },
+    {
+      "step": "physical_perception",
+      "agent": "physics",
+      "model": "sam-3.1",
+      "response_id": "resp_6aeb7602444d7de5e09d4680",
+      "upstream_request_id": "1bb43d34-400b-48d9-b5be-187e2e9fe055",
+      "latency_ms": 3201.575,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cost_usd": 0.0025,
+      "via": "shield-meta-client",
+      "http_status": 200,
+      "started_at": "2026-11-04T18:14:17.351322+00:00",
+      "request_summary": "SAM door",
+      "error": null,
+      "decision": null
+    }
+  ]
+}
