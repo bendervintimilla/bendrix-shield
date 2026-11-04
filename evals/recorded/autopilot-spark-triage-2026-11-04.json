@@ -1,0 +1,47 @@
+{
+  "simulated": false,
+  "real_spark_run": true,
+  "scenario": "combined_wave",
+  "model": "muse-spark-1.3",
+  "response_id": "chatcmpl-01a1a7de-959b-7266-a27c-fb8df5393d63",
+  "upstream_request_id": "f1cbdd65-e8ab-4541-b0d4-dcd5db53647a",
+  "cost_usd": 0.014644,
+  "usage": {
+    "completion_tokens": 3368,
+    "prompt_tokens": 264,
+    "total_tokens": 3632,
+    "completion_tokens_details": {
+      "reasoning_tokens": 3136
+    },
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "latency_ms": 23353.6,
+  "validated_numbers_only_from_incident": true,
+  "incident_facts_given_to_spark": {
+    "attack_time_hhmm": "10:00",
+    "cold_room": {
+      "defrost_hours": 4.0,
+      "predicted_product_peak_c": 16.4,
+      "safe_product_c": 3.0
+    },
+    "payments": {
+      "amount": 9000,
+      "supplier": "Acme",
+      "iban": "new",
+      "status": "on hold, bank details frozen"
+    },
+    "ai_gateway": {
+      "stolen_key_calls": 12,
+      "action": "key replaced"
+    },
+    "scope": "global",
+    "everything_else": "agent writes paused; usual human payments to known suppliers keep working",
+    "owner_action": "Tap to undo; approve the IBAN change only with second factor"
+  },
+  "scope_level": "global",
+  "deterministic_template_notice_en": "wAIrrior stopped an attack at 10:00.\nCold room: a 4-hour defrost would have spoiled your stock (product to 16.4 °C); we kept it at its last safe setting, 3 °C.\nPayments: a payment of 9,000 to a new IBAN for Acme is on hold; Acme's bank details are frozen.\nOne AI agent's key was stolen; we replaced it.\nOther agent writes are paused; your usual human payments to known suppliers keep working.\nTap to undo · Approve the IBAN change only with your second factor.",
+  "spark_owner_notice_draft": "wAIrrior stopped an attack at 10:00. Scope: global.\nCold room: defrost 4.0 hours, product peak 16.4 C vs safe 3.0 C.\nPayment 9000 to Acme to new IBAN on hold, bank details frozen.\nAI key: 12 calls with stolen key, key replaced.\nAgent writes paused; usual human payments to known suppliers keep working.\nTap to undo; approve the IBAN change only with second factor.\n\nwAIrrior detuvo un ataque a las 10:00. Alcance: global.\nCámara fría: descongelación 4.0 horas, pico producto 16.4 C frente a seguro 3.0 C.\nPago 9000 a Acme a IBAN nuevo en espera, datos bancarios congelados.\nClave IA: 12 llamadas con clave robada, clave reemplazada.\nEscrituras de agentes en pausa; pagos humanos habituales a proveedores conocidos siguen funcionando.\nToca para deshacer; aprueba el cambio de IBAN solo con segundo factor.\n",
+  "note": "Spark solo redacta; la contención salió de reglas, no del modelo."
+}
