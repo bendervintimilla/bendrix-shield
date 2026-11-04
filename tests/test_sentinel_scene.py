@@ -27,6 +27,9 @@ def test_pagina_sentinel_en_es_y_selector(client):
         "AI gateway",
         "POS / ERP",
         "detected → contained",
+        "Legitimate operations still running:",
+        "shutting everything down: 0/300",
+        "Approve with 2nd factor",
         "simulated",
         "tomshardware.com",
         "euronews.com",
@@ -89,15 +92,36 @@ def test_replay_contiene_los_tres_ataques_con_motor_real(client):
     kinds = {(m["kind"], m["app"]) for m in state["measures"]}
     assert ("hold_payment", "payments") in kinds
     assert ("safe_state", "cold_room") in kinds
-    assert ("rotate_token", "ai_gateway") in kinds
-    assert state["pending_owner"]
-    assert "You were attacked. We already did:" in state["notice"]["title"] + " " + " ".join(
-        state["notice"]["already_did"]
-    ) or state["notice"]["already_did"]
-    assert state["notice"]["already_did"]
+    assert state["scope_level"] == "global"
+    # Aviso de negocio de M10, sin ids internos, en los dos idiomas.
+    assert "wAIrrior stopped an attack" in state["notice"]["text_en"]
+    assert "Acme Foods" in state["notice"]["text_en"]
+    assert "second factor" in state["notice"]["text_en"]
+    assert "wAIrrior detuvo un ataque" in state["notice"]["text_es"]
+    assert state["pending_owner"]["en"] and state["pending_owner"]["es"]
+    # Línea de tiempo localizada y en lenguaje de negocio (EN sin español).
+    findings_en = " ".join(f for t in state["timeline"] for f in t["findings"])
+    for forbidden in ("deshielo", "física (M1)", "supplier:acme", "0.0 h", "beneficiario"):
+        assert forbidden not in findings_en, forbidden
+    assert "seconds later" in findings_en
+    assert "Acme Foods" in findings_en
+    # Fila bajo el contador: número real del motor para la ola.
+    assert 0 < state["legit_still_running"] < 300
+    assert state["legit_total"] == 300
     # Las 4 apps conectadas quedan contenidas/marcadas, el fondo legítimo sigue.
     assert all(a["status"] == "contained" for a in state["apps"])
     assert state["legit_counters"]["payments_ok"] >= 3
+
+
+def test_replay_en_espanol_linea_de_tiempo_localizada(client):
+    client.get("/?scene=sentinel&lang=es")
+    r = client.post("/sentinel/replay?lang=es")
+    assert r.status_code == 200, r.text
+    state = r.json()
+    findings_es = " ".join(f for t in state["timeline"] for f in t["findings"])
+    assert "segundos después" in findings_es
+    assert "Acme Foods" in findings_es
+    assert "supplier:" not in findings_es
 
 
 def test_replay_idempotente_y_reset(client):

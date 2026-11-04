@@ -96,7 +96,10 @@ class _RegistryTokenOps(TokenOps):
         return token.token_id
 
     def revoke(self, actor: str) -> None:
-        self._registry.revoke(self._old_id)
+        # El motor global revoca; aquí la llave robada se reemplaza de una
+        # vez (rotación real en el Registry): la vieja da 401 y nace otra.
+        if self._new_id is None:
+            self.rotate(actor)
 
     def restore(self, actor: str) -> None:
         # Deshacer la rotación (decisión del dueño): muere el token nuevo
@@ -141,6 +144,55 @@ def _legit_events() -> list[SecurityEvent]:
     ]
 
 
+MEASURE_LABELS: dict[str, tuple[str, str]] = {
+    "block_action": ("Blocked the malicious action", "Acción maliciosa bloqueada"),
+    "hold_payment": ("Payment held (not executed)", "Pago retenido (no ejecutado)"),
+    "safe_state": ("Cold room kept at its last safe setting", "Cámara en su último estado seguro"),
+    "rotate_token": ("Stolen key replaced", "Llave robada reemplazada"),
+    "revoke_tokens": ("Attacker's key revoked and replaced", "Llave del atacante revocada y reemplazada"),
+    "read_only": ("App put in read-only mode", "App en solo lectura"),
+    "freeze_app_scope": ("That kind of operation frozen in the app", "Ese tipo de operación congelado en la app"),
+    "freeze_campaign": ("Campaign frozen for that actor and supplier", "Campaña congelada para ese actor y proveedor"),
+    "circuit_breaker": ("Agent writes paused across apps", "Escrituras de agentes en pausa en todas las apps"),
+    "log": ("Event logged", "Evento registrado"),
+}
+
+
+def _background_300() -> list[SecurityEvent]:
+    """300 operaciones legítimas de fondo (misma semilla fija que el bench M10).
+
+    Solo sirven para contar, con ``engine.allows_write`` del motor real,
+    cuántas seguirían vivas tras la contención. Todo simulated.
+    """
+    import random
+
+    rng = random.Random(20261104)
+    out: list[SecurityEvent] = []
+    for i in range(300):
+        app = ("payments", "pos_erp", "cold_room", "ai_gateway")[i % 4]
+        ts = T0.replace(hour=10) + timedelta(seconds=rng.randrange(0, 600))
+        if app == "payments":
+            raw = {"app": app, "actor": "payments-bot", "action": "transfer",
+                   "target": "supplier:known", "ts": ts.isoformat(),
+                   "source": "human" if (i // 4) % 2 == 0 else "agent",
+                   "values": {"amount": rng.randrange(400, 601),
+                              "beneficiary": "KNOWN", "beneficiary_known": True}}
+        elif app == "pos_erp":
+            raw = {"app": app, "actor": "erp-bot", "action": "supplier_change",
+                   "target": f"supplier:known-{i % 5}", "ts": ts.isoformat(),
+                   "values": {"field": "contact"}}
+        elif app == "cold_room":
+            raw = {"app": app, "actor": "refrigeracion", "action": "set_setpoint",
+                   "target": f"camara-{2 + i % 3}", "ts": ts.isoformat(),
+                   "values": {"value": 3.0}}
+        else:
+            raw = {"app": app, "actor": "ops-bot", "action": "model_call",
+                   "target": "muse-spark-1.3", "ts": ts.isoformat(),
+                   "token_id": "tok-ops", "values": {"cost_usd": 1}}
+        out.append(SecurityEvent.from_dict(raw))
+    return out
+
+
 class SentinelRun:
     """Una corrida «Sentinel» de un visitante: determinista, en memoria."""
 
@@ -153,7 +205,9 @@ class SentinelRun:
         self.replayed = False
         self.timeline: list[dict[str, Any]] = []
         self.measures: list[dict[str, Any]] = []
-        self.pending_owner: list[str] = []
+        self.pending_owner: dict[str, list[str]] = {}
+        self.legit_still_running = 300
+        self.scope_level = "none"
         self.total_ms = 0.0
         self.notice: dict[str, Any] = {}
         self.gateway: dict[str, Any] = {}
@@ -202,17 +256,13 @@ class SentinelRun:
     def replay(self, lang: str = "en") -> dict[str, Any]:
         if self.replayed:
             return self.state()
-        es = lang == "es"
-        engines: list[ContainmentEngine] = []
-
-        # 1) Frío: deshielo forzado de 4 h (patrón Europa 2-nov).
+        # La ola completa entra como UN incidente correlacionado al motor
+        # real de M10 (3 apps, 3 actores): nivel global, con la exención de
+        # las operaciones humanas recurrentes que el propio motor aplica.
         cold_event = from_cold_room({
             "actor": "refrigeracion", "action": "defrost", "target": "camara",
             "duration_min": 240, "source": "attacker", "ts": T0,
         })
-        cold_engine = ContainmentEngine()
-        cold_incident, cold_result = run_pipeline([cold_event], engine=cold_engine)
-        engines.append(cold_engine)
         params, room = ColdRoomParams(), RoomState()
         action = ProposedAction(
             kind="defrost", equipment="camara", duration_min=240,
@@ -234,26 +284,18 @@ class SentinelRun:
             ),
         }
 
-        # 2) Pagos: IBAN cambiado por documento inyectado + transferencia.
+        # Pagos: IBAN cambiado por documento inyectado + transferencia.
         iban_event = from_pos_erp({
-            "actor": "payments-bot", "action": "iban_change", "target": "supplier:acme",
+            "actor": "payments-bot", "action": "iban_change", "target": "supplier:Acme-Foods",
             "source": "document", "iban_last4": "9999", "ts": T0 + timedelta(minutes=1),
         })
         pay_event = from_payment({
-            "actor": "payments-bot", "action": "transfer", "target": "supplier:acme",
+            "actor": "payments-bot", "action": "transfer", "target": "supplier:Acme-Foods",
             "amount": 4800, "currency": "USD", "beneficiary": "ES_NEW_9999",
             "source": "document", "ts": T0 + timedelta(minutes=2),
         })
-        pay_engine = ContainmentEngine()
-        pay_incident, pay_result = run_pipeline(
-            [iban_event, pay_event], _legit_events(), engine=pay_engine
-        )
-        engines.append(pay_engine)
-
-        # 3) Gateway: ráfaga con el token robado; rotación real y 401 real.
+        # Gateway: ráfaga con el token robado (antes de contener pasa, 200).
         before = self._gw_call(self._stolen_raw)
-        gw_ops = _RegistryTokenOps(self._registry, self._stolen_token_id)
-        gw_engine = ContainmentEngine(token_ops=gw_ops)
         burst = [
             SecurityEvent(
                 app="ai_gateway", actor="bodega", action="model_call",
@@ -264,108 +306,139 @@ class SentinelRun:
             )
             for i in range(12)
         ]
-        gw_incident, gw_result = run_pipeline(burst, engine=gw_engine)
-        engines.append(gw_engine)
+        gw_ops = _RegistryTokenOps(self._registry, self._stolen_token_id)
+        engine = ContainmentEngine(token_ops=gw_ops)
+        events = [cold_event, iban_event, pay_event, *burst]
+        incident, result = run_pipeline(events, _legit_events(), engine=engine)
+        self._engines = [engine]
         after_attacker = self._gw_call(self._stolen_raw)
-        # El token nuevo del agente legítimo sí pasa (200): no se apagó todo.
+        # La llave nueva del agente legítimo sí pasa (200): no se apagó todo.
         legit_after = self._gw_call(gw_ops.new_raw) if gw_ops.new_raw else None
         self.gateway = {
             "attacker_before": before,
             "attacker_after": after_attacker,
             "legit_after": legit_after,
-            "rotated": any(m.kind == "rotate_token" for m in gw_result.measures),
+            "rotated": after_attacker == 401 and legit_after == 200,
         }
-
-        self._engines = engines
-        results = [
-            ("cold_room", cold_incident, cold_result, FREEZER_SOURCES),
-            ("payments", pay_incident, pay_result, ARKEA_SOURCES),
-            ("ai_gateway", gw_incident, gw_result, ()),
-        ]
-        self.total_ms = round(
-            sum(r.detect_to_contain_ms for _, _, r, _ in results), 3
-        )
+        self.total_ms = round(result.detect_to_contain_ms, 3)
         self.measures = [
-            {**m.to_dict(), "undone": False}
-            for _, _, r, _ in results for m in r.measures
+            {
+                **m.to_dict(), "undone": False,
+                "label_en": MEASURE_LABELS.get(m.kind, ("Contained", "Contenido"))[0],
+                "label_es": MEASURE_LABELS.get(m.kind, ("Contained", "Contenido"))[1],
+            }
+            for m in result.measures
         ]
-        self.pending_owner = [
-            p for _, _, r, _ in results for p in r.pending_owner
-        ]
-        self.timeline = [
-            self._timeline_entry(app, inc, res, src, es)
-            for app, inc, res, src in results
-        ]
-        self.notice = self._build_notice(es)
+        # Operaciones legítimas que el motor deja vivas tras la contención.
+        background = _background_300()
+        self.legit_still_running = sum(
+            1 for e in background if engine.allows_write(e)
+        )
+        self.scope_level = result.scope_level
+        self.timeline = self._timeline(incident, lang)
+        # Aviso de negocio de M10, tal cual sale del motor (EN y ES).
+        self.notice = {
+            "text_en": result.notice_en,
+            "text_es": result.notice_es,
+            "simulated": True,
+        }
+        self.pending_owner = self._pending_business()
         self.replayed = True
         return self.state()
 
-    def _timeline_entry(self, app, incident, result, sources, es: bool) -> dict[str, Any]:
-        titles = {
-            "cold_room": (
-                "Forced 4 h defrost hits the cold room (Europe 2 Nov pattern)"
+    def _finding_texts(self, kind: str, es: bool) -> str:
+        """Frase de negocio por tipo de hallazgo (la razón cruda no se muestra)."""
+        peak = self.cold.get("peak_product_c", "?")
+        breach = self.cold.get("predicted_breach_min", "?")
+        texts = {
+            "defrost_anomaly": (
+                "A forced 4-hour defrost, outside the scheduled window"
                 if not es else
-                "Deshielo forzado de 4 h contra la cámara (patrón Europa 2-nov)"
+                "Un deshielo forzado de 4 horas, fuera del horario programado"
             ),
-            "payments": (
-                "Injected document changes a supplier IBAN, then a transfer follows (Arkéa pattern)"
+            "physics_block": (
+                f"The physics check stopped it: the product would pass 5 °C "
+                f"in {breach:g} minutes and peak at {peak} °C"
                 if not es else
-                "Un documento inyectado cambia el IBAN de un proveedor y sigue una transferencia (patrón Arkéa)"
+                f"El chequeo físico lo frenó: el producto pasaría de 5 °C "
+                f"en {breach:g} minutos y llegaría a {peak} °C"
             ),
-            "ai_gateway": (
-                "Stolen agent token bursts calls through the AI gateway (our October incident)"
+            "payment_anomaly": (
+                "A payment to a new bank account, for an unusual amount, "
+                "at 2:02 in the morning"
                 if not es else
-                "Un token de agente robado dispara llamadas por el gateway de IA (nuestro incidente de octubre)"
+                "Un pago a una cuenta bancaria nueva, por un monto inusual, "
+                "a las 02:02 de la madrugada"
+            ),
+            "iban_then_payment": (
+                "Acme Foods' bank details were changed and a payment "
+                "followed seconds later"
+                if not es else
+                "Se cambiaron los datos bancarios de Acme Foods y segundos "
+                "después siguió un pago"
+            ),
+            "token_burst": (
+                "A burst of 12 calls in one minute with a single agent key"
+                if not es else
+                "Una ráfaga de 12 llamadas en un minuto con una sola llave "
+                "de agente"
             ),
         }
-        contained = {
-            "cold_room": (
-                "kept in last safe state" if not es else "quedó en su último estado seguro"
-            ),
-            "payments": (
-                "transfer held, IBAN change frozen"
-                if not es else "transferencia retenida, cambio de IBAN congelado"
-            ),
-            "ai_gateway": (
-                "token rotated: attacker 401"
-                if not es else "token rotado: el atacante recibe 401"
-            ),
-        }
-        return {
-            "app": app,
-            "title": titles[app],
-            "findings": [f.reason for f in incident.findings],
-            "severity": incident.severity,
-            "contained": contained[app],
-            "detect_to_contain_ms": round(result.detect_to_contain_ms, 3),
-            "sources": list(sources),
-            "simulated": True,
-        }
+        return texts.get(kind, "")
 
-    def _build_notice(self, es: bool) -> dict[str, Any]:
-        labels = {
-            "block_action": ("Blocked the malicious action", "Bloqueamos la acción maliciosa"),
-            "hold_payment": ("Held the transfer (not executed)", "Retuvimos la transferencia (no ejecutada)"),
-            "safe_state": ("Kept the cold room in its last safe state", "Dejamos la cámara en su último estado seguro"),
-            "rotate_token": ("Rotated the stolen gateway token — attacker now gets 401", "Rotamos el token robado del gateway: el atacante ahora recibe 401"),
-            "revoke_tokens": ("Revoked the attacker's token", "Revocamos el token del atacante"),
-            "read_only": ("Put the app in read-only mode", "Pasamos la app a solo lectura"),
-            "circuit_breaker": ("Froze writes for the flagged actors", "Congelamos las escrituras de los actores marcados"),
-            "log": ("Logged the event", "Registramos el evento"),
-        }
-        seen: list[str] = []
-        for m in self.measures:
-            pair = labels.get(m["kind"])
-            if pair and pair[es] not in seen:
-                seen.append(pair[es])
+    def _timeline(self, incident, lang: str) -> list[dict[str, Any]]:
+        es = lang == "es"
+        by_kind: dict[str, list[str]] = {}
+        for f in incident.findings:
+            text = self._finding_texts(f.kind, es)
+            if text:
+                key = (
+                    "payments"
+                    if f.kind in ("payment_anomaly", "iban_then_payment")
+                    else ("cold_room" if f.kind in ("defrost_anomaly", "physics_block")
+                          else "ai_gateway")
+                )
+                by_kind.setdefault(key, []).append(text)
+        rows = [
+            ("cold_room",
+             "Forced defrost hits the cold room (Europe 2 Nov pattern)" if not es
+             else "Deshielo forzado contra la cámara (patrón Europa 2-nov)",
+             "kept in last safe state" if not es else "quedó en su último estado seguro",
+             FREEZER_SOURCES),
+            ("payments",
+             "A supplier's bank details are changed, then a payment follows (Arkéa pattern)"
+             if not es else
+             "Cambian los datos bancarios de un proveedor y sigue un pago (patrón Arkéa)",
+             "transfer held, bank-details change frozen" if not es
+             else "transferencia retenida, cambio de datos bancarios congelado",
+             ARKEA_SOURCES),
+            ("ai_gateway",
+             "Calls burst in with a stolen agent key (our October incident)" if not es
+             else "Llamadas en ráfaga con una llave de agente robada (nuestro incidente de octubre)",
+             "key replaced: the attacker now gets 401" if not es
+             else "llave reemplazada: el atacante ahora recibe 401",
+             ()),
+        ]
+        return [
+            {
+                "app": app, "title": title, "findings": by_kind.get(app, []),
+                "contained": contained, "sources": list(sources), "simulated": True,
+            }
+            for app, title, contained, sources in rows
+        ]
+
+    @staticmethod
+    def _pending_business() -> dict[str, list[str]]:
+        """Lo irreversible, en lenguaje de negocio y en los dos idiomas."""
         return {
-            "title": (
-                "You were attacked. We already did:" if not es
-                else "Fuiste atacado. Ya hicimos:"
-            ),
-            "already_did": seen,
-            "pending_owner": self.pending_owner,
-            "simulated": True,
+            "en": [
+                "Make Acme Foods' bank-details change final — only with your second factor",
+                "Execute the held payment to Acme Foods — only with your second factor",
+            ],
+            "es": [
+                "Dejar fijo el cambio de datos bancarios de Acme Foods: solo con tu segundo factor",
+                "Ejecutar el pago retenido a Acme Foods: solo con tu segundo factor",
+            ],
         }
 
     # -- acciones del dueño ---------------------------------------------------
@@ -420,6 +493,9 @@ class SentinelRun:
             "cold": self.cold,
             "legit_allowed": self.legit_allowed,
             "legit_counters": self.legit_counters,
+            "legit_still_running": self.legit_still_running,
+            "legit_total": 300,
+            "scope_level": self.scope_level,
             "released": self.released,
             "second_factor_demo": self._factor if self.replayed else "",
         }
@@ -461,6 +537,9 @@ SENTINEL_T: dict[str, dict[str, str]] = {
         "replay_btn": "Replay this week's attacks",
         "new_run": "New run",
         "detected_contained": "detected → contained",
+        "still_a": "Legitimate operations still running:",
+        "still_b": "(shutting everything down: 0/300)",
+        "approve2fa": "Approve with 2nd factor",
         "ms": "ms",
         "not_run": "Press the button: the wave is simulated, the engine is real.",
         "timeline": "Timeline",
@@ -499,6 +578,9 @@ SENTINEL_T: dict[str, dict[str, str]] = {
         "replay_btn": "Repetir los ataques de esta semana",
         "new_run": "Nueva corrida",
         "detected_contained": "detectado → contenido",
+        "still_a": "Operaciones legítimas que siguen vivas:",
+        "still_b": "(apagar todo: 0/300)",
+        "approve2fa": "Aprobar con segundo factor",
         "ms": "ms",
         "not_run": "Pulsa el botón: la ola es simulada, el motor es real.",
         "timeline": "Línea de tiempo",
@@ -555,27 +637,29 @@ a{color:#ffd28a}.wrap{width:min(1760px,calc(100% - 48px));margin:0 auto}
 .hero-fill{color:#E8A33D}.hero-outline{color:transparent;-webkit-text-stroke:2px rgba(255,255,255,.92)}
 .hero-sub{margin:12px auto 0;max-width:900px;font-size:clamp(22px,2.2vw,32px);font-weight:650;line-height:1.25}
 .hero-note{margin:10px auto 0;max-width:820px;color:var(--muted);font-size:17px}
-.apps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
-.app-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 18px}
+.apps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0}
+.app-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 16px}
 .app-card h3{margin:0 0 4px;font-size:19px}.app-status{font-weight:700;font-size:14px}
 .app-card[data-state="ok"] .app-status{color:var(--ok-text)}.app-card[data-state="contained"]{border-color:rgba(239,168,58,.65)}
 .app-card[data-state="contained"] .app-status{color:var(--warn-text)}
 .app-detail{color:var(--muted);font-size:14px;margin:4px 0 0}
 .counter{text-align:center;margin:4px 0 2px}.counter b{font-size:50px;letter-spacing:-.02em;color:var(--warn-text)}
 .counter span{display:block;color:var(--muted);font-size:15px}
-.grid{display:grid;grid-template-columns:1.25fr .9fr;gap:14px;align-items:start;margin:14px 0}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 20px}
-.panel h2{margin:0 0 10px;font-size:21px}
-.tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
-.tl li{border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:var(--sunk)}
+.grid{display:grid;grid-template-columns:1.25fr .9fr;gap:14px;align-items:start;margin:10px 0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 18px}
+.panel h2{margin:0 0 8px;font-size:20px}
+.tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.tl li{border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:var(--sunk)}
 .tl .t-head{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}.tl .t-title{font-weight:650;flex:1}
 .tl .ms{font-family:var(--mono);color:var(--warn-text);font-size:14px}
 .tl p{margin:4px 0;color:var(--muted);font-size:15px}
 .chip{display:inline-flex;padding:2px 10px;border-radius:6px;font-size:13px;font-weight:700;background:rgba(239,168,58,.14);color:var(--warn-text);border:1px solid rgba(239,168,58,.5)}
 .chip.allow{background:rgba(54,179,126,.14);color:var(--ok-text);border-color:rgba(54,179,126,.5)}
 .chart{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:10px}
-.chat{background:#0b1410;border:1px solid rgba(54,179,126,.4);border-radius:8px;padding:14px 18px}
-.chat-text{font-size:19px;font-weight:600}.chat ol{margin:8px 0;padding-left:22px}.chat li{margin:4px 0}
+.chat{background:#0b3d2e;border:1px solid rgba(54,179,126,.5);border-radius:12px 12px 12px 2px;padding:12px 16px;max-width:560px}
+.chat p{margin:5px 0;font-size:16px}.chat-text{font-size:17px;font-weight:650}
+.stillrow{text-align:center;color:var(--muted);font-size:16px;margin:2px 0 8px}.stillrow b{color:var(--ok-text);font-size:19px}
+.chart svg{height:175px}
 .measure{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding:8px 0;font-size:15px}
 .measure code{font-family:var(--mono);font-size:13px;color:var(--muted)}
 input[type="text"]{min-height:40px;padding:8px 12px;font:inherit;background:var(--sunk);border:1px solid var(--line-strong);border-radius:8px;color:var(--text)}
@@ -609,17 +693,17 @@ function render(data) {
   byId("cPayments").textContent = c.payments_ok || 0; byId("cPos").textContent = c.pos_ok || 0;
   byId("cCold").textContent = c.cold_ok || 0; byId("cGateway").textContent = c.gateway_ok || 0;
   byId("bigMs").textContent = data.replayed ? Number(data.detect_to_contain_ms || 0).toFixed(1) + " ms" : "—";
+  byId("stillN").textContent = (data.legit_still_running ?? 300) + "/" + (data.legit_total || 300);
   const tl = byId("timeline"); clear(tl);
   if (!data.replayed) { tl.appendChild(el("li", TEXT.not_run)); }
   (data.timeline || []).forEach((e2) => {
     const li = el("li");
     const head = el("div", null, "t-head");
     head.appendChild(el("span", e2.title, "t-title"));
-    head.appendChild(el("span", e2.detect_to_contain_ms + " ms", "ms"));
     li.appendChild(head);
     (e2.findings || []).forEach((f) => li.appendChild(el("p", f)));
     const chip = el("span", TEXT.contained + " — " + e2.contained, "chip"); li.appendChild(chip);
-    li.appendChild(el("span", " simulated", "hint"));
+    li.appendChild(el("span", " " + TEXT.simulated, "hint"));
     if ((e2.sources || []).length) { const p = el("p", TEXT.sources + ": "); e2.sources.forEach((u, i) => { const a = el("a", "[" + (i + 1) + "]"); a.href = u; a.target = "_blank"; a.rel = "noopener"; p.appendChild(a); p.appendChild(el("span", " ")); }); li.appendChild(p); }
     tl.appendChild(li);
   });
@@ -629,20 +713,21 @@ function render(data) {
     const chart = el("div", null, "chart"); chart.innerHTML = data.cold.svg; cold.appendChild(chart);
   } else { cold.appendChild(el("p", TEXT.not_run, "hint")); }
   const notice = byId("notice"); clear(notice);
-  if (data.notice && data.notice.title) {
-    notice.appendChild(el("p", data.notice.title, "chat-text"));
-    const ol = el("ol"); (data.notice.already_did || []).forEach((item, i) => ol.appendChild(el("li", item))); notice.appendChild(ol);
+  const noticeText = data.notice ? (TEXT.lang_code === "es" ? data.notice.text_es : data.notice.text_en) : "";
+  if (noticeText) {
+    noticeText.split("\n").forEach((line, i) => notice.appendChild(el("p", line, i === 0 ? "chat-text" : "")));
     const byKind = {};
     (data.measures || []).forEach((m) => { (byKind[m.kind + "|" + m.app] = byKind[m.kind + "|" + m.app] || []).push(m); });
     Object.values(byKind).forEach((group) => {
       const m = group[0];
       const row = el("div", null, "measure");
-      row.appendChild(el("code", m.kind + " · " + m.app));
+      row.appendChild(el("span", TEXT.lang_code === "es" ? m.label_es : m.label_en));
       const b = el("button", m.undone ? TEXT.undone : TEXT.undo, "btn small"); b.type = "button"; b.disabled = !!m.undone;
       b.addEventListener("click", async () => { const form = new FormData(); form.append("undo_id", m.undo_id); const r = await api("/sentinel/undo", {method: "POST", body: form}); render(r.data.state || r.data); });
       row.appendChild(b); notice.appendChild(row);
     });
-    (data.pending_owner || []).forEach((p) => notice.appendChild(el("p", "⏳ " + p, "hint")));
+    const pending = (data.pending_owner || {})[TEXT.lang_code] || [];
+    pending.forEach((p) => notice.appendChild(el("p", "⏳ " + p, "hint")));
     byId("releaseBox").hidden = false;
     byId("demoCode").textContent = data.second_factor_demo || "";
     if (data.released) { byId("releaseLine").textContent = TEXT.released; byId("releaseBtn").disabled = true; }
@@ -717,6 +802,7 @@ def render_sentinel_page(lang: str = "en") -> str:
         "<main class='wrap'>"
         f"<section id='apps' class='apps' aria-live='polite'>{apps_html}</section>"
         f"<div class='counter'><b id='bigMs'>—</b><span>{_e(t('detected_contained'))} · {_e(t('simulated'))}</span></div>"
+        f"<p class='stillrow'>{_e(t('still_a'))} <b id='stillN'>300/300</b> {_e(t('still_b'))}</p>"
         "<div class='grid'>"
         f"<section class='panel'><h2>{_e(t('timeline'))}</h2><ul class='tl' id='timeline'></ul>"
         f"<h2 style='margin-top:18px'>{_e(t('legit_title'))}</h2><div class='legit'>"
@@ -731,7 +817,7 @@ def render_sentinel_page(lang: str = "en") -> str:
         "<div id='releaseBox' hidden>"
         f"<p class='hint'>{_e(t('release_hint'))} <span class='mono' id='demoCode'></span></p>"
         f"<input type='text' id='factorInput' placeholder='{_e(t('release_code_ph'))}' autocomplete='off'> "
-        f"<button class='btn primary' id='releaseBtn' type='button'>{_e(t('release'))}</button>"
+        f"<button class='btn primary' id='releaseBtn' type='button'>{_e(t('approve2fa'))}</button>"
         "<p class='hint' id='releaseLine' aria-live='polite'></p></div>"
         "</section></div>"
         "</main>"
