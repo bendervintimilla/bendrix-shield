@@ -16,6 +16,15 @@ pipeline pone el detector de residuo aguas arriba y FALLA CERRADO:
    fue visible; si no se vio, se conserva el estado previo).
 3. ``gate.verify_action`` decide sobre el estado ya corregido.
 
+El ``rescue_grant`` firmado (M1, shield/physics/rescue.py) se reenvía
+tal cual al gate: el pipeline nunca lo valida por su cuenta (el nonce
+es de un solo uso y lo consume el gate). Si el sensor está falsificado
+pero la acción es un rescate con grant válido, la contención no se
+bloquea por la falla cerrada (C3-05): sale con el veredicto del gate si
+es allow, o ask_owner en caso contrario, siempre sobre el estado ya
+corregido por la física. Sin grant no hay privilegio, pase por donde
+pase la acción.
+
 Sin spoofing, el veredicto del gate pasa tal cual y la percepción solo
 actualiza masa/puerta. Todo determinista, sin red; lo simulado se rotula.
 """
@@ -32,6 +41,7 @@ from shield.physics.contract import (
     RoomState,
 )
 from shield.physics.gate import verify_action
+from shield.physics.rescue import RescueGrant
 from shield.physics.residual import _as_state, check_sensor
 
 
@@ -71,6 +81,7 @@ def verify_before_actuate(
     action: ProposedAction,
     history: list[ProposedAction] | None = None,
     perception: Any = None,
+    rescue_grant: RescueGrant | None = None,
 ) -> PhysicalVerdict:
     """Verifica sensor, corrige estado, aplica percepción y decide.
 
@@ -121,13 +132,23 @@ def verify_before_actuate(
         if perception_applied:
             layers.append("perception:sam-over-state")
 
-    verdict = verify_action(params, corrected, action, history=history)
+    verdict = verify_action(
+        params, corrected, action, history=history, rescue_grant=rescue_grant
+    )
     layers.append(f"gate:{verdict.decision}")
 
     decision = verdict.decision
     fail_closed = False
     mitigates = _reduces_risk(action, corrected)
-    if spoofed:
+    # Rescate con grant válido: el gate ya lo validó (y consumió el nonce).
+    valid_rescue = verdict.evidence.get("rescue_action") is True
+    if spoofed and valid_rescue:
+        cold_hazard = min(verdict.with_action.product_c) < params.safe_min_c
+        decision = "block" if cold_hazard else (
+            "allow" if verdict.decision == "allow" else "ask_owner"
+        )
+        layers.append("rescue:valid-grant")
+    elif spoofed:
         fail_closed = True
         if mitigates:
             # Lo mitigante va al dueño, no se bloquea por el daño ya hecho;
@@ -139,7 +160,14 @@ def verify_before_actuate(
             decision = "block"
         layers.append("fail_closed:ask_owner" if decision == "ask_owner" else "fail_closed:block")
 
-    if spoofed and decision == "block" and not mitigates:
+    if spoofed and valid_rescue:
+        reason = (
+            f"Sensor falsificado: {sensor.get('explanation', '')} "
+            f"Estado corregido por física (aire {corrected.air_c:.1f} °C, "
+            f"producto {corrected.product_c:.1f} °C); el rescate trae grant "
+            f"firmado válido y la contención no se bloquea. Gate: {verdict.reason}"
+        )
+    elif spoofed and decision == "block" and not mitigates:
         reason = (
             f"Sensor falsificado: {sensor.get('explanation', '')} "
             f"Estado corregido por física (aire {corrected.air_c:.1f} °C, "
@@ -186,6 +214,9 @@ def verify_before_actuate(
             "perception_applied": perception_applied,
             "perception": perc,
             "fail_closed": fail_closed,
+            "rescue_grant_forwarded": rescue_grant is not None,
+            "rescue_grant_status": verdict.evidence.get("rescue_grant_status"),
+            "rescue_action": verdict.evidence.get("rescue_action"),
             "action_reduces_risk": mitigates if spoofed else None,
             "gate_decision_before_fail_closed": verdict.decision,
             "simulated": True,
