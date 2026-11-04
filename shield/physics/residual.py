@@ -142,8 +142,8 @@ def _actions_from_history(states: list[RoomState], dt_min: float) -> list[Propos
 
 def _predict_with_simulate(
     params: ColdRoomParams, states: list[RoomState], dt_min: float
-) -> list[float] | None:
-    """Predice el aire con M1; None si thermal.simulate aún no existe."""
+) -> tuple[list[float], list[float]] | None:
+    """Predice (aire, producto) con M1; None si simulate aún no existe."""
     try:
         from shield.physics.thermal import simulate
     except ImportError:
@@ -157,23 +157,24 @@ def _predict_with_simulate(
     step_min = (traj.t_min[1] - traj.t_min[0]) if len(traj.t_min) > 1 else _DT_S / 60.0
     if step_min <= 0:
         step_min = _DT_S / 60.0
-    base = traj.t_min[0]
-    out: list[float] = []
+    air_out: list[float] = []
+    prod_out: list[float] = []
     for s in states:
         idx = int(round((s.t_min - states[0].t_min) / step_min))
         idx = min(max(idx, 0), len(traj.air_c) - 1)
-        _ = base
-        out.append(float(traj.air_c[idx]))
-    return out
+        air_out.append(float(traj.air_c[idx]))
+        prod_out.append(float(traj.product_c[idx]))
+    return air_out, prod_out
 
 
 def _predict_internal(
     params: ColdRoomParams, states: list[RoomState], dt_min: float
-) -> list[float]:
+) -> tuple[list[float], list[float]]:
     """Integrador de dos nodos con los actuadores registrados paso a paso."""
     air = float(states[0].air_c)
     product = float(states[0].product_c)
     out = [air]
+    prod_out = [product]
     sub = max(1, int(round(dt_min * 60.0 / _DT_S)))
     h = dt_min * 60.0 / sub
     # Los actuadores de la muestra i rigen el intervalo i -> i+1.
@@ -193,7 +194,8 @@ def _predict_internal(
             air += d_air * h
             product += d_prod * h
         out.append(air)
-    return out
+        prod_out.append(product)
+    return out, prod_out
 
 
 def _std(values: list[float]) -> float:
@@ -233,15 +235,21 @@ def check_sensor(
             "mean_abs_residual_c": 0.0,
             "stuck": False,
             "n_samples": 0,
+            "predicted_product_last_c": 0.0,
+            "predicted_minutes_above": 0.0,
             "simulated": True,
         }
     states, reps = states[:n], reps[:n]
     dt_min = _cadence_min(states)
-    predicted = _predict_with_simulate(params, states, dt_min)
+    both = _predict_with_simulate(params, states, dt_min)
     source = "thermal.simulate"
-    if predicted is None:
-        predicted = _predict_internal(params, states, dt_min)
+    if both is None:
+        both = _predict_internal(params, states, dt_min)
         source = "integrador interno (M1 aún no fusionado)"
+    predicted, predicted_product = both
+    predicted_minutes_above = sum(
+        dt_min for p in predicted_product if p > params.safe_max_c
+    )
 
     residuals = [r - p for r, p in zip(reps, predicted, strict=True)]
     abs_res = [abs(r) for r in residuals]
@@ -296,6 +304,8 @@ def check_sensor(
         "dt_min": dt_min,
         "prediction_source": source,
         "predicted_last_c": round(float(predicted[-1]), 3),
+        "predicted_product_last_c": round(float(predicted_product[-1]), 3),
+        "predicted_minutes_above": round(float(predicted_minutes_above), 2),
         "reported_last_c": round(float(reps[-1]), 3),
         "simulated": True,
     }
