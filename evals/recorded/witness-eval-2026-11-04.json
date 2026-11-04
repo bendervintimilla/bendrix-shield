@@ -1,0 +1,929 @@
+{
+  "meta": {
+    "eval": "witness-camera",
+    "model": "sam-3.1",
+    "run_at": "2026-11-04T19:52:55+00:00",
+    "site": "madrid",
+    "person_concepts": [
+      "person"
+    ],
+    "door_concepts": [],
+    "labels_total": 46,
+    "labeled_frames_missing": [],
+    "privacy": "sin imágenes, cajas ni rutas absolutas; cuadros fuera del repo"
+  },
+  "summary": {
+    "frames": 46,
+    "sam_errors": 0,
+    "people_scored": 46,
+    "people_exact": 37,
+    "people_exact_rate": 0.8043,
+    "people_mae": 0.3478,
+    "people_within_1": 39,
+    "count": {
+      "n": 46,
+      "exact": 37,
+      "exact_rate": 0.8043,
+      "mae": 0.3478,
+      "within_1": 39,
+      "within_1_rate": 0.8478
+    },
+    "count_unambiguous": {
+      "n": 31,
+      "exact": 31,
+      "exact_rate": 1.0,
+      "mae": 0.0,
+      "within_1": 31,
+      "within_1_rate": 1.0
+    },
+    "count_by_camera": {
+      "cocina1": {
+        "n": 10,
+        "exact": 10,
+        "exact_rate": 1.0,
+        "mae": 0.0,
+        "within_1": 10,
+        "within_1_rate": 1.0
+      },
+      "cocina1-noche-0300": {
+        "n": 10,
+        "exact": 10,
+        "exact_rate": 1.0,
+        "mae": 0.0,
+        "within_1": 10,
+        "within_1_rate": 1.0
+      },
+      "cocina2": {
+        "n": 11,
+        "exact": 11,
+        "exact_rate": 1.0,
+        "mae": 0.0,
+        "within_1": 11,
+        "within_1_rate": 1.0
+      },
+      "pasillo": {
+        "n": 15,
+        "exact": 6,
+        "exact_rate": 0.4,
+        "mae": 1.0667,
+        "within_1": 8,
+        "within_1_rate": 0.5333
+      }
+    },
+    "presence": {
+      "n": 46,
+      "tp": 36,
+      "fp": 0,
+      "fn": 0,
+      "tn": 10,
+      "precision": 1.0,
+      "recall": 1.0,
+      "accuracy": 1.0,
+      "empty_precision": 1.0,
+      "empty_recall": 1.0
+    },
+    "presence_by_camera": {
+      "cocina1": {
+        "n": 10,
+        "tp": 10,
+        "fp": 0,
+        "fn": 0,
+        "tn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "accuracy": 1.0,
+        "empty_precision": null,
+        "empty_recall": null
+      },
+      "cocina1-noche-0300": {
+        "n": 10,
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 10,
+        "precision": null,
+        "recall": null,
+        "accuracy": 1.0,
+        "empty_precision": 1.0,
+        "empty_recall": 1.0
+      },
+      "cocina2": {
+        "n": 11,
+        "tp": 11,
+        "fp": 0,
+        "fn": 0,
+        "tn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "accuracy": 1.0,
+        "empty_precision": null,
+        "empty_recall": null
+      },
+      "pasillo": {
+        "n": 15,
+        "tp": 15,
+        "fp": 0,
+        "fn": 0,
+        "tn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "accuracy": 1.0,
+        "empty_precision": null,
+        "empty_recall": null
+      }
+    },
+    "door_labeled": 0,
+    "door_decided": 0,
+    "door_abstained": 0,
+    "door_correct": 0,
+    "door_accuracy_on_decided": null,
+    "latency_ms_p50": 1298.857,
+    "latency_ms_p95": 2196.205,
+    "cost_usd_total": 0.115,
+    "cost_usd_per_frame": 0.0025
+  },
+  "frames": [
+    {
+      "frame": "cocina1-noche-0300_20261104-204645.jpg",
+      "camera": "cocina1-noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 2701.758,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cc686bb3921e64041ee"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204647.jpg",
+      "camera": "cocina1-noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1997.243,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cc9da26c40bbbc844ae"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204649.jpg",
+      "camera": "cocina1-noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1436.629,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ccb3888410f19674e91"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204651.jpg",
+      "camera": "cocina1-noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 2019.34,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ccd516a5817853e4062"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204653.jpg",
+      "camera": "cocina1-noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1677.091,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ccf191eac33bc0d4fc2"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204655.jpg",
+      "camera": "cocina1-noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 871.774,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cd060a83e3084b64e1b"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204658.jpg",
+      "camera": "cocina1-noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1043.327,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cd21544ce8c13544257"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204700.jpg",
+      "camera": "cocina1-noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 830.084,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cd3e9041fbe5e584deb"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204702.jpg",
+      "camera": "cocina1-noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 976.106,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cd4216271218e5c4ce7"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1-noche-0300_20261104-204704.jpg",
+      "camera": "cocina1-noche-0300",
+      "expected_people": 0,
+      "people": 0,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1685.326,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cd6ef0c438a2c224850"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1_20261104-204341.jpg",
+      "camera": "cocina1",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1475.489,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cd7ef1cf3a5047d44c3"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1_20261104-204343.jpg",
+      "camera": "cocina1",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1298.857,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cd940338963e5f04b73"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1_20261104-204345.jpg",
+      "camera": "cocina1",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1189.71,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cdbcbbfba7c60dd44f8"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1_20261104-204348.jpg",
+      "camera": "cocina1",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 2050.645,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cddd21a51d7ccf5441f"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1_20261104-204350.jpg",
+      "camera": "cocina1",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1407.997,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cdf36f43773c7514480"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1_20261104-204352.jpg",
+      "camera": "cocina1",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1305.154,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ce1ec7a5c71c6db41d5"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1_20261104-204354.jpg",
+      "camera": "cocina1",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1758.378,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ce3b8f765c8d34c4691"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1_20261104-204356.jpg",
+      "camera": "cocina1",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1215.592,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ce57efe6f98d8b34d6c"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1_20261104-204358.jpg",
+      "camera": "cocina1",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 2061.611,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ce813b15c27a08b4234"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina1_20261104-204400.jpg",
+      "camera": "cocina1",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1195.937,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8ce96601efd1e0b34bdd"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina2_20261104-204423.jpg",
+      "camera": "cocina2",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 2511.029,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cec5086b82766fe4d43"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina2_20261104-204425.jpg",
+      "camera": "cocina2",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1235.997,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cee19c3821b8a774347"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina2_20261104-204427.jpg",
+      "camera": "cocina2",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1396.72,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cef411d1a4d789949b3"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina2_20261104-204429.jpg",
+      "camera": "cocina2",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1055.845,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cf1fe661216e5bc4134"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina2_20261104-204432.jpg",
+      "camera": "cocina2",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1006.205,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cf2151cf832e6974085"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina2_20261104-204434.jpg",
+      "camera": "cocina2",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1574.333,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cf348caaf1970f9474f"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina2_20261104-204436.jpg",
+      "camera": "cocina2",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1242.56,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cf539f4311c9438454e"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina2_20261104-204446.jpg",
+      "camera": "cocina2",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 969.423,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cf74b9f917d6bed45a6"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina2_20261104-204448.jpg",
+      "camera": "cocina2",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 954.138,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cf8eba843b61f1942f6"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina2_20261104-204451.jpg",
+      "camera": "cocina2",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 901.799,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cf9c6a075738a87422f"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "cocina2_20261104-204453.jpg",
+      "camera": "cocina2",
+      "expected_people": 1,
+      "people": 1,
+      "abs_error": 0,
+      "ambiguous": false,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1538.644,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cfb57a7c76fb44e4eda"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-204928.jpg",
+      "camera": "pasillo",
+      "expected_people": 4,
+      "people": 6,
+      "abs_error": 2,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1196.121,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cfd7c3c45a521fb4b32"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-204930.jpg",
+      "camera": "pasillo",
+      "expected_people": 4,
+      "people": 6,
+      "abs_error": 2,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1434.076,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8cfed43b9e3f43c846f8"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-204933.jpg",
+      "camera": "pasillo",
+      "expected_people": 4,
+      "people": 5,
+      "abs_error": 1,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1148.854,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d006c6aaf30b0f04cda"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-204935.jpg",
+      "camera": "pasillo",
+      "expected_people": 4,
+      "people": 4,
+      "abs_error": 0,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1436.565,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d022ba8df176d9849c1"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-204937.jpg",
+      "camera": "pasillo",
+      "expected_people": 3,
+      "people": 3,
+      "abs_error": 0,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1125.885,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d04517c91edda6d4c71"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-204940.jpg",
+      "camera": "pasillo",
+      "expected_people": 3,
+      "people": 5,
+      "abs_error": 2,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1224.186,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d0512d092b1d9a747b2"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-204942.jpg",
+      "camera": "pasillo",
+      "expected_people": 3,
+      "people": 4,
+      "abs_error": 1,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1332.634,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d07ce3f410f27084542"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-204945.jpg",
+      "camera": "pasillo",
+      "expected_people": 3,
+      "people": 3,
+      "abs_error": 0,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1156.323,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d086ef5f631916b45af"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-204947.jpg",
+      "camera": "pasillo",
+      "expected_people": 3,
+      "people": 3,
+      "abs_error": 0,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1884.911,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d0ad281adaa25de4dcd"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-204950.jpg",
+      "camera": "pasillo",
+      "expected_people": 3,
+      "people": 3,
+      "abs_error": 0,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1203.091,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d0c8a54eff8d5674d4a"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-204952.jpg",
+      "camera": "pasillo",
+      "expected_people": 3,
+      "people": 5,
+      "abs_error": 2,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1367.713,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d0e9e14878def6244d9"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-204954.jpg",
+      "camera": "pasillo",
+      "expected_people": 4,
+      "people": 4,
+      "abs_error": 0,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1645.349,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d10558532b5e33d41b6"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-204957.jpg",
+      "camera": "pasillo",
+      "expected_people": 5,
+      "people": 7,
+      "abs_error": 2,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1251.982,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d125c72e81b29ee4b8a"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-204959.jpg",
+      "camera": "pasillo",
+      "expected_people": 5,
+      "people": 7,
+      "abs_error": 2,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 2196.205,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d143daefda5d80e4091"
+      ],
+      "ok": true,
+      "error": null
+    },
+    {
+      "frame": "pasillo_20261104-205002.jpg",
+      "camera": "pasillo",
+      "expected_people": 5,
+      "people": 7,
+      "abs_error": 2,
+      "ambiguous": true,
+      "expected_door_open": null,
+      "door_open": null,
+      "latency_ms": 1254.237,
+      "cost_usd": 0.0025,
+      "response_ids": [
+        "resp_6aeb8d16625e1ef39af74543"
+      ],
+      "ok": true,
+      "error": null
+    }
+  ]
+}

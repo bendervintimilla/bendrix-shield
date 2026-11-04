@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-APPS = ("ai_gateway", "payments", "pos_erp", "cold_room")
+APPS = ("ai_gateway", "payments", "pos_erp", "cold_room", "camera")
 
 
 def _parse_ts(value: Any) -> datetime:
@@ -127,7 +127,29 @@ def from_cold_room(raw: dict[str, Any]) -> SecurityEvent:
         source=str(raw.get("source") or "agent"), ts=_parse_ts(raw.get("ts")),
         token_id=raw.get("token_id"),
         values={k: raw.get(k) for k in
-                ("value", "duration_min", "scheduled", "equipment") if raw.get(k) is not None},
+                ("value", "duration_min", "scheduled", "equipment", "site", "room")
+                if raw.get(k) is not None},
+    )
+
+
+def camera_event(obs: Any) -> SecurityEvent:
+    """Testigo físico (``shield.witness``) como evento: ``app='camera'``.
+
+    Acepta ``WitnessObservation`` o su ``public()``. No lleva imagen ni
+    cajas: solo el conteo, la puerta y si el testimonio es válido.
+    """
+    data = obs.public() if hasattr(obs, "public") else dict(obs)
+    room = str(data.get("room") or "")
+    return SecurityEvent(
+        app="camera", actor=f"camera:{data.get('camera') or 'unknown'}",
+        action="observation", target=room, source="camera",
+        ts=_parse_ts(data.get("captured_at")),
+        values={"site": str(data.get("site") or ""), "room": room,
+                "camera": str(data.get("camera") or ""),
+                "people": int(data.get("people") or 0),
+                "door_open": data.get("door_open"),
+                "ok": bool(data.get("ok", data.get("error") is None)),
+                "witness_source": str(data.get("source") or "")},
     )
 
 

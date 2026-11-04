@@ -1,18 +1,23 @@
 """wAIrrior Autopilot (M10): vigía entre apps con contención automática."""
 
 from shield.autopilot.detect import (
+    PHYSICAL_ACTIONS,
     ActorBaseline,
     Finding,
     Incident,
     correlate,
     detect,
+    harden_decision,
     triage_incident,
+    witness_findings,
+    witness_state,
 )
 from shield.autopilot.events import (
     APPS,
     ColdRoomHistory,
     SecurityEvent,
     build_internal_rescue_action,
+    camera_event,
     cold_room_physics_verdict,
     emit_safe_state_rescue,
     from_cold_room,
@@ -47,4 +52,6 @@ __all__ = [
     "dispatch_notice_sandbox", "from_cold_room", "from_gateway_call",
     "from_payment", "from_pos_erp", "from_webhook", "respond",
     "run_pipeline", "triage_incident",
+    "PHYSICAL_ACTIONS", "camera_event", "harden_decision", "witness_findings",
+    "witness_state",
 ]
