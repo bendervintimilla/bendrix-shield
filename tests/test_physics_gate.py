@@ -6,6 +6,7 @@ import time
 
 from shield.physics.contract import ColdRoomParams, ProposedAction, RoomState
 from shield.physics.gate import verify_action
+from shield.physics.safe_state import last_safe_action
 
 PARAMS = ColdRoomParams()
 
@@ -165,6 +166,86 @@ def test_repeated_forced_defrost_4x30min_in_2h_is_blocked() -> None:
     verdict = verify_action(PARAMS, RoomState(), fourth, history=history)
     assert verdict.decision == "block"
     assert verdict.peak_product_c > PARAMS.safe_max_c
+
+
+def test_r2_01_slow_freeze_huge_mass_is_blocked() -> None:
+    """R2-01: setpoint -6 °C con 2000 kg; el destino frío manda, no el horizonte."""
+    state = RoomState(product_kg=2000.0)
+    verdict = verify_action(PARAMS, state, ProposedAction(kind="set_setpoint", value=-6.0))
+    assert verdict.decision == "block"
+    assert verdict.evidence["cold_destination_block"] is True
+    assert verdict.evidence["steady_state_product_c"] == -6.0
+    # Dentro del horizonte el producto aún no cruza: el block es analítico.
+    assert min(verdict.with_action.product_c) > PARAMS.safe_min_c
+
+
+def test_r2_02_slow_freeze_moderate_is_blocked() -> None:
+    """R2-02: setpoint -3 °C con 1000 kg tampoco pasa allow."""
+    state = RoomState(product_kg=1000.0)
+    verdict = verify_action(PARAMS, state, ProposedAction(kind="set_setpoint", value=-3.0))
+    assert verdict.decision in ("block", "ask_owner")
+    assert verdict.decision == "block"
+
+
+def test_cold_destination_close_to_minimum_asks_owner() -> None:
+    """Destino frío a ≤0.5 °C sobre safe_min_c: ask_owner simétrico."""
+    state = RoomState(product_kg=2000.0)
+    verdict = verify_action(PARAMS, state, ProposedAction(kind="set_setpoint", value=-0.7))
+    assert verdict.decision == "ask_owner"
+
+
+def test_r2_09_autopilot_rescue_cancels_active_defrost() -> None:
+    """R2-09: last_safe_action con deshielo activo en history es allow."""
+    history = [
+        ProposedAction(kind="defrost", duration_min=120, start_in_min=0, source="attacker")
+    ]
+    action = ProposedAction(
+        kind="set_setpoint",
+        value=3.0,
+        start_in_min=0,
+        source="schedule",
+        requested_by="wairrior-autopilot",
+        note="last_safe_action de M1/M10",
+    )
+    state = RoomState(air_c=9.0, product_c=4.4, setpoint_c=3.0)
+    verdict = verify_action(PARAMS, state, action, history=history)
+    assert verdict.decision == "allow"
+    assert verdict.evidence["rescue_action"] is True
+    assert verdict.evidence["improves_over_doing_nothing"] is True
+    assert verdict.peak_product_c < PARAMS.safe_max_c
+
+
+def test_r2_10_autopilot_rescue_cancels_active_compressor_off() -> None:
+    """R2-10: last_safe_action con compressor_off activo en history es allow."""
+    history = [
+        ProposedAction(kind="compressor_off", duration_min=180, start_in_min=0, source="attacker")
+    ]
+    action = ProposedAction(
+        kind="set_setpoint",
+        value=3.0,
+        start_in_min=0,
+        source="schedule",
+        requested_by="wairrior-autopilot",
+        note="last_safe_action de M1/M10",
+    )
+    state = RoomState(air_c=8.0, product_c=4.3, setpoint_c=3.0)
+    verdict = verify_action(PARAMS, state, action, history=history)
+    assert verdict.decision == "allow"
+    assert verdict.evidence["rescue_action"] is True
+    assert verdict.peak_product_c < PARAMS.safe_max_c
+
+
+def test_rescue_during_active_defrost_with_tight_margin_allows_immediately() -> None:
+    """Rescate con producto a 4.5 °C y deshielo activo: allow, no ask por margen."""
+    state = RoomState(air_c=9.0, product_c=4.5)
+    history = [ProposedAction(kind="defrost", duration_min=240, source="attacker")]
+    verdict = verify_action(PARAMS, state, last_safe_action(PARAMS, state), history=history)
+    assert verdict.decision == "allow"
+    assert verdict.evidence["summary"].startswith(
+        "contención reversible: mejora frente a no hacer nada; margen restante"
+    )
+    assert verdict.evidence["remaining_margin_c"] < 0.5
+    assert verdict.evidence["peak_without_action_c"] > verdict.evidence["peak_product_c"]
 
 
 def test_verify_action_is_fast_enough() -> None:
