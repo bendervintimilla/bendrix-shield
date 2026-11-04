@@ -36,24 +36,22 @@ Rango: physical_start..physical_done
 Velocidad: 4
 Tag: SIMULATED · Physical · thermal twin
 ColorTag: blue
-Display: Physical scene (simulated): SAM 3.1 reads boxes and the open door; the thermal twin predicts product temperature with and without the action. "Defrost 4 h, door open" (the real 2 Nov pattern): block, breach would arrive at 45 min, peak 16.4 °C. The machine stays at its last safe state.
+Display: Physical scene (simulated): SAM 3.1 reads boxes and the open door; the thermal twin predicts product temperature with and without the action. With the door open, the scene shows: block, breach at 29 min, peak 13.3 °C. The machine stays at its last safe state.
 Spoken: text is not a security boundary. a defrost is a legitimate command. so before the agent acts, a thermal twin predicts what the product will do. if the trajectory breaks the safe envelope, the action is blocked alone, and the machine stays at its last safe state.
 
 ## S05 Cifras (1:36-2:02)
 Tipo: card
 Tarjeta: [64] 1,000 scenarios: 419/419 damaging actions stopped
-Tarjeta: [42] Arkéa pattern: 263/300 legitimate writes stay alive vs 0/300 suspending everything · sources in repo
-Display: Simulated, frozen first, published with the misses: 1,000 scenarios, predictive 419/419 vs static 7/419; three red-team rounds, every bypass published and closed; Arkéa pattern 263/300 legitimate writes alive vs 0/300.
+Tarjeta: [42] Arkéa pattern: 263/300 legitimate writes stay alive vs 0/300 suspending everything · evals/autopilot/REPORT.md @ 50a667e
+Display: Simulated, frozen first, published with the misses: 1,000 scenarios, predictive 419/419 vs static 7/419; three red-team rounds, every bypass published and closed; Arkéa pattern 263/300 legitimate writes alive vs 0/300 (REPORT @ 50a667e).
 Spoken: we froze the cases before measuring, and we publish the misses. across a thousand simulated scenarios, the predictive shield stopped every damaging action, while static rules stopped almost none. our own red team found real bypasses in three rounds. every one is published, and every one was closed.
 
 ## S06 Modelos de Meta en vivo (2:02-2:30)
-Tipo: panel
-Rango: attack_done..end
-Velocidad: 6
-Tag: LIVE · recorded 3-4 Nov · Meta models
-ColorTag: green
-Display: Real Meta runs, recorded: Muse Spark controller refused the injected defrost document; Spark also generated the attack plans and wrote the incident triage. SAM 3.1 counted 7/7 boxes and saw the open door. On 3 Nov the owner's WhatsApp voice note approved the rotation: stolen token 200 → 401 in 70.8 s, USD 0.097.
-Spoken: every model here is Meta, in recorded real runs. Spark refused the injected document, and Spark also played the attacker. SAM gave the twin its eyes. and the owner's own voice, transcribed by Muse Voice, approved the one irreversible step.
+Tipo: card
+Tarjeta: [64] Real Meta runs, recorded — no new footage
+Tarjeta: [38] Spark controller chatcmpl-01a1a7da… · Spark triage chatcmpl-01a1a7de… USD 0.014644 · Spark attacker chatcmpl-01a1a7d7… USD 0.0225 · SAM 3.1 resp_6aeb75fc… / resp_6aeb7ad7…
+Display: Two different 3 Nov runs, not one: the video take live_97efbfa04a72 (stolen token 200 → 401 in 70.8 s, USD 0.097) was approved with a synthetic voice in the browser (Meta MMS-TTS). Separately, the owner's real WhatsApp voice note approved a live rotation (run live_c31aa0ec5ef2, USD 0.076, 791 s including the wait for the owner).
+Spoken: every model here is Meta, in recorded real runs. two different runs, kept separate. the video take was approved with a synthetic voice in the browser. separately, the owner's real voice note on WhatsApp approved its own live rotation, including the long human wait.
 
 ## S07 Cierre (2:30-2:48)
 Tipo: card
@@ -72,8 +70,10 @@ Spoken: give the agent a new capability. knowing, before it acts, what its actio
   corrida. El aviso de WhatsApp en pantalla es el texto real de
   `evals/autopilot/REPORT.md` (ola combinada).
 - S04: escena Physical de M5; rotular «simulated» siempre que se vea la
-  trayectoria. Veredicto de pantalla: `block` a los 45 min, pico
-  16,4 °C, de `evals/recorded/physical-live-2026-11-04-defrost-r2.json`.
+  trayectoria. Veredicto de pantalla: el de la propia escena con
+  puerta abierta (`block`, ruptura a los 29 min, pico 13,3 °C). No
+  usar aquí el 45 min / 16,4 °C del deshielo sin puerta de la corrida
+  en vivo (`physical-live-2026-11-04-defrost-r2.json`): son dos casos.
 - S06: toma real del 3-nov (`live_97efbfa04a72`) más rótulos de las
   corridas del 4-nov (controlador Spark, triage Spark USD 0,014644 en
   `evals/recorded/autopilot-spark-triage-2026-11-04.json`, SAM puerta y

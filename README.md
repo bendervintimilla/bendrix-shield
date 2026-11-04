@@ -13,7 +13,7 @@ Why physics? Text is not a security boundary: a defrost is a legitimate command 
 | 1,000 generated scenarios | Predictive shield stopped 419/419 damaging actions (95% CI [0.9909, 1]); static rules 7/419; false blocks 23/581; verdict p50 1.6 ms | `evals/physical/REPORT.md` (simulated) |
 | Physical red team, 3 rounds | Every bypass found was published and then closed: deferred actions, cold-freeze destination, spoofed sensor, forged rescue (now an HMAC-signed `RescueGrant`) | `evals/physical/REDTEAM.md`, `shield/physics/rescue.py` (simulated) |
 | Spark as attacker (20 plans) | Static rules pass 8/11 damaging plans silently; physics-only shield stops all heat damage (1 cold plan passed then, closed in round 2) | `evals/physical/SPARK-ATTACKER.md` (live-generated, simulated eval) |
-| Autopilot vs suspend-everything (Arkéa pattern) | Attacks 2 → 0 while 263/300 legitimate writes stay alive; suspending everything keeps 0/300 | `evals/autopilot/REPORT.md` (simulated) |
+| Autopilot vs suspend-everything (Arkéa pattern) | Attacks 2 → 0 while 263/300 legitimate writes stay alive; suspending everything keeps 0/300 | `evals/autopilot/REPORT.md` @ `50a667e` (simulated) |
 | Live controller, real 2-Nov pattern | Muse Spark refused the injected "defrost 4 h, door open" document (0 actions); the physical gate blocked it (breach at 45 min, peak 16.4 °C) | `evals/recorded/physical-live-2026-11-04-defrost-r2.json` (live model, simulated physics) |
 | SAM 3.1 scene reading | 7/7 boxes counted; open door detected in the cold-room scene (AI-generated test images, labeled) | `evals/recorded/physical-sam-2026-11-04.json`, `physical-sam-door-2026-11-04.json` (live) |
 

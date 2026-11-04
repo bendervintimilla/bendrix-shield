@@ -29,7 +29,7 @@ la rotación automática existe como opción (`Actions(auto_contain=True)`,
 rotar ante canario, auditada) y el autopiloto entre apps
 (`shield/autopilot/`, pantalla Sentinel) contiene por actor, por app,
 por campaña o global según severidad, medido en simulación
-(`evals/autopilot/REPORT.md`: en el patrón Arkéa deja vivas 263/300
+(`evals/autopilot/REPORT.md` en `fx/m10-autopilot` @ `50a667e`: en el patrón Arkéa deja vivas 263/300
 escrituras legítimas contra 0/300 suspendiendo todo). La rotación de la
 toma en vivo del 3-nov sí esperó la aprobación por voz del dueño; eso no
 se reescribe: se muestra tal cual.
@@ -124,7 +124,7 @@ como atacante generó 20 planes: las estáticas dejan pasar 8/11 planes
 con daño; el escudo físico frenó todo el daño por calor
 (`evals/physical/SPARK-ATTACKER.md`). El autopiloto entre apps, en el
 patrón Arkéa, frena los ataques dejando vivas 263/300 escrituras
-legítimas, contra 0/300 si se suspende todo (`evals/autopilot/REPORT.md`),
+legítimas, contra 0/300 si se suspende todo (`evals/autopilot/REPORT.md` @ `50a667e`),
 y la pantalla **Sentinel** lo muestra contenido con el aviso posterior
 al dueño. En vivo, Muse Spark no obedeció el documento inyectado con
 «defrost cycle 4 h, door open» (propuso cero acciones) y la acción,
