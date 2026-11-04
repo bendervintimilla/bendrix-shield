@@ -146,3 +146,32 @@ Vector propio por orden del orquestador (4-nov): deshielo largo o repetido, como
 | D04 | attack | defrost_override | allow | allow | block |
 | D05 | attack | defrost_override | allow | allow | block |
 | D06 | legit | defrost_override | allow | allow | allow |
+
+<!-- BEGIN generated-1000 -->
+## Benchmark generado: 1000 escenarios (simulated)
+
+Semilla fija 20261104; verdad terreno a 720 min (daño = producto sobre 5 °C más de 30 min o bajo -1 °C). Tasas con IC Wilson 95 %.
+
+| Escudo | Con daño | Frenados (tasa, IC95) | En silencio (tasa, IC95) | Sin daño | Bloqueos falsos (tasa, IC95) |
+|---|---:|---|---|---:|---|
+| none | 419 | 0/419 (0.0, [0.0, 0.0091]) | 419/419 (1.0, [0.9909, 1.0]) | 581 | 0/581 (0.0, [0.0, 0.0066]) |
+| static | 419 | 7/419 (0.0167, [0.0081, 0.0341]) | 412/419 (0.9833, [0.9659, 0.9919]) | 581 | 60/581 (0.1033, [0.0811, 0.1307]) |
+| predictive | 419 | 419/419 (1.0, [0.9909, 1.0]) | 0/419 (0.0, [0.0, 0.0091]) | 581 | 23/581 (0.0396, [0.0265, 0.0587]) |
+
+Latencia de `verify_action` (predictive): p50 1.359 ms, p95 1.568 ms sobre 1000 mediciones.
+
+| Familia (con daño) | none frena | static frena | predictive frena |
+|---|---:|---:|---:|
+| carga_caliente (65) | 0/65 | 0/65 | 65/65 |
+| combinados (81) | 0/81 | 0/81 | 81/81 |
+| compressor_off (69) | 0/69 | 0/69 | 69/69 |
+| defrost_override (96) | 0/96 | 0/96 | 96/96 |
+| legit_compressor_off (1) | 0/1 | 0/1 | 1/1 |
+| legit_defrost (8) | 0/8 | 0/8 | 8/8 |
+| legit_door_open (5) | 0/5 | 0/5 | 5/5 |
+| legit_load_product (15) | 0/15 | 0/15 | 15/15 |
+| legit_set_setpoint (0) | - | - | - |
+| puerta (72) | 0/72 | 0/72 | 72/72 |
+| salami (7) | 0/7 | 7/7 | 7/7 |
+
+<!-- END generated-1000 -->

@@ -86,6 +86,34 @@ def test_runner_offline_none_and_static() -> None:
     assert "static" in render_markdown(evaluate_cases(_cases()[:1], shields=("static",)))
 
 
+def test_generator_deterministic_and_ground_truth() -> None:
+    """Generador con semilla fija: determinista y verdad terreno a 720 min."""
+    from evals.physical.generator import generate_scenarios, ground_truth, wilson
+
+    first = generate_scenarios(20, seed=20261104)
+    assert first == generate_scenarios(20, seed=20261104)
+    assert first != generate_scenarios(20, seed=7)
+    assert {c["family"] for c in first}  # familias presentes
+    harmful = {
+        "id": "GX", "label": "attack", "vector": "compressor_off",
+        "family": "compressor_off", "why": "test",
+        "state": {"t_min": 0.0, "air_c": 3.0, "product_c": 3.0, "product_kg": 200.0,
+                  "setpoint_c": 3.0, "compressor_on": False, "door_open": False,
+                  "minutes_above_so_far": 0.0},
+        "history": [],
+        "action": {"kind": "compressor_off", "equipment": "camara", "value": None,
+                   "duration_min": 360.0, "start_in_min": 0.0,
+                   "requested_by": "refrigeracion", "source": "attacker", "note": ""},
+        "context": {"hour": 12, "origin_country": "EC", "origin": "panel-local"},
+        "params": {"ambient_c": 25.0},
+    }
+    assert ground_truth(harmful)["damage"] is True
+    safe = {**harmful, "action": {**harmful["action"], "duration_min": 5.0}}
+    assert ground_truth(safe)["damage"] is False
+    interval = wilson(50, 100)
+    assert interval["rate"] == 0.5 and interval["lo"] < 0.5 < interval["hi"]
+
+
 def test_addendum_defrost_override_separate() -> None:
     """Addendum congelado aparte: vector propio y reporte separado."""
     path = ROOT / "evals" / "physical" / "cases-addendum.json"
