@@ -81,7 +81,7 @@ def test_deriva_en_rango_tambien_bloqueada(client):
         client.post(f"/physical/step/{step}")
     drift = client.post("/physical/step/drift").json()
     assert [s["static"]["decision"] for s in drift["drift_steps"]] == ["allow"] * 3
-    assert [s["value_c"] for s in drift["drift_steps"]] == [4.0, 5.0, 6.0]
+    assert [s["value_c"] for s in drift["drift_steps"]] == [4.0, 5.5, 7.0]
     assert drift["physical"]["decision"] == "block"
     assert drift["physical"]["predicted_breach_min"] is not None
     assert "<svg" in drift["svg"]

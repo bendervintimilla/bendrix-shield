@@ -52,7 +52,7 @@ OFF_ACTION = ProposedAction(
     kind="compressor_off", duration_min=300.0, source="document",
     requested_by="refrigeracion", note="modo ahorro tras la carga",
 )
-DRIFT_VALUES = (4.0, 5.0, 6.0)
+DRIFT_VALUES = (4.0, 5.5, 7.0)
 SAFE_ACTION = ProposedAction(
     kind="set_setpoint", value=3.0, source="agent",
     requested_by="refrigeracion", note="alternativa segura",
