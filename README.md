@@ -6,11 +6,18 @@ This week made it real: on 2 Nov attackers remotely forced supermarket freezers 
 
 **Contain first, ask later: anything reversible wAIrrior does on its own in seconds; anything irreversible waits for the owner.** Then the owner hears: "You were attacked. We already did X, Y, Z. Tap to undo." The **Sentinel** screen shows exactly that: every connected app and machine on one timeline, a combined attack wave contained per app (blocked defrost, held payment, rotated token) while normal work continues, and the owner's WhatsApp notice after containment.
 
+**Watch and try (no sign-in):** video (2:21) https://youtu.be/FkB9mli3ZHU · demo https://bendrix-shield-panel-290240328973.us-central1.run.app/ with the scenes [Sentinel](https://bendrix-shield-panel-290240328973.us-central1.run.app/?scene=sentinel&lang=en), [Real cameras](https://bendrix-shield-panel-290240328973.us-central1.run.app/?scene=surveillance&lang=en) and [Physics](https://bendrix-shield-panel-290240328973.us-central1.run.app/?scene=physical&lang=en).
+
+**Real cameras, real Meta models.** Meta SAM 3.1 watches 5 real security cameras of our restaurant in Madrid. Every person is covered before any frame is shown, and raw frames never leave our machine (only redacted or human-verified empty frames are deployed; none are in this repo). Five security apps run on it: occupancy, after-hours intrusion, storeroom stock watch, unattended cash desk, and a shift report that Muse Spark 1.3 writes from redacted frames and counts only.
+
 Why physics? Text is not a security boundary: a defrost is a legitimate command and a slow, in-range drift passes every static rule. Before an agent acts, a thermal twin (two nodes, air + product, deterministic, offline) predicts the **product** temperature with the accepted history included; the verdict depends on physics, not on the text that convinced the agent.
 
 | Strongest figures | Result | Source (label) |
 |---|---|---|
 | 1,000 generated scenarios | Predictive shield stopped 419/419 damaging actions (95% CI [0.9909, 1]); static rules 7/419; false blocks 23/581; verdict p50 1.6 ms | `evals/physical/REPORT.md` (simulated) |
+| SAM 3.1 on 5 real security cameras | 78 real frames labeled by hand: someone-vs-empty 78/78 (precision and recall 1.0); exact head count 59/78, within ±1 71/78 | `evals/recorded/witness-eval-2026-11-04.json` (live, real cameras) |
+| Security apps on those cameras | Occupancy, after-hours intrusion, storeroom stock, unattended cash desk, Spark shift report from redacted frames | `evals/recorded/surveillance-2026-11-04.json` (live) |
+| Sentinel, single-app attacks | Attack contained per app while 300/300 legitimate writes stay alive; suspending everything keeps 0/300 | `evals/autopilot/REPORT.md` (simulated) |
 | Physical red team, 3 rounds | Every bypass found was published and then closed: deferred actions, cold-freeze destination, spoofed sensor, forged rescue (now an HMAC-signed `RescueGrant`) | `evals/physical/REDTEAM.md`, `shield/physics/rescue.py` (simulated) |
 | Spark as attacker (20 plans) | Static rules pass 8/11 damaging plans silently; physics-only shield stops all heat damage (1 cold plan passed then, closed in round 2) | `evals/physical/SPARK-ATTACKER.md` (live-generated, simulated eval) |
 | Autopilot vs suspend-everything (Arkéa pattern) | Attacks 2 → 0 while 263/300 legitimate writes stay alive; suspending everything keeps 0/300 | `evals/autopilot/REPORT.md` @ `50a667e` (simulated) |
@@ -31,7 +38,9 @@ It lets an SME run AI agents — Purchasing reads supplier invoices, Warehouse c
 
 ## Live demo
 
-**Video (2:54, one live take on real Meta models):** https://youtu.be/_wTT0IqXHvI — narration and the owner's voice approval are synthetic (Meta MMS-TTS); sped-up parts are labeled. The take's own record (run `live_97efbfa04a72`) is `evals/recorded/live-run-video-take-2026-11-03.json`.
+**Final video (2:21, wAIrrior Frontier: Sentinel, real cameras, physics):** https://youtu.be/FkB9mli3ZHU
+
+**Earlier video (2:54, one live take on real Meta models, key-theft chain):** https://youtu.be/_wTT0IqXHvI — narration and the owner's voice approval are synthetic (Meta MMS-TTS); sped-up parts are labeled. The take's own record (run `live_97efbfa04a72`) is `evals/recorded/live-run-video-take-2026-11-03.json`.
 
 **https://bendrix-shield-panel-290240328973.us-central1.run.app/** — open it, no sign-in, nothing to install. It opens the same sphere screen as live mode, running the **Replay** (EN/ES, two scenes: Warehouse and Cold chain). Press **Run until the owner decides**, then type your approval and watch the stolen token go from `200` to `401` while the other agents keep working. Each visitor gets their own run; the approval goes through the real single-use flow.
 
